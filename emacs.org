@@ -1,0 +1,1336 @@
+#+TITLE: Emacs Config
+#+STARTUP: content
+#+PROPERTY: header-args :tangle yes
+
+* Initial
+** Lexical binding
+All right-thinking people use lexical binding.
+
+#+BEGIN_SRC emacs-lisp
+  ;; -*- lexical-binding: t -*-
+#+END_SRC
+
+** Theme
+Load my custom theme early so if we have errors emacs still looks pretty.
+
+#+BEGIN_SRC emacs-lisp
+  (straight-use-package '(themian :type git :host github :repo "turbana/themian"))
+  (load-theme 'themian-dark t)
+#+END_SRC
+
+** Disable cruft
+Turn off some default emacs settings I don't like, such as the menu bar, scroll
+bar, etc.
+
+#+BEGIN_SRC emacs-lisp
+  ;; disable some unwanted UI modes
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+
+  ;; don't show the initial emacs screen
+  (setq inhibit-startup-screen t)
+  ;; start in the *Messages* buffer
+  (setq initial-buffer-choice (lambda () (get-buffer "*Messages*")))
+  ;; let me use y/n in prompts
+  (fset 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+** Secrets
+I keep certain information out of source control: email addresses, account
+information, etc. I have a small python program called =secret= that I use to
+retrieve these secrets, let's expose that to emacs.
+
+#+BEGIN_SRC emacs-lisp
+  (setq ic/secret-cmd "secret")
+
+  (defun ic/get-secret (secret)
+    "Retrieve `secret' using the `ic/secret-cmd' program."
+    (first (process-lines ic/secret-cmd secret)))
+#+END_SRC
+
+** Debugging
+*** Tracing
+Some functions to trace the changing of variables.
+
+#+BEGIN_SRC emacs-lisp
+  ;; use when live editing
+  ;; (setq lexical-binding t)
+
+  (defvar ic/watch-variable-message-fmt "%s(%s): %s %S"
+    "Format to use when displaying variable changes. Equivalent to
+  `(format ic/watch-variable-message-fmt symbol buffer operation value)'.")
+
+  (defun ic/watch-variable (symbol &rest ops)
+    "Watch for any OPS operations on SYMBOL and call `message'. OPS defaults to
+  '(set), see `add-variable-watcher' for all possible values."
+    (defun watch-variable-call-message (symbol value operation buffer)
+      (message (ic//watch-variable-format symbol buffer operation value))
+    (ic/watch-variable-call-func symbol #'watch-variable-call-message ops)))
+
+  (defun ic/watch-variable-raise-debug (symbol &rest ops)
+    "Watch for any changes to SYMBOL and raise on error."
+    (defun watch-variable-raise-debug (symbol value operation buffer)
+      (let ((msg (ic//watch-variable-format symbol buffer operation value)))
+        (message msg)
+        (debug nil msg)))
+    (ic/watch-variable-call-func symbol #'watch-variable-raise-debug ops))
+
+  (defun ic/watch-variable-print-stack (symbol &rest ops)
+    "Watch for any changes to SYMBOL and print a stack trace."
+    (defun watch-variable-print-stack (symbol value operation buffer)
+      (message (ic//watch-variable-format symbol buffer operation value))
+      (if-let ((stack-trace (with-output-to-string (backtrace))))
+          (progn
+            (message ">>>>>>>>>>")
+            (message "%S" stack-trace)
+            (message "<<<<<<<<<<"))
+        (message "(no stack trace found)")))
+    (ic/watch-variable-call-func symbol #'watch-variable-print-stack ops))
+
+  (defvar ic//variable-watchers nil "a-list of variable watchers")
+
+  (defun ic/watch-variable-call-func (symbol func &rest ops)
+    "Watch for any OPS on SYMBOL and call FUNC."
+    (unless (assq symbol ic//variable-watchers)
+      (when (equal ops (list nil))
+        (setq ops '(set let unlet makunbound defvaralias)))
+      (defun watch-change (symbol value operation buffer)
+        (when (member operation ops)
+          (apply func (list symbol value operation buffer))))
+      (add-variable-watcher symbol #'watch-change)
+      (push (cons symbol #'watch-change) ic//variable-watchers)))
+
+  (defun ic/unwatch-variable (symbol)
+    "Remove any `ic/watch-variable-*' watchers from SYMBOL."
+    (let ((watcher (alist-get symbol ic//variable-watchers)))
+      (when watcher
+        (remove-variable-watcher symbol watcher)
+        (setq ic//variable-watchers
+              (assq-delete-all symbol ic//variable-watchers))
+        t)))
+
+  (defun ic//watch-variable-format (symbol value operation buffer)
+    "Generate printable string."
+    (format "%s(%s): %s %S" symbol buffer operation value))
+#+END_SRC
+
+*** TODO Profiling
+Some profiler keybindings.
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/start-cpu-profiler ()
+    "Start the CPU profiler."
+    (interactive)
+    (profiler-start 'cpu))
+
+  (defun ic/start-mem-profiler ()
+    "Start the memory profiler."
+    (interactive)
+    (profiler-start 'mem))
+#+END_SRC
+
+** Functional
+Let's have some functional functions.
+
+#+BEGIN_SRC emacs-lisp
+  (defun any (seq)
+    (reduce (lambda (x y) (or x y))
+            seq
+            :initial-value nil))
+
+  (defun all (seq)
+    ;; NOTE: we need to guard against an empty list as `(reduce :initial-value t)'
+    ;; will return `t' when given an empty list.
+    (when seq
+      (reduce (lambda (x y) (and x y))
+              seq)))
+#+END_SRC
+
+*** TODO Tests
+#+BEGIN_SRC emacs-lisp :tangle no
+  (ert-deftest ic-test-any ()
+    (should (eql (any '()) nil))
+    (should (eql (any '(t)) t))
+    (should (eql (any '(nil)) nil))
+    (should (eql (any '(nil t)) t))
+    (should (eql (any '(t t)) t)))
+
+  (ert-deftest ic-test-all ()
+    (should (eql (all '()) nil))
+    (should (eql (all '(t)) t))
+    (should (eql (all '(nil)) nil))
+    (should (eql (all '(nil t)) nil))
+    (should (eql (all '(t t)) t)))
+#+END_SRC
+
+** Leader Keys
+I like the way spacemacs handles leader keys with a "global" leader key (default
+=SPC=) and a mode specific leader key (default =,=). I don't like or need any base
+emacs leader keys or alternative mode specific keys (=SPC m=). This is my stripped
+down version of spacemacs leader key implementation.
+
+We use two packages to implement leader keys:
+- bind-map :: used for most of the keymap instrumentation
+- which-key :: used to display key binds in the mode-line
+
+*** bind-map
+#+BEGIN_SRC emacs-lisp
+  (use-package bind-map
+      :ensure t
+      :init
+      (defvar ic-leader-key "SPC"
+        "The leader key.")
+
+      (defvar ic-major-mode-leader-key ","
+        "Major mode leader key.")
+
+      (defvar ic-base-leader-map (make-sparse-keymap)
+        "Base keymap for all ic leader key commands.")
+
+      :config
+      (bind-map ic-base-leader-map
+          :evil-keys (ic-leader-key)
+          :override-minor-modes t
+          :override-mode-name ic-leader-override-mode)
+
+      (defun ic/leader-map-for-mode (mode &optional is-minor)
+        "Return the keymap for MODE under `ic-mode-leader-key', creating it if
+  necessary."
+        (let ((map (intern (format "ic-%s-map" mode)))
+              (prefix (intern (format "ic-%s-map-prefix" mode))))
+          (if (boundp map)
+              map
+            (eval
+             `(bind-map ,map
+                  :prefix-cmd ,prefix
+                  ,(if is-minor :minor-mode :major-modes) (,mode)
+                  :evil-keys (,ic-major-mode-leader-key))))))
+
+      (defun ic/set-leader-keys (key def &rest bindings)
+        "Add KEY and DEF as key bindings under `ic-leader-key'.
+  See `bind-map-set-keys' for more information."
+        (apply #'bind-map-set-keys ic-base-leader-map key def bindings))
+      (put 'ic/set-leader-keys 'lisp-indent-function 'defun)
+
+      (defun ic/set-leader-keys-for-major-mode (mode key def &rest bindings)
+        "Add KEY and DEF as key bindings under `ic-major-mode-leader-key' for the
+  major-mode MODE. MODE should be a quoted symbol corresponding to a valid major
+  mode. The rest of the arguments are treated exactly like they are in
+  `ic/set-leader-keys'."
+        (let ((mode-map (ic/leader-map-for-mode mode nil)))
+          (apply #'bind-map-set-keys mode-map key def bindings)))
+      (put 'ic/set-leader-keys-for-major-mode 'lisp-indent-function 'defun)
+
+      (defun ic/set-leader-keys-for-minor-mode (mode key def &rest bindings)
+        "Add KEY and DEF as key bindings under `ic-major-mode-leader-key' for the
+  minor-mode MODE. MODE should be a quoted symbol corresponding to a valid minor
+  mode. The rest of the arguments are treated exactly like they are in
+  `ic/set-leader-keys'."
+        (let ((mode-map (ic/leader-map-for-mode mode t)))
+          (apply #'bind-map-set-keys mode-map key def bindings)))
+      (put 'ic/set-leader-keys-for-minor-mode 'lisp-indent-function 'defun)
+      )
+#+END_SRC
+
+*** which-key
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+      :ensure t
+      :config
+      (which-key-mode 1)
+
+      (defun ic/declare-prefix (prefix name &optional long-name)
+        "Declare a prefix PREFIX. PREFIX is a string describing a key
+        sequence. NAME is a string used as the prefix command.
+        LONG-NAME if given is stored in `ic/prefix-titles'."
+        (let ((full-prefix (concat ic-leader-key " " prefix)))
+          (unless long-name (setq long-name name))
+          (which-key-add-key-based-replacements
+              full-prefix (cons name long-name))))
+      (put 'ic/declare-prefix 'lisp-indent-function 'defun)
+
+      (defun ic/declare-prefix-for-mode (mode prefix name &optional long-name)
+        "Declare a prefix PREFIX. MODE is the mode in which this prefix command should
+        be added. PREFIX is a string describing a key sequence. NAME is a symbol name
+        used as the prefix command."
+        (let ((full-prefix (concat ic-major-mode-leader-key " " prefix)))
+          (unless long-name (setq long-name name))
+          (which-key-add-major-mode-key-based-replacements
+              full-prefix (cons name long-name))))
+      (put 'ic/declare-prefix-for-mode 'lisp-indent-function 'defun)
+      )
+#+END_SRC
+
+* Packages
+** all-the-icons
+#+BEGIN_SRC emacs-lisp
+  (use-package all-the-icons)
+#+END_SRC
+
+** evil
+*** use-package
+#+BEGIN_SRC emacs-lisp :noweb yes
+  (use-package evil
+      :ensure evil
+      :init
+      <<evil-init>>
+      :config
+      <<evil-config>>
+      )
+#+END_SRC
+
+*** Init
+:PROPERTIES:
+:header-args: :noweb-ref evil-init
+:END:
+
+**** Misc
+The following are needed for =evil-collection=.
+
+#+BEGIN_SRC emacs-lisp
+  ;; needed for evil-collection
+  (setq evil-want-integration t)
+  (setq evil-want-keybinding nil)
+
+  ;; don't bind anything under C-g
+  (setq evil-want-C-g-bindings nil)
+#+END_SRC
+
+*** Config
+:PROPERTIES:
+:header-args: :noweb-ref evil-config
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (evil-mode 1)
+#+END_SRC
+
+** evil-collection
+#+BEGIN_SRC emacs-lisp
+  (use-package evil-collection
+      :after evil
+      :config
+      (evil-collection-init))
+#+END_SRC
+
+** helm
+#+BEGIN_SRC emacs-lisp
+  (use-package helm
+      :diminish t
+      ;; some temp key bindings
+      :bind (("M-x" . helm-M-x)
+             ("C-x C-f" . helm-find-files)
+             ("C-x f" . helm-recentf)
+             ("C-x b" . helm-buffers-list))
+      :bind (:map helm-map
+                  ("C-w" . backward-kill-word))
+      :config
+      (helm-mode 1))
+#+END_SRC
+
+** org
+=org-mode= is a large part of my daily emacs usage so it takes a large amount of
+my configuration as well. Let's go.
+
+*** use-package
+#+BEGIN_SRC emacs-lisp :noweb yes
+  (use-package org
+      :mode (("\\.org$" . org-mode))
+      :ensure org-plus-contrib
+      :after (all-the-icons yasnippet)
+      :config
+      <<org-config>>
+      (setq-local leader-map (ic/leader-map-for-mode 'org-mode))
+      :bind (:map leader-map
+                  ("r" . 'org-refile))
+      )
+#+END_SRC
+
+*** Config
+:PROPERTIES:
+:header-args: :noweb-ref org-config
+:END:
+
+**** Basic Setup
+#+BEGIN_SRC emacs-lisp
+  (setq org-agenda-files '("~/org" "~/org/home"))
+  (setq org-default-notes-file "~/org/refile.org")
+  (setq org-archive-location "%s_archive::")
+  (setq ic/org-capture-template-dir "~/.etc/spacemacs/org-capture-templates/")
+#+END_SRC
+**** Refile
+#+BEGIN_SRC emacs-lisp
+  (setq org-refile-targets
+        '((nil :maxlevel . 6)
+          (org-agenda-files :maxlevel . 2)))
+  (setq org-refile-use-outline-path 'file)
+  (setq org-outline-path-complete-in-steps nil)
+#+END_SRC
+**** Keybinds
+I want =, r= to refile rather than =, R=.
+#+BEGIN_SRC emacs-lisp
+  ;; (ic/set-leader-keys-for-major-mode 'org-mode "r" 'org-refile)
+#+END_SRC
+***** Agenda
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "M-<f1>") 'org-clock-goto)
+  (global-set-key (kbd "<f12>") 'org-agenda)
+#+END_SRC
+***** Refile jump
+Add ability to jump to any org heading with SPC-aoj
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-refile ()
+    "call C-u `org-refile'"
+    (interactive)
+    (setq current-prefix-arg '(1))
+    (call-interactively 'org-refile))
+  (ic/set-leader-keys "aoj" 'ic/org-refile)
+#+END_SRC
+***** Normal mode navigation
+#+BEGIN_SRC emacs-lisp
+  (defun ic/outline-current-heading-or-up ()
+    "When point is on an org-mode heading: move to parent heading;
+  otherwise: move to current heading."
+    (interactive)
+    (call-interactively (if (org-at-heading-p)
+                            'outline-up-heading
+                          'outline-previous-heading)))
+
+  (defun ic/outline-current-heading-or-backward ()
+    "when point is on an org-mode heading: move to previous heading;
+  otherwise: move to previous heading"
+    (interactive)
+    (call-interactively (if (org-at-heading-p)
+                            'org-backward-heading-same-level
+                          'outline-previous-heading)))
+
+  (evil-define-key 'normal org-mode-map (kbd "<left>") 'ic/outline-current-heading-or-up)
+  (evil-define-key 'normal org-mode-map (kbd "<up>") 'ic/outline-current-heading-or-backward)
+  (evil-define-key 'normal org-mode-map (kbd "<down>") 'org-forward-heading-same-level)
+  (evil-define-key 'normal org-mode-map (kbd "<right>") 'outline-next-visible-heading)
+
+  (evil-define-key 'normal org-mode-map (kbd "S-<left>") 'org-promote-subtree)
+  (evil-define-key 'normal org-mode-map (kbd "S-<up>") 'org-move-subtree-up)
+  (evil-define-key 'normal org-mode-map (kbd "S-<down>") 'org-move-subtree-down)
+  (evil-define-key 'normal org-mode-map (kbd "S-<right>") 'org-demote-subtree)
+
+  (evil-define-key 'normal org-mode-map (kbd "C-S-<left>") 'org-do-promote)
+  (evil-define-key 'normal org-mode-map (kbd "C-S-<right>") 'org-do-demote)
+#+END_SRC
+**** Appearance
+Basic heading setup
+#+BEGIN_SRC emacs-lisp
+  (setq org-startup-indented t)
+  (setq org-startup-folded nil)
+  (setq org-hide-leading-stars t)
+  (setq org-odd-levels-only nil)
+
+  (setq org-adapt-indentation t)
+  (setq org-indent-indentation-per-level 2)
+
+  (setq org-fontify-whole-heading-line t)
+  (setq org-fontify-done-headline nil)
+  (setq org-fontify-quote-and-verse-blocks t)
+#+END_SRC
+
+Let's use some fancy LaTeX symbols.
+Example: E \equal{} \gamma{}mc^2
+#+BEGIN_SRC emacs-lisp
+  (setq org-pretty-entities t)
+#+END_SRC
+
+Use =visual-line-mode= as =org-mode= is mostly prose.
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'org-mode-hook #'visual-line-mode)
+#+END_SRC
+
+Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]].
+#+BEGIN_SRC emacs-lisp
+  ;; ⚫•⦾⦿—⬎⌄⌵
+  (setq org-bullets-bullet-list '("•"))
+  (setq org-ellipsis " ⌵")
+  (setq ic/org-list-icon "—")
+  (font-lock-add-keywords
+   'org-mode
+   '(("^ *\\([-]\\) "
+      (0 (prog1 ()
+           (compose-region (match-beginning 1)
+                           (match-end 1)
+                           ic/org-list-icon))))))
+#+END_SRC
+
+XXX what do these do?
+#+BEGIN_SRC emacs-lisp
+  (setq org-completion-use-ido t)
+  (setq org-return-follows-link t)
+  ;; (setq org-blank-before-new-entry nil)
+#+END_SRC
+
+Use current window to edit =org-src= blocks. Don't indent.
+#+BEGIN_SRC emacs-lisp
+  (setq org-src-preserve-indentation nil)
+  (setq org-edit-src-content-indentation 2)
+  (setq org-src-window-setup 'current-window)
+#+END_SRC
+
+Hide emphasis markers such as *bold*, /italic/, etc.
+#+BEGIN_SRC emacs-lisp
+  (setq org-hide-emphasis-markers t)
+#+END_SRC
+**** Agenda
+***** Setup
+#+BEGIN_SRC emacs-lisp
+  ;; custom agenda views
+  (setq org-agenda-custom-commands
+        '(
+          ;; work agenda
+          ("w" "Work Agenda"
+           ((agenda "" nil)
+            (tags "refile"
+                  ((org-agenda-overriding-header "Refile tasks:")
+                   (org-tags-match-list-sublevels nil)))
+            ;; (tags "-refile/"
+            ;;       ((org-agenda-overriding-header "Archive tasks:")
+            ;;        (org-agenda-skip-function 'bh/skip-non-archivable-tasks)
+            ;;        (org-tags-match-list-sublevels nil)))
+            )
+           ((org-agenda-tag-filter-preset '("-HOME"))))
+
+          ;; home agenda
+          ("h" "Home agenda"
+           ((agenda ""
+                    ((org-agenda-skip-function 'ic/skip-old-meal-plans)))
+            (tags "refile"
+                  ((org-agenda-overriding-header "\nRefile tasks:")
+                   (org-tags-match-list-sublevels nil)))
+            ;; (tags "-refile"
+            ;;       ((org-agenda-overriding-header "\nArchive tasks:")
+            ;;        (org-agenda-skip-function 'ic/skip-non-archivable-tasks)
+            ;;        (org-tags-match-list-sublevels nil)))
+            (tags-todo "chores+PRIORITY=\"A\"|jobs+PRIORITY=\"A\""
+                       ((org-agenda-overriding-header "\nImportant Chores:")))
+            (tags-todo "chores-PRIORITY=\"A\"|jobs-PRIORITY=\"A\""
+                       ((org-agenda-overriding-header "\nChores:")
+                        (org-agenda-skip-function
+                         '(org-agenda-skip-entry-if 'scheduled 'deadline))
+                        ))
+            (tags "+HOME"
+                  ((org-agenda-overriding-header "\nStuck Projects")
+                   (org-agenda-skip-function 'ic/org-skip-nonstuck-projects
+                    )))
+            )
+           ((org-agenda-tag-filter-preset '("+HOME"))))
+
+          ;; archives
+          ("a" . "Archiving")
+          ("ah" "Home archive"
+           ((tags "+HOME-noarchive/DONE|CANCELLED|APPLIED"
+                  ((org-agenda-overriding-header "Archive Tasks (*B$ to archive all):")))))
+          ("aw" "Work archive"
+           ((tags "-HOME-noarchive+TIMESTAMP_IA<=\"<-2w>\"/DONE|CANCELLED"
+                  ((org-agenda-overriding-header "Archive Tasks (*B$ to archive all):")))))
+          ))
+#+END_SRC
+***** Appearance
+#+BEGIN_SRC emacs-lisp
+  ;; don't show completed DEADLINE and SCHEDULED in agenda
+  (setq org-agenda-skip-scheduled-if-done t)
+  (setq org-agenda-skip-deadline-if-done t)
+  (setq org-agenda-skip-deadline-prewarning-if-scheduled 't)
+
+  ;; first day in agenda should be today
+  (setq org-agenda-start-on-weekday nil)
+
+  ;; show weekly agenda by default
+  (setq org-agenda-span 'week)
+
+  ;; don't have a separator between agenda sections
+  (setq org-agenda-compact-blocks t)
+
+  ;; show agenda icons
+  (setq org-agenda-prefix-format "  %i %?-2 t%s")
+
+  ;; (setq org-agenda-mode-hook nil)
+  ;; (add-hook 'org-agenda-mode-hook
+  ;;           (lambda ()
+  ;;             (setq tab-width 2)
+  ;;                                         ; (setq tab-stop-list '(2 3 5))
+  ;;             ))
+
+  (require 'all-the-icons)
+
+  ;; (let ((font (find-font (font-spec :name "FontAwesome"))))
+  ;;   (font-put font :spacing 100)
+  ;;   (font-get font :spacing)
+  ;;   )
+
+  (defun ic/org-agenda-icon (family icon-name)
+    (let* ((icon-func (cdr (assoc family
+                                  '((ati . all-the-icons-alltheicon)
+                                    (faicon . all-the-icons-faicon)
+                                    (fileicon . all-the-icons-fileicon)
+                                    (octicon . all-the-icons-octicon)
+                                    (wicon . all-the-icons-wicon)))))
+           (face-func (cdr (assoc family
+                                  '((ati . all-the-icons-icon-family)
+                                    (faicon . all-the-icons-faicon-family)
+                                    (fileicon . all-the-icons-fileicon-family)
+                                    (octicon . all-the-icons-octicon-family)
+                                    (wicon . all-the-icons-wicon-family)))))
+           (all-the-icons-scale-factor 1.0)
+           ;; (font (concat (apply face-func nil) ":spacing=monospace"))
+           (font "FontAwesomeMono:spacing=100")
+           ;; (font (apply face-func nil))
+           (face `(:family ,font :height 1.0))
+           ;; (icon (apply icon-func (list icon-name :face 'default)))
+           (icon (cdr (assoc icon-name all-the-icons-data/fa-icon-alist)))
+           )
+      (propertize icon
+                  'face face
+                  'font-lock-face face
+                  ;; 'display '(space :width (50) :height 7)
+                  ;; 'display '(space-width 5)
+                  'rear-nonsticky t
+                  )
+      ))
+
+  ;; (ic/org-agenda-icon 'faicon "calendar")
+
+  (let ((icon (all-the-icons-faicon "calendar")))
+    (string-to-char icon))
+
+  ;; setup agenda icons
+  (setq org-agenda-category-icon-alist
+        (let ((icon-mapping
+               '(
+                 ("annivers" faicon "calendar")
+                 ("birthdays" faicon "birthday-cake")
+                 ("chores" faicon "home")
+                 ("computer" faicon "keyboard-o")
+                 ("cpu" faicon "fax")
+                 ("holidays" faicon "calendar-o")
+                 ("cooking" faicon "cutlery")
+                 ("health" faicon "heartbeat")
+                 ("jobs" faicon "building-o")
+                 ("life" faicon "male")
+                 )))
+          (mapcar (lambda (config)
+                    ;; `(,(car config) (list ,(apply #'ic/org-agenda-icon (cdr config)) :width (50)) nil nil :ascent center :mask heuristic))
+                    `(,(car config) (list ,(apply #'ic/org-agenda-icon (cdr config)))))
+                  icon-mapping
+                  )))
+
+  (defun blaenk/set-char-widths (alist)
+    (while (char-table-parent char-width-table)
+      (setq char-width-table (char-table-parent char-width-table)))
+    (dolist (pair alist)
+      (let ((width (car pair))
+            (chars (cdr pair))
+            (table (make-char-table nil)))
+        (dolist (char chars)
+          (set-char-table-range table char width))
+        (optimize-char-table table)
+        (set-char-table-parent table char-width-table)
+        (setq char-width-table table))))
+
+  (defconst old-char-width-table char-width-table)
+
+  ;; argument is an alist of width and list of RANGEs,
+  ;; which is the same as the RANGE that set-char-table-range accepts
+  ;; (blaenk/set-char-widths
+  ;;  `((5 . (,(string-to-char (all-the-icons-faicon "male"))
+  ;;           ,(string-to-char (all-the-icons-faicon "home"))
+  ;;           ,(string-to-char (all-the-icons-faicon "building-o"))
+  ;;           ))))
+
+  ;; (setq org-agenda-mode-hook nil)
+  ;; (add-hook 'org-agenda-mode-hook
+  ;;           (lambda ()
+  ;;             (message "set-char-widths")
+  ;;             (blaenk/set-char-widths
+  ;;              `((5 . (,(string-to-char (all-the-icons-faicon "male"))
+  ;;                       ,(string-to-char (all-the-icons-faicon "home"))
+  ;;                       ,(string-to-char (all-the-icons-faicon "building-o"))
+  ;;                       ))))
+  ;;                            ))
+
+
+
+
+  ;; setup agenda icons
+  ;; (setq org-agenda-category-icon-alist
+  ;;       (let ((icon-mapping
+  ;;              '(
+  ;;                ("annivers" (all-the-icons-faicon "calendar"))
+  ;;                ("birthdays" (all-the-icons-faicon "birthday-cake"))
+  ;;                ("chores" (all-the-icons-faicon "home"))
+  ;;                ("computer" (all-the-icons-faicon "keyboard-o"))
+  ;;                ("cpu" (all-the-icons-faicon "fax"))
+  ;;                ("holidays" (all-the-icons-faicon "calendar-o"))
+  ;;                ("cooking" (all-the-icons-faicon "cutlery"))
+  ;;                ("health" (all-the-icons-faicon "heartbeat"))
+  ;;                ("jobs" (all-the-icons-faicon "building-o"))
+  ;;                ("life" (all-the-icons-faicon "male"))
+  ;;                )))
+  ;;         (mapcar (lambda (config)
+  ;;                   (let ((category (car config))
+  ;;                         (icon (apply (caadr config) (cdadr config))))
+  ;;                     `(,category (list ,icon :width (100)) nil nil :ascent center :mask heuristic :width (100))))
+  ;;                 icon-mapping)))
+
+
+
+  ;; ;; setup agenda icons
+  ;; (setq org-agenda-category-icon-alist
+  ;;       (let ((icon-mapping-alist
+  ;;              '(
+  ;;                ("annivers" 'faicon "calendar")
+  ;;                ("birthdays" 'faicon "birthday-cake")
+  ;;                ("chores" 'faicon "home")
+  ;;                ("computer" 'faicon "keyboard-o")
+  ;;                ("cpu" 'faicon "fax")
+  ;;                ("holidays" 'faicon "calendar-o")
+  ;;                ("cooking" 'faicon "cutlery")
+  ;;                ("health" 'faicon "heartbeat")
+  ;;                ("jobs" 'faicon "building-o")
+  ;;                ("life" 'faicon "male")
+  ;;                )))
+  ;;         (mapcar (lambda (config)
+  ;;                   (let ((category (first config))
+  ;;                         (icon-family (second config))
+  ;;                         (icon-name (third config))
+  ;;                         (ati-family-alist
+  ;;                          '(('ati . all-the-icons-alltheicon)
+  ;;                            ('faicon . all-the-icons-faicon)
+  ;;                            ('fileicon . all-the-icons-fileicon)
+  ;;                            ('octicon . all-the-icons-octicon)
+  ;;                            ('wicon . all-the-icons-wicon))))
+  ;;                 `(,category (list ,(apply (cdr (assoc icon-family ati-family-alist)) (list icon-name :height 0.9 :v-adjust 0))) nil nil :ascent center :mask heuristic)))
+  ;;                   icon-mapping-alist)))
+#+END_SRC
+***** Functions
+****** Stuck Projects
+An org heading is considered a stuck project if it satisfies all the following:
+
+- It has a todo state and it's parent does not
+- It has one or more immediate children with todo state
+- It has no descendants with a NEXT todo state
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-is-active-task-p ()
+    "Returns `t' if the current task is a member of `org-not-done-keywords'."
+    (member (org-get-todo-state) org-not-done-keywords))
+
+
+  (defun ic/org-any-active-parent-p ()
+    "Return `t' if any parent task is an active task."
+    (save-excursion)
+    (widen)
+    (let (active-parent)
+      (while (org-up-heading-safe)
+        (when (ic/org-is-active-task-p)
+          (setq active-parent t)))
+      active-parent))
+
+  (defun ic/org-stuck-project-p ()
+    (save-excursion
+      (let (
+            ;; (parent-is-active (save-excursion
+            ;;                     (when (org-up-heading-safe)
+            ;;                       (ic/org-is-active-task-p))))
+            (has-next-children
+             (save-excursion
+               (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+                 (re-search-forward "^\\*+ NEXT " subtree-end t)))))
+        ;; (message (concat (org-get-heading) " :: " (org-get-todo-state) " " (prin1-to-string org-not-done-keywords)))
+        ;; (prin1 (ic/org-is-active-task-p))
+        ;; (prin1 (not parent-is-active))
+        ;; (prin1 has-next-children)
+        (and (ic/org-is-active-task-p)
+             (not (ic/org-any-active-parent-p))
+             (not has-next-children))
+        )))
+
+
+  (defun ic/test (args)
+    (interactive "P")
+    (message (if (ic/org-stuck-project-p)
+                 "stuck"
+               "non-stuck")))
+  (define-key org-mode-map (kbd "C-=") 'ic/test)
+
+
+  (defun ic/org-skip-nonstuck-projects ()
+    (let ((debug-on-error t))
+      (save-excursion
+        (widen)
+        (unless (ic/org-stuck-project-p)
+          (or (outline-next-heading) (point-max))))
+      ))
+#+END_SRC
+****** TODO Test stuck
+******* TODO child task
+******* NEXT next task
+
+**** Habits
+#+BEGIN_SRC emacs-lisp
+  (setq org-habit-preceding-days 7)
+  (setq org-habit-following-days 1)
+  (setq org-habit-graph-column 2)
+  (setq org-habit-show-habits-only-for-today t)
+  (setq org-habit-show-all-today t)
+
+  ;; only show the first occurrence of a repeating task
+  (setq org-agenda-show-future-repeats 'next)
+#+END_SRC
+**** Todo
+#+BEGIN_SRC emacs-lisp
+  (setq org-todo-keywords
+  '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+    (sequence "WAIT(a@/!)" "HOLD(h@/!)" "|"
+              "CANCELLED(c@/!)" "PHONE" "MEETING" "HABIT(a)")))
+  (setq org-enforce-todo-dependencies t)
+  (setq org-enforce-todo-checkbox-dependencies t)
+#+END_SRC
+**** Logging
+Create a log on certain state changes inside the =LOGBOOK= drawer.
+#+BEGIN_SRC emacs-lisp
+  ;; log status changes
+  (setq org-log-done 'time)
+  (setq org-log-redeadline 'time)
+  (setq org-log-reschedule 'time)
+  (setq org-log-into-drawer "LOGBOOK")
+#+END_SRC
+**** Capture
+***** Templates
+#+BEGIN_SRC emacs-lisp
+  (setq org-reverse-note-order nil)
+  (setq ic/org-clock-in nil)
+  (setq ic/org-clock-resume nil)
+
+  (defun ic/org-capture-prompt (prompt symbol choices)
+    "Call `(completing-read PROMPT CHOICES)' and save into SYMBOL.
+  Inspired from: http://storax.github.io/blog/2016/05/02/org-capture-tricks/"
+    (make-local-variable symbol)
+    (set symbol (completing-read prompt choices)))
+
+  (setq org-capture-templates
+        `(("t" "todo" entry (file org-default-notes-file)
+           "* TODO %?\n%u\n"
+           ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
+           )
+          ("r" "reply" entry (file org-default-notes-file)
+           "* TODO Reply to %:from on %:subject\nSCHEDULED: %t\n%u\n%a\n"
+           :immediate-finish t
+           ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
+           )
+          ("n" "note" entry (file org-default-notes-file)
+           "* %? :note:\n%u\n"
+           ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
+           )
+          ("m" "meeting" entry (file org-default-notes-file)
+           "* MEETING with %? :meeting:\n%u"
+           ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
+           )
+          ("p" "phone call" entry (file org-default-notes-file)
+           "* PHONE %? :phone:\n%u"
+           ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
+           )
+          ("H" "habit" entry (file org-default-notes-file)
+           "* TODO %?\n%u\nscheduled: %(format-time-string \"<%y-%m-%d %a .+1d/3d>\")\n:properties:\n:style: habit\n:repeat_to_state: next\n:end:\n")
+          ("R" "recipe" entry (file org-default-notes-file)
+           "* %^{name}\n:PROPERTIES:\n:SOURCE: %^{source}\n:SERVINGS: %^{servings}\n:END:\n%U\n** Ingredients\n- %?\n** Steps\n-\n** Notes")
+          ("J" "job" entry (file org-default-notes-file)
+           "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")
+          ("P" "meal plan" entry (file+datetree ic/recipes-plan-file)
+           (file ,(concat ic/org-capture-template-dir "meal-plan.org"))
+           :immediate-finish t
+           :time-prompt t
+           :tree-type week)
+          ))
+  (add-hook 'org-capture-mode-hook 'evil-insert-state)
+#+END_SRC
+***** Full Frame
+The standard =org-capture= behavior is to split the window before capturing a
+task. When this is started from outside emacs a random buffer occupies half the
+frame. What I want is the capture buffer to take the full frame when starting
+the capture from outside emacs. My window manager will start the capture task
+with a frame name of =OrgCapture=. Because =org-capture= doesn't provide a hook
+where it splits the frame we'll need to advise it to ~(delete-other-windows)~
+when our frame is =OrgCapture= and one of the following:
+
+1. When choosing the capture template (buffer name: =*Org Select*=)
+2. When inside the capture task (buffer name: =CAPTURE-<filename>=)
+
+Finally, call ~(delete-frame)~ after the capture is finalized.
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/maybe-org-capture-delete-other-windows (buf)
+    "Maximize frame when starting an external org-capture"
+    (let* ((buffer-name (if (bufferp buf) (buffer-name buf) buf))
+           (is-capture-frame (equal "OrgCapture" (frame-parameter nil 'name)))
+           (is-capture-buffer (or (equal "*Org Select*" buffer-name)
+                                  (string-match "^CAPTURE-" buffer-name))))
+      (when (and is-capture-frame is-capture-buffer)
+        (delete-other-windows))))
+  (advice-add 'org-switch-to-buffer-other-window :after #'ic/maybe-org-capture-delete-other-windows)
+
+  (defun ic/maybe-org-capture-delete-frame ()
+    "Close the frame when finalizing an external org-capture"
+    (when (equal "OrgCapture" (frame-parameter nil 'name))
+      (delete-frame)))
+  (add-hook 'org-capture-after-finalize-hook #'ic/maybe-org-capture-delete-frame)
+#+END_SRC
+**** Clocking (disabled)
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;; resolve open clocks for any amount of time
+  (setq org-clock-idle-time nil)
+  ;; start new clocking immediatly after clocking out
+  (setq org-clock-continuously t)
+  ;; save current clock when emacs exits
+  (setq org-clock-persist t)
+  ;; change to NEXT state when starting a clock
+  (setq org-clock-in-switch-to-state "NEXT")
+  ;; change to TODO state when leaving a clock
+  (setq org-clock-out-switch-to-state "TODO")
+  ;; continue an open clock when checking into task
+  (setq org-clock-in-resume t)
+  ;; include current clock in reports
+  (setq org-clock-report-include-clocking-task t)
+  ;; save all clocks in the LOGBOOK drawer
+  (setq org-clock-into-drawer "LOGBOOK")
+  ;; show current clock in the modeline
+  (setq spacemacs-mode-line-org-clock-current-taskp t)
+  ;; only show today's clock in the modeline
+  (setq org-clock-mode-line-total 'today)
+  (org-clock-persistence-insinuate)
+#+END_SRC
+**** Misc
+Add some custom =<X= templates.
+#+BEGIN_SRC emacs-lisp
+  (mapc
+   (lambda (struct)
+     (push struct org-structure-template-alist))
+   (list
+    '("e" "#+BEGIN_SRC emacs-lisp\n?\n#+END_SRC")
+    '("y" "#+BEGIN_SRC yaml\n?\n#+END_SRC")
+    ))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  ;; don't modify the task state when archiving
+  (setq org-archive-mark-done nil)
+  ;; catch modifying collapsed text
+  (setq org-catch-invisible-edits 'error)
+#+END_SRC
+**** Code Execution
+Don't prompt for code execution if we're in a file in certain locations.
+
+#+BEGIN_SRC emacs-lisp
+  (setq ic/allow-babel-evaluate-directories
+        '("~/org" "~/.etc"))
+
+  (defun ic/org-confirm-babel-evaluate (lang body)
+    (not (any
+          (mapcar (lambda (dir)
+                    (string-prefix-p (expand-file-name dir)
+                                     (buffer-file-name)))
+                  ic/allow-babel-evaluate-directories))))
+
+  (setq org-confirm-babel-evaluate #'ic/org-confirm-babel-evaluate)
+#+END_SRC
+**** Exporting
+Let's set some defaults. I don't want to see a table of contents, but I do want
+to see most everything else.
+#+BEGIN_SRC emacs-lisp
+  (setq org-export-with-toc nil)
+  (setq org-export-with-timestamps t)
+  (setq org-babel-default-header-args
+        '((:session . "none")
+          (:results . "replace")
+          (:exports . "both")
+          (:cache   . "no")
+          (:noweb   . "no")))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-publish-project-alist
+        '(("recipes"
+           :base-directory "~/org/home/food/"
+           :base-extension "org"
+           :publishing-directory "~/food/"
+           :recursive t
+           :publishing-function org-html-publish-to-html
+           :headline-levels 4
+           :auto-preamble t
+           )))
+  (add-hook 'org-export-before-parsing-hook 'ic/org-export-filter-recipes)
+#+END_SRC
+**** Snippets
+By convention I title most of my snippets ={snippet}>= so I would like the =>= key
+to try and expand snippets automatically. When no snippet is found a regular =>=
+should be entered.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/yas-expand-> ()
+    (interactive)
+    (insert ">")
+    (let ((yas-fallback-behavior 'return-nil))
+      (yas-expand)))
+
+  (define-key evil-insert-state-map (kbd ">") #'ic/yas-expand->)
+#+END_SRC
+
+Based on [[https://emacs.stackexchange.com/questions/29758/yasnippets-and-org-mode-yas-next-field-or-maybe-expand-does-not-expand][this]] stackexchange post =org-mode= binds the tab key in such a way that
+=yas-snippets= can't use it. So we need the following to allow =TAB= to expand
+snippets while in =org-mode=.
+#+BEGIN_SRC emacs-lisp
+  (defun yas-org-very-safe-expand ()
+    (let ((yas-fallback-behavior 'return-nil))
+      (yas-expand)))
+
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (add-to-list 'org-tab-first-hook 'yas-org-very-safe-expand)
+              (define-key yas-keymap [tab] 'yas-next-field)))
+#+END_SRC
+
+**** TODO Functions
+Need to clean these up
+#+BEGIN_SRC emacs-lisp
+  ;;; functions taken from http://doc.norang.ca/org-mode.html
+
+  (defun bh/skip-non-archivable-tasks ()
+    "Skip trees that are not available for archiving"
+    (save-restriction
+      (widen)
+      ;; Consider only tasks with done todo headings as archivable candidates
+      (let ((next-headline (save-excursion (or (outline-next-heading) (point-max))))
+            (subtree-end (save-excursion (org-end-of-subtree t))))
+        (if (member (org-get-todo-state) org-todo-keywords-1)
+            (if (member (org-get-todo-state) org-done-keywords)
+                (let* ((daynr (string-to-number (format-time-string "%d" (current-time))))
+                       (a-month-ago (* 60 60 24 (+ daynr 1)))
+                       (last-month (format-time-string "%Y-%m-" (time-subtract (current-time) (seconds-to-time a-month-ago))))
+                       (this-month (format-time-string "%Y-%m-" (current-time)))
+                       (subtree-is-current (save-excursion
+                                             (forward-line 1)
+                                             (and (< (point) subtree-end)
+                                                  (re-search-forward (concat last-month "\\|" this-month) subtree-end t)))))
+                  (if subtree-is-current
+                      subtree-end ; Has a date in this month or last month, skip it
+                    nil))  ; available to archive
+              (or subtree-end (point-max)))
+          next-headline))))
+
+
+  (defun ic/skip-non-archivable-tasks ()
+    "Skip tasks that I don't want to archive"
+    (or (ic/skip-old-meal-plans)
+        (bh/skip-non-archivable-tasks)))
+
+
+  (defun ic/skip-old-meal-plans ()
+    "Skip over a task if it's 1) a meal plan and 2) scheduled before today."
+    (save-restriction
+      (widen)
+      (let* ((tags (org-get-tags))
+             (subtree-end (save-excursion (org-end-of-subtree t)))
+             (scheduled (org-get-scheduled-time (point)))
+             (yesterday (* 60 60 24 1))
+             ;; HACK we check 24 hours ago rather than previous midnight
+             (now (time-subtract (current-time) (seconds-to-time yesterday))))
+        (if (and (member "cooking" tags)
+                 (member "plan" tags)
+                 scheduled
+                 (time-less-p scheduled now))
+            subtree-end
+          nil))))
+
+
+  (defun ic/org-recipe-publish-to-html (plist org-filename target-dir)
+    "Export ORG-FILENAME as html. Similar to `org-html-publish-to-html', but only exporting certain sections"
+    (interactive)
+    (let* ((base-name (file-name-sans-extension (file-name-nondirectory org-filename)))
+           (target-filename (concat target-dir base-name ".html")))
+      (with-temp-file target-filename
+        (insert-file-contents org-filename)
+        (goto-char (point-min))
+        )
+      )
+    )
+
+
+  (defun ic/org-export-filter-recipes (backend)
+    "Filter out unwanted elements from org-mode recipes, but only when export as HTML."
+    (when (equal backend 'html)
+      (org-map-entries
+       (lambda ()
+         )
+       ;; (lambda () (delete-region (point) (progn (forward-line) (point)))))
+      )
+    ))
+#+END_SRC
+
+** variable-pitch
+=org-mode= should be mostly variable pitch with only code and =company-mode= being
+fixed width.
+
+#+BEGIN_SRC emacs-lisp
+  (defvar ic/org-faces-fixed-pitch
+    '(company-echo
+      company-echo-common
+      company-preview
+      ;; keep this variable pitched as it's used on the same line as the input
+      ;; text (which is variable).
+      ;; company-preview-common
+      company-preview-search
+      company-scrollbar-bg
+      company-scrollbar-fg
+      company-template-field
+      company-tooltip
+      company-tooltip-annotation
+      company-tooltip-annotation-selection
+      company-tooltip-common
+      company-tooltip-common-selection
+      company-tooltip-mouse
+      company-tooltip-search
+      company-tooltip-search-selection
+      company-tooltip-selection
+      linum
+      org-block
+      org-block-begin-line
+      org-block-end-line
+      org-checkbox
+      org-code
+      org-date
+      org-document-info-keyword
+      org-hide
+      org-indent
+      org-link
+      org-meta-line
+      org-special-keyword
+      org-table
+      whitespace-space
+      )
+    "A list of faces that should remain fixed width when enabling `variable-pitch-mode'.")
+
+  (defun ic//variable-pitch-add-inherit (attrs parent)
+    "Add `:inherit PARENT' to ATTRS unless already present. Handles cases where :inherit is already specified."
+    (let ((current-parent (plist-get attrs :inherit)))
+      (unless (or (eq parent current-parent)
+                  (and (listp current-parent) (member parent current-parent)))
+        (plist-put attrs :inherit (if current-parent
+                                      (list current-parent parent)
+                                    parent)))))
+
+  (defun ic/variable-pitch-mode ()
+    (variable-pitch-mode 1)
+    (mapc
+     (lambda (face)
+       (when (facep face)
+         (apply 'set-face-attribute
+                face nil (ic//variable-pitch-add-inherit
+                          (face-attr-construct face)
+                          'fixed-pitch))))
+     ic/org-faces-fixed-pitch))
+
+  (add-hook 'org-mode-hook #'ic/variable-pitch-mode)
+#+END_SRC
+
+** yasnippet
+#+BEGIN_SRC emacs-lisp
+  (use-package yasnippet)
+#+END_SRC
+
+* Misc
+** Customize
+I don't like =customize= so discard all settings.
+
+#+BEGIN_SRC emacs-lisp
+  (setq custom-file (concat (temporary-file-directory) "emacs-customize-settings"))
+#+END_SRC
+
+** Font setup
+Setup both monospaced and non-monospaced fonts.
+
+Some good variable spaced fonts:
+- Century Schoolbook L
+- TeX Gyre Pagella
+- Utopia
+- Caladea
+- Gentium
+- Gillius ADF
+- URW Palladio L
+
+#+BEGIN_SRC emacs-lisp
+  (defvar ic/fixed-pitch-font '("DejaVu Sans Mono" 11.0))
+  (defvar ic/variable-pitch-font '("Gillius ADF" 13.0))
+
+  (use-package cl)
+
+  (defun ic/setup-fonts (fixed-pitch-font variable-pitch-font)
+    (cl-flet ((make-size (size)
+                (truncate (* 10 size))))
+      (let ((fixed-family (first fixed-pitch-font))
+            (fixed-height (make-size (second fixed-pitch-font)))
+            (variable-family (first variable-pitch-font))
+            (variable-height (make-size (second variable-pitch-font))))
+        (custom-theme-set-faces
+         'user
+         `(default ((t (:family ,fixed-family :height ,fixed-height))))
+         `(fixed-pitch ((t (:family ,fixed-family :height ,fixed-height))))
+         `(variable-pitch ((t (:family ,variable-family :height ,variable-height))))))))
+  (ic/setup-fonts ic/fixed-pitch-font ic/variable-pitch-font)
+#+END_SRC
+
+** TODO Refile
+#+BEGIN_SRC emacs-lisp
+  ;; I want a static cursor
+  (blink-cursor-mode -1)
+#+END_SRC
+
+* Keybindings
+Here we copy the spacemacs keybindings, more or less.
+
+** TODO keybinding funcs
+
+*** TODO Most functions under f
+- copy-file
+- delete-current-buffer-file
+- sudo-edit
+- rename-current-buffer-file
+- show-and-copy-buffer-filename
+
+** main
+#+BEGIN_SRC emacs-lisp
+  (ic/set-leader-keys
+    "TAB" 'evil-switch-to-windows-last-buffer
+    "u" 'universal-argument)
+
+  ;; Make <escape> quit as much as possible
+  ;;; from spacemacs/layers/+distributions/spacemacs-base/keybindings.el
+  (define-key minibuffer-local-map (kbd "<escape>") 'keyboard-escape-quit)
+  (define-key minibuffer-local-ns-map (kbd "<escape>") 'keyboard-escape-quit)
+  (define-key minibuffer-local-completion-map (kbd "<escape>") 'keyboard-escape-quit)
+  (define-key minibuffer-local-must-match-map (kbd "<escape>") 'keyboard-escape-quit)
+  (define-key minibuffer-local-isearch-map (kbd "<escape>") 'keyboard-escape-quit)
+#+END_SRC
+
+** a :: applications
+
+** b :: buffers
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "b" "buffers")
+
+  (ic/set-leader-keys
+    "bb" 'helm-mini
+    "bd" 'kill-this-buffer
+    "bp" 'paste-clipboard-to-whole-buffer
+    "bR" 'safe-revert-buffer
+    "bs" 'switch-to-scratch-buffer
+    "bw" 'read-only-mode
+    "by" 'yank-whole-buffer-to-clipboard)
+#+END_SRC
+
+** B :: build
+
+** e :: errors
+** E :: Emacs
+
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "E" "emacs")
+#+END_SRC
+
+** Ep :: Emacs profiler
+Profiler bindings.
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "Ep" "emacs profiler")
+
+  (ic/set-leader-keys
+    "Epc" #'ic/start-cpu-profiler
+    "Epm" #'ic/start-mem-profiler
+    "Eps" #'profiler-stop
+    "Epr" #'profiler-report)
+#+END_SRC
+
+** TODO f :: Files
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "f" "files")
+  (ic/set-leader-keys
+    "fb" 'helm-filtered-bookmarks
+    "fc" 'copy-file
+    "fD" 'delete-current-buffer-file
+    "fE" 'sudo-edit
+    "ff" 'helm-find-files
+    "fl" 'find-file-literally
+    "fr" 'helm-recentf
+    "fR" 'rename-current-buffer-file
+    "fy" 'show-and-copy-buffer-filename)
+#+END_SRC
+
+** TODO fC :: Convert
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "fC" "convert")
+  (ic/set-leader-keys
+    "fCd" 'unix-to-dos
+    "fCu" 'dos-to-unix)
+#+END_SRC
+
+** TODO fe :: Emacs
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "fe" "emacs")
+  (ic/set-leader-keys
+    "fei" 'edit-init-file
+    "feo" 'edit-org-config
+    "fel" 'helm-locate-library)
+#+END_SRC
+
+** g :: git/vc
+
+** h :: help
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "h" "help")
+  (ic/set-leader-keys
+    "hk" 'which-key-show-top-level
+    "hm" 'helm-man-woman)
+#+END_SRC
+
+** hd :: help describe
+#+BEGIN_SRC emacs-lisp
+  (ic/declare-prefix "hd" "describe")
+  (ic/set-leader-keys
+    "hdb" 'describe-bindings
+    "hdc" 'describe-char
+    "hdd" 'apropos
+    "hdF" 'helm-faces
+    "hdf" 'describe-function
+    "hdK" 'describe-keymap
+    "hdk" 'describe-key
+    "hdl" 'describe-last-keys
+    ;"hdm" 'describe-mode
+    "hdp" 'describe-package
+    "hds" 'describe-system-info
+    "hdt" 'describe-theme
+    "hdv" 'describe-variable)
+#+END_SRC
+
+** i :: insert
+
+** l :: layouts
+
+** m :: major mode
+
+** p :: projects
+
+** q :: quit
+
+** r :: registers
+
+** s :: search
+
+** t :: toggle
+
+** w :: windows
+
+** x :: text
