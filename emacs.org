@@ -164,102 +164,43 @@ Let's have some functional functions.
     (should (eql (all '(t t)) t)))
 #+END_SRC
 
-** Leader Keys
-I like the way spacemacs handles leader keys with a "global" leader key (default
-=SPC=) and a mode specific leader key (default =,=). I don't like or need any base
-emacs leader keys or alternative mode specific keys (=SPC m=). This is my stripped
-down version of spacemacs leader key implementation.
+** Keybinds
+I like the spacemacs idea of having both a leader key (=SPC=) and a (mode-specific)
+local leader key (=,=). The leader key being how all the major functions are
+accessed, such as buffers/files/windows/etc. Where the local leader is how
+mode-specific functions are accessed, such as =org-mode= bindings or =mu4e=, etc.
 
-We use two packages to implement leader keys:
-- bind-map :: used for most of the keymap instrumentation
-- which-key :: used to display key binds in the mode-line
+There are a few things I don't care for though: I don't need emacs bindings, nor
+do I want access to the local leader map from the leader map (=SPC m=). So I want
+a dual leader key system without the cruft.
 
-*** bind-map
+The package =general.el= makes all of the above rather simple. Here we ensure it's
+installed and activated with =:demand t=. We then setup two =definers=, one for the
+leader key (=leader-keys=) and one for the local leader key (=local-leader-keys=).
+Both =definers= define their keys in the =general-override-mode-map= keymap. This
+keymap has a high priority, but only when =general-override-mode= is active so
+ensure it is with =(general-override-mode 1)=.
+
 #+BEGIN_SRC emacs-lisp
-  (use-package bind-map
-      :ensure t
-      :init
-      (defvar ic-leader-key "SPC"
-        "The leader key.")
-
-      (defvar ic-major-mode-leader-key ","
-        "Major mode leader key.")
-
-      (defvar ic-base-leader-map (make-sparse-keymap)
-        "Base keymap for all ic leader key commands.")
-
+  (use-package general
+      :demand t
       :config
-      (bind-map ic-base-leader-map
-          :evil-keys (ic-leader-key)
-          :override-minor-modes t
-          :override-mode-name ic-leader-override-mode)
+      ;; ensure `general-override-mode-map' is active
+      (general-override-mode 1)
 
-      (defun ic/leader-map-for-mode (mode &optional is-minor)
-        "Return the keymap for MODE under `ic-mode-leader-key', creating it if
-  necessary."
-        (let ((map (intern (format "ic-%s-map" mode)))
-              (prefix (intern (format "ic-%s-map-prefix" mode))))
-          (if (boundp map)
-              map
-            (eval
-             `(bind-map ,map
-                  :prefix-cmd ,prefix
-                  ,(if is-minor :minor-mode :major-modes) (,mode)
-                  :evil-keys (,ic-major-mode-leader-key))))))
+      ;; create leader (SPC) definer
+      (general-create-definer leader-keys
+        :states '(normal insert emacs)
+        :keymaps 'general-override-mode-map
+        :prefix "SPC"
+        :non-normal-prefix "C-SPC")
 
-      (defun ic/set-leader-keys (key def &rest bindings)
-        "Add KEY and DEF as key bindings under `ic-leader-key'.
-  See `bind-map-set-keys' for more information."
-        (apply #'bind-map-set-keys ic-base-leader-map key def bindings))
-      (put 'ic/set-leader-keys 'lisp-indent-function 'defun)
-
-      (defun ic/set-leader-keys-for-major-mode (mode key def &rest bindings)
-        "Add KEY and DEF as key bindings under `ic-major-mode-leader-key' for the
-  major-mode MODE. MODE should be a quoted symbol corresponding to a valid major
-  mode. The rest of the arguments are treated exactly like they are in
-  `ic/set-leader-keys'."
-        (let ((mode-map (ic/leader-map-for-mode mode nil)))
-          (apply #'bind-map-set-keys mode-map key def bindings)))
-      (put 'ic/set-leader-keys-for-major-mode 'lisp-indent-function 'defun)
-
-      (defun ic/set-leader-keys-for-minor-mode (mode key def &rest bindings)
-        "Add KEY and DEF as key bindings under `ic-major-mode-leader-key' for the
-  minor-mode MODE. MODE should be a quoted symbol corresponding to a valid minor
-  mode. The rest of the arguments are treated exactly like they are in
-  `ic/set-leader-keys'."
-        (let ((mode-map (ic/leader-map-for-mode mode t)))
-          (apply #'bind-map-set-keys mode-map key def bindings)))
-      (put 'ic/set-leader-keys-for-minor-mode 'lisp-indent-function 'defun)
-      )
-#+END_SRC
-
-*** which-key
-#+BEGIN_SRC emacs-lisp
-  (use-package which-key
-      :ensure t
-      :config
-      (which-key-mode 1)
-
-      (defun ic/declare-prefix (prefix name &optional long-name)
-        "Declare a prefix PREFIX. PREFIX is a string describing a key
-        sequence. NAME is a string used as the prefix command.
-        LONG-NAME if given is stored in `ic/prefix-titles'."
-        (let ((full-prefix (concat ic-leader-key " " prefix)))
-          (unless long-name (setq long-name name))
-          (which-key-add-key-based-replacements
-              full-prefix (cons name long-name))))
-      (put 'ic/declare-prefix 'lisp-indent-function 'defun)
-
-      (defun ic/declare-prefix-for-mode (mode prefix name &optional long-name)
-        "Declare a prefix PREFIX. MODE is the mode in which this prefix command should
-        be added. PREFIX is a string describing a key sequence. NAME is a symbol name
-        used as the prefix command."
-        (let ((full-prefix (concat ic-major-mode-leader-key " " prefix)))
-          (unless long-name (setq long-name name))
-          (which-key-add-major-mode-key-based-replacements
-              full-prefix (cons name long-name))))
-      (put 'ic/declare-prefix-for-mode 'lisp-indent-function 'defun)
-      )
+      ;; create local leader (,) definer
+      (general-create-definer local-leader-keys
+        :states '(normal insert emacs)
+        :keymaps 'general-override-mode-map
+        :prefix ","
+        :non-normal-prefix "C-,"))
 #+END_SRC
 
 * Packages
@@ -341,9 +282,9 @@ my configuration as well. Let's go.
       :after (all-the-icons yasnippet)
       :config
       <<org-config>>
-      (setq-local leader-map (ic/leader-map-for-mode 'org-mode))
-      :bind (:map leader-map
-                  ("r" . 'org-refile))
+      :general
+      (local-leader-keys org-mode-map
+       "r" 'org-refile)
       )
 #+END_SRC
 
@@ -385,7 +326,8 @@ Add ability to jump to any org heading with SPC-aoj
     (interactive)
     (setq current-prefix-arg '(1))
     (call-interactively 'org-refile))
-  (ic/set-leader-keys "aoj" 'ic/org-refile)
+  ;; TODO
+  ;; (ic/set-leader-keys "aoj" 'ic/org-refile)
 #+END_SRC
 ***** Normal mode navigation
 #+BEGIN_SRC emacs-lisp
@@ -1138,6 +1080,13 @@ fixed width.
   (add-hook 'org-mode-hook #'ic/variable-pitch-mode)
 #+END_SRC
 
+** which-key
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+      :config
+      (which-key-mode 1))
+#+END_SRC
+
 ** yasnippet
 #+BEGIN_SRC emacs-lisp
   (use-package yasnippet)
@@ -1193,20 +1142,11 @@ Some good variable spaced fonts:
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
-** TODO keybinding funcs
-
-*** TODO Most functions under f
-- copy-file
-- delete-current-buffer-file
-- sudo-edit
-- rename-current-buffer-file
-- show-and-copy-buffer-filename
-
 ** main
 #+BEGIN_SRC emacs-lisp
-  (ic/set-leader-keys
-    "TAB" 'evil-switch-to-windows-last-buffer
-    "u" 'universal-argument)
+  (leader-keys
+   "TAB" 'evil-switch-to-windows-last-buffer
+   "u" 'universal-argument)
 
   ;; Make <escape> quit as much as possible
   ;;; from spacemacs/layers/+distributions/spacemacs-base/keybindings.el
@@ -1221,98 +1161,103 @@ Here we copy the spacemacs keybindings, more or less.
 
 ** b :: buffers
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "b" "buffers")
-
-  (ic/set-leader-keys
-    "bb" 'helm-mini
-    "bd" 'kill-this-buffer
-    "bp" 'paste-clipboard-to-whole-buffer
-    "bR" 'safe-revert-buffer
-    "bs" 'switch-to-scratch-buffer
-    "bw" 'read-only-mode
-    "by" 'yank-whole-buffer-to-clipboard)
+  (leader-keys
+   :infix "b"
+   "" '(nil :which-key "buffers")
+   "b" 'helm-mini
+   "d" 'kill-this-buffer
+   "p" 'paste-clipboard-to-whole-buffer
+   "R" 'safe-revert-buffer
+   "s" 'switch-to-scratch-buffer
+   "w" 'read-only-mode
+   "y" 'yank-whole-buffer-to-clipboard)
 #+END_SRC
 
 ** B :: build
 
 ** e :: errors
-** E :: Emacs
 
+** E :: Emacs
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "E" "emacs")
+  (leader-keys "E" '(nil :which-key "emacs"))
 #+END_SRC
 
 ** Ep :: Emacs profiler
 Profiler bindings.
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "Ep" "emacs profiler")
-
-  (ic/set-leader-keys
-    "Epc" #'ic/start-cpu-profiler
-    "Epm" #'ic/start-mem-profiler
-    "Eps" #'profiler-stop
-    "Epr" #'profiler-report)
+  (leader-keys
+   :infix "Ep"
+   "" '(nil :which-key "emacs profiler")
+   "c" #'ic/start-cpu-profiler
+   "m" #'ic/start-mem-profiler
+   "s" #'profiler-stop
+   "r" #'profiler-report)
 #+END_SRC
 
-** TODO f :: Files
+** f :: Files
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "f" "files")
-  (ic/set-leader-keys
-    "fb" 'helm-filtered-bookmarks
-    "fc" 'copy-file
-    "fD" 'delete-current-buffer-file
-    "fE" 'sudo-edit
-    "ff" 'helm-find-files
-    "fl" 'find-file-literally
-    "fr" 'helm-recentf
-    "fR" 'rename-current-buffer-file
-    "fy" 'show-and-copy-buffer-filename)
+  (leader-keys
+   :infix "f"
+   "" '(nil :which-key "files")
+   "b" 'helm-filtered-bookmarks
+   "c" 'copy-file
+   "D" 'delete-current-buffer-file
+   "E" 'sudo-edit
+   "f" 'helm-find-files
+   "l" 'find-file-literally
+   "r" 'helm-recentf
+   "R" 'rename-current-buffer-file
+   "y" 'show-and-copy-buffer-filename)
 #+END_SRC
 
-** TODO fC :: Convert
+** fC :: Convert
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "fC" "convert")
-  (ic/set-leader-keys
-    "fCd" 'unix-to-dos
-    "fCu" 'dos-to-unix)
+  (leader-keys
+   :infix "fC"
+   "" '(nil :which-key "convert")
+   "d" 'unix-to-dos
+   "u" 'dos-to-unix)
 #+END_SRC
 
-** TODO fe :: Emacs
+** fe :: Emacs
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "fe" "emacs")
-  (ic/set-leader-keys
-    "fei" 'edit-init-file
-    "feo" 'edit-org-config
-    "fel" 'helm-locate-library)
+  (leader-keys
+   :infix "fe"
+   "" '(nil :which-key "emacs")
+   "i" 'edit-init-file
+   "o" 'edit-org-config
+   "l" 'helm-locate-library)
 #+END_SRC
 
 ** g :: git/vc
 
 ** h :: help
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "h" "help")
-  (ic/set-leader-keys
-    "hk" 'which-key-show-top-level
-    "hm" 'helm-man-woman)
+  (leader-keys
+   :infix "h"
+   "" '(nil :which-key "help")
+   "k" 'which-key-show-top-level
+   "m" 'helm-man-woman)
 #+END_SRC
 
 ** hd :: help describe
 #+BEGIN_SRC emacs-lisp
-  (ic/declare-prefix "hd" "describe")
-  (ic/set-leader-keys
-    "hdb" 'describe-bindings
-    "hdc" 'describe-char
-    "hdd" 'apropos
-    "hdF" 'helm-faces
-    "hdf" 'describe-function
-    "hdK" 'describe-keymap
-    "hdk" 'describe-key
-    "hdl" 'describe-last-keys
-    ;"hdm" 'describe-mode
-    "hdp" 'describe-package
-    "hds" 'describe-system-info
-    "hdt" 'describe-theme
-    "hdv" 'describe-variable)
+  (leader-keys
+   :infix "hd"
+   "" '(nil :which-key "describe")
+   "b" 'describe-bindings
+   "c" 'describe-char
+   "d" 'apropos
+   "F" 'helm-faces
+   "f" 'describe-function
+   "K" 'describe-keymap
+   "k" 'describe-key
+   "l" 'describe-last-keys
+   "m" 'describe-mode
+   "p" 'describe-package
+   "s" 'describe-system-info
+   "t" 'describe-theme
+   "v" 'describe-variable)
 #+END_SRC
 
 ** i :: insert
