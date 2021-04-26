@@ -1295,6 +1295,7 @@ For numbering and jumping to windows.
 ** prog-mode
 #+BEGIN_SRC emacs-lisp
   (defun ic/prog-mode-setup ()
+    (flyspell-prog-mode)
     (setq indent-tabs-mode nil)
     (setq tab-width 4))
   (add-hook 'prog-mode-hook #'ic/prog-mode-setup)
@@ -1305,6 +1306,11 @@ For numbering and jumping to windows.
   (defun ic/python-mode-setup ()
     (setq python-indent tab-width))
   (add-hook 'python-mode-hook #'ic/python-mode-setup)
+#+END_SRC
+
+** text-mode
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'text-mode-hook 'flyspell-mode)
 #+END_SRC
 
 ** winner-mode
@@ -1430,6 +1436,16 @@ Set the frame title to something meaningful.
                    (concat " <"
                            (ic/short-persp-name (get-frame-persp))
                            "> ")))))
+#+END_SRC
+
+** Spelling
+When typing in insert mode I want to hit =C-e= to automatically correct the
+previous misspelled word.
+
+#+BEGIN_SRC emacs-lisp
+  (general-define-key
+   :states '(insert normal)
+   "C-e" #'flyspell-auto-correct-previous-word)
 #+END_SRC
 
 * Keybindings
