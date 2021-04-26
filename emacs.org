@@ -1413,6 +1413,25 @@ And some =leader-key= bindings:
    "Q" 'ic/maybe-kill-emacs)
 #+END_SRC
 
+** Frame title
+Set the frame title to something meaningful.
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/short-persp-name (persp)
+    "Return a shortened name for `PERSP'."
+    (let ((name (safe-persp-name persp)))
+      (if (file-directory-p name)
+          (file-name-nondirectory (directory-file-name name))
+        name)))
+
+  (setq frame-title-format
+        '((:eval (buffer-name (window-buffer (minibuffer-selected-window))))
+          (:eval (when (fboundp 'safe-persp-name)
+                   (concat " <"
+                           (ic/short-persp-name (get-frame-persp))
+                           "> ")))))
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
