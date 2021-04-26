@@ -248,11 +248,27 @@ The following are needed for =evil-collection=.
 #+END_SRC
 
 ** evil-collection
+Some basic community =evil-mode= bindings for various modes. See
+=evil-collection--supported-modes= for a list.
+
 #+BEGIN_SRC emacs-lisp
   (use-package evil-collection
       :after evil
       :config
       (evil-collection-init))
+#+END_SRC
+
+** evil-org-mode
+Some basic community =evil-mode= key bindings for =org-mode=.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package evil-org
+      ;; :ensure t
+      :after (evil org)
+      :hook (org-mode . (lambda () evil-org-mode))
+      :config
+      (require 'evil-org-agenda)
+      (evil-org-agenda-set-keys))
 #+END_SRC
 
 ** helm
@@ -285,6 +301,7 @@ my configuration as well. Let's go.
       :general
       (local-leader-keys org-mode-map
        "r" 'org-refile)
+      (leader-keys "aoj" 'ic/org-refile)
       )
 #+END_SRC
 
