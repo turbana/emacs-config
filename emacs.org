@@ -1109,12 +1109,45 @@ fixed width.
   (use-package yasnippet)
 #+END_SRC
 
+* Modes
+** lisp-mode
+#+BEGIN_SRC emacs-lisp
+  (defun ic/lisp-mode-setup ()
+    (setq indent-tabs-mode nil)
+    (setq tab-width 2)
+    (setq lisp-indent-function 'common-lisp-indent-function))
+  (add-hook 'lisp-mode-hook #'ic/lisp-mode-hook)
+#+END_SRC
+
+** prog-mode
+#+BEGIN_SRC emacs-lisp
+  (defun ic/prog-mode-setup ()
+    (setq indent-tabs-mode nil)
+    (setq tab-width 4))
+  (add-hook 'prog-mode-hook #'ic/prog-mode-setup)
+#+END_SRC
+
+** python-mode
+#+BEGIN_SRC emacs-lisp
+  (defun ic/python-mode-setup ()
+    (setq python-indent tab-width))
+  (add-hook 'python-mode-hook #'ic/python-mode-setup)
+#+END_SRC
+
 * Misc
 ** Customize
 I don't like =customize= so discard all settings.
 
 #+BEGIN_SRC emacs-lisp
   (setq custom-file (concat (temporary-file-directory) "emacs-customize-settings"))
+#+END_SRC
+** Tab Width
+Use 4 spaces by default for tabs. Note: these are commonly overwritten in mode
+hooks.
+
+#+BEGIN_SRC emacs-lisp
+  (setq-default indent-tabs-mode nil)
+  (setq-default tab-width 4)
 #+END_SRC
 
 ** Font setup
