@@ -241,16 +241,30 @@ color customization.
 :header-args: :noweb-ref evil-init
 :END:
 
-**** Misc
-The following are needed for =evil-collection=.
-
+The following are needed for =evil-collection=:
 #+BEGIN_SRC emacs-lisp
   ;; needed for evil-collection
   (setq evil-want-integration t)
   (setq evil-want-keybinding nil)
+#+END_SRC
 
+Misc setup
+#+BEGIN_SRC emacs-lisp
   ;; don't bind anything under C-g
   (setq evil-want-C-g-bindings nil)
+
+  ;; C-u/d should scroll up/down
+  (setq evil-want-C-u-scroll t)
+  (setq evil-want-C-d-scroll t)
+
+  ;; C-w should backwards delete work in insert mode
+  (setq evil-want-C-w-delete t)
+
+  ;; Y should only yank from point to eol
+  (setq evil-want-Y-yank-to-eol t)
+
+  ;; movement commands should respect `visual-line-mode'
+  (setq evil-respect-visual-line-mode t)
 #+END_SRC
 
 *** Config
