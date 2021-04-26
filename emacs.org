@@ -1251,6 +1251,32 @@ fixed width.
       (which-key-mode 1))
 #+END_SRC
 
+** winum
+For numbering and jumping to windows.
+#+BEGIN_SRC emacs-lisp
+  (use-package winum
+      :demand t
+      :config
+      ;; I want frames numbered only within a frame, not globally
+      (setq winum-scope 'frame-local)
+      ;; spaceline handles window numbers
+      (setq winum-auto-setup-mode-line nil)
+      (winum-mode)
+      :general
+      (leader-keys
+       "0" '(winum-select-window-0-or-10 :which-key ("0..9" . "winum-window 0..9"))
+       "1" '(winum-select-window-1 :which-key t)
+       "2" '(winum-select-window-2 :which-key t)
+       "3" '(winum-select-window-3 :which-key t)
+       "4" '(winum-select-window-4 :which-key t)
+       "5" '(winum-select-window-5 :which-key t)
+       "6" '(winum-select-window-6 :which-key t)
+       "7" '(winum-select-window-7 :which-key t)
+       "8" '(winum-select-window-8 :which-key t)
+       "9" '(winum-select-window-9 :which-key t))
+      )
+#+END_SRC
+
 ** yasnippet
 #+BEGIN_SRC emacs-lisp
   (use-package yasnippet)
@@ -1279,6 +1305,12 @@ fixed width.
   (defun ic/python-mode-setup ()
     (setq python-indent tab-width))
   (add-hook 'python-mode-hook #'ic/python-mode-setup)
+#+END_SRC
+
+** winner-mode
+I like being able to undo/redo window changes.
+#+BEGIN_SRC emacs-lisp
+  (winner-mode 1)
 #+END_SRC
 
 * Misc
@@ -1468,5 +1500,30 @@ Profiler bindings.
 ** t :: toggle
 
 ** w :: windows
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+   :infix "w"
+   "" '(nil :which-key "windows")
+   "=" 'balance-windows
+   "d" 'delete-window
+   "F" 'make-frame
+   "f" 'follow-mode
+   "H" 'evil-window-move-far-left
+   "h" 'evil-window-left
+   "J" 'evil-window-move-very-bottom
+   "j" 'evil-window-down
+   "K" 'evil-window-move-very-top
+   "k" 'evil-window-up
+   "L" 'evil-window-move-far-right
+   "l" 'evil-window-right
+   "m" 'delete-other-windows
+   "S" 'split-window-below-and-focus
+   "s" 'split-window-below
+   "U" 'winner-redo
+   "u" 'winner-undo
+   "V" 'split-window-right-and-focus
+   "v" 'split-window-right
+   )
+#+END_SRC
 
 ** x :: text
