@@ -1031,6 +1031,16 @@ Need to clean these up
     ))
 #+END_SRC
 
+** smartparens
+Keep my toe-nail clippings in balance.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package smartparens
+      :config
+      (require 'smartparens-config)
+      (smartparens-global-strict-mode 1))
+#+END_SRC
+
 ** variable-pitch
 =org-mode= should be mostly variable pitch with only code and =company-mode= being
 fixed width.
