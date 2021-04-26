@@ -18,15 +18,18 @@ Load my custom theme early so if we have errors emacs still looks pretty.
   (load-theme 'themian-dark t)
 #+END_SRC
 
-** Disable cruft
+** Misc cruft
 Turn off some default emacs settings I don't like, such as the menu bar, scroll
 bar, etc.
 
 #+BEGIN_SRC emacs-lisp
-  ;; disable some unwanted UI modes
+  ;; disable unwanted UI elements
   (tool-bar-mode -1)
   (menu-bar-mode -1)
   (scroll-bar-mode -1)
+
+  ;; static cursor
+  (blink-cursor-mode -1)
 
   ;; don't show the initial emacs screen
   (setq inhibit-startup-screen t)
@@ -115,7 +118,7 @@ Some functions to trace the changing of variables.
     (format "%s(%s): %s %S" symbol buffer operation value))
 #+END_SRC
 
-*** TODO Profiling
+*** Profiling
 Some profiler keybindings.
 
 #+BEGIN_SRC emacs-lisp
@@ -288,7 +291,7 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 
 ** org
 =org-mode= is a large part of my daily emacs usage so it takes a large amount of
-my configuration as well. Let's go.
+my configuration as well. Let's go...
 
 *** use-package
 #+BEGIN_SRC emacs-lisp :noweb yes
@@ -1191,12 +1194,6 @@ Some good variable spaced fonts:
          `(fixed-pitch ((t (:family ,fixed-family :height ,fixed-height))))
          `(variable-pitch ((t (:family ,variable-family :height ,variable-height))))))))
   (ic/setup-fonts ic/fixed-pitch-font ic/variable-pitch-font)
-#+END_SRC
-
-** TODO Refile
-#+BEGIN_SRC emacs-lisp
-  ;; I want a static cursor
-  (blink-cursor-mode -1)
 #+END_SRC
 
 * Keybindings
