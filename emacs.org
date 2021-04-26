@@ -1448,6 +1448,48 @@ previous misspelled word.
    "C-e" #'flyspell-auto-correct-previous-word)
 #+END_SRC
 
+** Line Numbers
+Use =display-line-numbers= to show line numbers as it's written in C and part of
+the re-display code so can run only when needed. Lisp implementations such as
+=linum= and =nlinum= have to run over an entire window as they can't know which part
+of the screen changed.
+
+Disable other line number modes and only enable =display-line-numbers= in certain
+text-heavy modes.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (global-linum-mode -1)
+  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+  (add-hook 'text-mode-hook 'display-line-numbers-mode)
+#+END_SRC
+
+I want relative line numbers that count only what's seen on the screen. I also
+want to minimize any changing of the screen width.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; use lines displayed on screen rather than new line characters; so folds work
+  (setq-default display-line-numbers-type 'visual)
+  ;; show the current line as absolute
+  (setq-default display-line-numbers-current-absolute t)
+  ;; ignore folding when determining relative lines
+  (setq-default display-line-numbers-widen t)
+  ;; start with a width of 3 ...
+  (setq-default display-line-numbers-width 3)
+  ;; ... and allow it to shrink :(
+  (setq-default display-line-numbers-grow-only nil)
+#+END_SRC
+
+I would really like to set =display-line-numbers-grow-only= to =t= so that it only
+grows and prevents shrinkage, but it seems there is a significant performance
+cost associated with it. I've increased the default width slightly to offset it,
+but that will waste a bit more space on small files.
+
+*** Note on fringe
+=display-line-numbers= doesn't use the =display-margin= to show line numbers like
+=linum-mode=, instead it uses the =text-area= where the main buffer text is. This
+means that anything in the fringe (=display-margin=) now shows up to the left
+of the line numbers. I'm not a fan of that, but I guess I'll live with it as
+there's no way around it currently. See [[https://www.reddit.com/r/emacs/comments/aa9rg7/how_to_make_line_numbers_in/ecq7nub/][this]] reddit post from the author of
+=display-line-numbers= for more info.
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
