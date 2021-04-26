@@ -1362,6 +1362,57 @@ Some good variable spaced fonts:
   (ic/setup-fonts ic/fixed-pitch-font ic/variable-pitch-font)
 #+END_SRC
 
+** Quitting
+I want emacs to continue to run as a server whenever I "quit". I should have to
+use an infrequent key sequence to fully kill emacs. Taken from [[https://www.reddit.com/r/spacemacs/comments/6p3w0l/making_q_not_kill_emacs/][here]].
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/save-and-kill-buffer-and-window ()
+    "Save current buffer and kill it along with current window."
+    (interactive)
+    (save-buffer)
+    (ic/kill-buffer-and-window))
+
+  (defun ic/maybe-kill-emacs ()
+    "Prompt to quit emacs, then save and quit."
+    (interactive)
+    (when (yes-or-no-p "Really quit emacs?")
+      (save-buffers-kill-emacs)))
+
+  (defun ic/kill-buffer-and-window ()
+    "Destroy the current buffer and window, if it was the sole window also delete
+  the frame."
+    (interactive)
+    (condition-case-unless-debug nil
+        (kill-buffer-and-window)
+      (error
+       (spacemacs/frame-killer))))
+
+  ;; from spacemacs
+  (defun spacemacs/frame-killer ()
+    "Kill server buffer and hide the main Emacs window"
+    (interactive)
+    (condition-case-unless-debug nil
+        (delete-frame nil 1)
+      (error
+       (make-frame-invisible nil 1))))
+#+END_SRC
+
+Set evil ex commands:
+#+BEGIN_SRC emacs-lisp
+  (evil-ex-define-cmd "q[uit]" 'ic/kill-buffer-and-window)
+  (evil-ex-define-cmd "wq" 'ic/save-and-kill-buffer-and-window)
+#+END_SRC
+
+And some =leader-key= bindings:
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+   :infix "q"
+   "" '(nil :which-key "quit")
+   "q" 'spacemacs/frame-killer
+   "Q" 'ic/maybe-kill-emacs)
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
@@ -1490,8 +1541,6 @@ Profiler bindings.
 ** m :: major mode
 
 ** p :: projects
-
-** q :: quit
 
 ** r :: registers
 
