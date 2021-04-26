@@ -1044,6 +1044,140 @@ Keep my toe-nail clippings in balance.
       (smartparens-global-strict-mode 1))
 #+END_SRC
 
+** spaceline
+I want a pretty mode-line. Note: most of the configuration happens in the
+=spaceline-all-the-icons= package.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package spaceline
+      :config
+      ;; use a custom mode-line while in helm
+      (spaceline-helm-mode 1)
+
+      ;; use pretty separators
+      (setq powerline-default-separator 'contour)
+
+      ;; change face based on evil state
+      (setq spaceline-highlight-face-func #'spaceline-highlight-face-evil-state)
+      )
+#+END_SRC
+
+** spaceline-all-the-icons
+#+BEGIN_SRC emacs-lisp :noweb yes
+  (use-package spaceline-all-the-icons
+      :after (all-the-icons spaceline)
+      :config
+      <<spaceline-ati-config>>
+      )
+#+END_SRC
+
+*** config
+:PROPERTIES:
+:header-args: :noweb-ref spaceline-ati-config
+:END:
+
+By default =all-the-icons= returns an object without an =:inherit= property. You can
+pass a face to inherit from, but can't specify a bare =:inherit=. This has the
+issue where an icon has the wrong background color based on which section of the
+modeline it occupies. So we need a function that will both apply a bare =:inherit=
+property along with some default scaling values.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/icon (name &optional group)
+    (setf group (or group 'alltheicon))
+    (let* ((icon (funcall (intern (format "all-the-icons-%s" group))
+                          name))
+           (family (plist-get (plist-get (text-properties-at 0 icon)
+                                         'face)
+                              :family))
+           (face `(:family ,family :inherit)))
+      (propertize icon 'face face 'font-lock-face face 'display '(raise 0.1))))
+#+END_SRC
+
+For the version control segment I would like the see the git icon along with the
+current file's status if we're in the master branch. If we're in a non-master
+branch I want to see the git branch icon along with the branch name and current
+file's status.
+#+BEGIN_SRC emacs-lisp
+  (defun ic//vc-icon-git ()
+    (let* ((branch (cadr (split-string vc-mode "Git[:-]")))
+           ;; (project-name (second (nreverse (split-string (projectile-project-root) "/"))))
+           (vc-state-icon (pcase (vc-state (buffer-file-name))
+                            ('up-to-date "-")
+                            ('edited "*")
+                            ('added "^")
+                            ('removed' "v")
+                            ('conflict "!")
+                            ('missing "m")
+                            ('ignored "i")
+                            ('unregistered "x")
+                            (_ "?")))
+           (branch-icon (if (string= branch "master")
+                            (ic/icon "git")
+                          (concat
+                           (ic/icon "git-branch" 'octicon)
+                           " "
+                           branch))))
+      (concat vc-state-icon " " branch-icon)))
+
+  (spaceline-define-segment
+      ic-vc-icon "A segment for the Version Control icon"
+      (when vc-mode
+        (cond ((string-match "Git[:-]" vc-mode) (ic//vc-icon-git))
+              (t (propertize (format "%s" vc-mode))))))
+#+END_SRC
+
+Set the mode line.
+#+BEGIN_SRC emacs-lisp
+  ;; bring in bundled segments
+  (require 'spaceline-segments)
+
+  ;; and define our custom mode-line
+  (spaceline-compile
+   'main
+   ;; left side
+   '((window-number
+      :priority 100
+      :fallback evil-state
+      :face highlight-face)
+     ((buffer-modified
+       all-the-icons-mode-icon
+       remote-host)
+      :priority 95)
+     ((buffer-id)
+       :priority 96)
+     ((anzu
+       selection-info)
+      :priority 90)
+     ((flycheck-error
+       flycheck-warning
+       flycheck-info)
+      :priority 85)
+     ((ic-vc-icon)
+      :priority 87)
+     all-the-icons-git-status
+     process)
+
+   ;; right side
+   '(((buffer-encoding-abbrev buffer-size
+       input-method)
+      :priority 5)
+     (buffer-position
+      :priority 91)))
+
+
+  ;; and enable it
+  (setq-default mode-line-format '("%e" (:eval (spaceline-ml-main))))
+#+END_SRC
+
+=mode-line-format= is buffer-local and there are some buffers that have set it
+prior to us generating the mode-line, so we need to reset their values:
+#+BEGIN_SRC emacs-lisp
+  (save-excursion
+    (dolist (name '("*Messages*" "*scratch*" "*straight-process*"))
+      (if-let ((buffer (get-buffer name)))
+          (with-current-buffer buffer
+            (setq mode-line-format (default-toplevel-value 'mode-line-format))))))
+#+END_SRC
 ** variable-pitch
 =org-mode= should be mostly variable pitch with only code and =company-mode= being
 fixed width.
