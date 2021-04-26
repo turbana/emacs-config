@@ -211,6 +211,18 @@ ensure it is with =(general-override-mode 1)=.
 #+BEGIN_SRC emacs-lisp
   (use-package all-the-icons)
 #+END_SRC
+** auto-dim-other-buffers
+Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don't
+dim when the mini buffer is active. See the face =auto-dim-other-buffers-face= for
+color customization.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package auto-dim-other-buffers
+      :config
+      (setq auto-dim-other-buffers-dim-on-focus-out t)
+      (setq auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+      (auto-dim-other-buffers-mode t))
+#+END_SRC
 
 ** evil
 *** use-package
