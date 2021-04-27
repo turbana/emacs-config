@@ -1481,23 +1481,19 @@ Some good variable spaced fonts:
 - URW Palladio L
 
 #+BEGIN_SRC emacs-lisp
-  (defvar ic/fixed-pitch-font '("DejaVu Sans Mono" 11.0))
-  (defvar ic/variable-pitch-font '("Gillius ADF" 13.0))
-
-  (use-package cl)
+  (defvar ic/fixed-pitch-font '("DejaVu Sans Mono" . 11.0))
+  (defvar ic/variable-pitch-font '("Gillius ADF" . 13.0))
 
   (defun ic/setup-fonts (fixed-pitch-font variable-pitch-font)
-    (cl-flet ((make-size (size)
-                (truncate (* 10 size))))
-      (let ((fixed-family (first fixed-pitch-font))
-            (fixed-height (make-size (second fixed-pitch-font)))
-            (variable-family (first variable-pitch-font))
-            (variable-height (make-size (second variable-pitch-font))))
-        (custom-theme-set-faces
-         'user
-         `(default ((t (:family ,fixed-family :height ,fixed-height))))
-         `(fixed-pitch ((t (:family ,fixed-family :height ,fixed-height))))
-         `(variable-pitch ((t (:family ,variable-family :height ,variable-height))))))))
+    (let ((fixed-family (car fixed-pitch-font))
+          (fixed-height (truncate (* 10 (cdr fixed-pitch-font))))
+          (variable-family (car variable-pitch-font))
+          (variable-height (truncate (* 10 (cdr variable-pitch-font)))))
+      (custom-theme-set-faces
+       'user
+       `(default ((t (:family ,fixed-family :height ,fixed-height))))
+       `(fixed-pitch ((t (:family ,fixed-family :height ,fixed-height))))
+       `(variable-pitch ((t (:family ,variable-family :height ,variable-height)))))))
   (ic/setup-fonts ic/fixed-pitch-font ic/variable-pitch-font)
 #+END_SRC
 
