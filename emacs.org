@@ -1084,6 +1084,16 @@ Main =local-leader= key binds:
     "q" 'org-clock-cancel)
 #+END_SRC
 
+=,e= export keybinds:
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys org-mode-map
+    :infix "e"
+    "" '(nil :which-key "export")
+    "e" 'org-export-dispatch
+    "T" 'org-babel-tangle-file
+    "t" 'org-babel-tangle)
+#+END_SRC
+
 =,i= insert keybinds:
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys org-mode-map
