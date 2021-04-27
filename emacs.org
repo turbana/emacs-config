@@ -292,7 +292,7 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 
 #+BEGIN_SRC emacs-lisp
   (use-package evil-org
-      ;; :ensure t
+      :demand t
       :after (evil org)
       :hook (org-mode . (lambda () evil-org-mode))
       :config
@@ -328,13 +328,11 @@ my configuration as well. Let's go...
       :config
       <<org-config>>
       :general
-      (local-leader-keys org-mode-map
-       "r" 'org-refile)
-      (leader-keys "aoj" 'ic/org-refile)
+      <<org-keybinds>>
       )
 #+END_SRC
 
-*** Config
+*** config
 :PROPERTIES:
 :header-args: :noweb-ref org-config
 :END:
@@ -354,28 +352,24 @@ my configuration as well. Let's go...
   (setq org-refile-use-outline-path 'file)
   (setq org-outline-path-complete-in-steps nil)
 #+END_SRC
-**** Keybinds
-I want =, r= to refile rather than =, R=.
-#+BEGIN_SRC emacs-lisp
-  ;; (ic/set-leader-keys-for-major-mode 'org-mode "r" 'org-refile)
-#+END_SRC
-***** Agenda
-#+BEGIN_SRC emacs-lisp
-  (global-set-key (kbd "M-<f1>") 'org-clock-goto)
-  (global-set-key (kbd "<f12>") 'org-agenda)
-#+END_SRC
-***** Refile jump
+
+**** Refile jump
 Add ability to jump to any org heading with SPC-aoj
 #+BEGIN_SRC emacs-lisp
-  (defun ic/org-refile ()
-    "call C-u `org-refile'"
+  (defun ic/org-jump ()
+    "Jump to an `org-refile-targets' heading."
     (interactive)
-    (setq current-prefix-arg '(1))
-    (call-interactively 'org-refile))
-  ;; TODO
-  ;; (ic/set-leader-keys "aoj" 'ic/org-refile)
+    (let ((current-prefix-arg '(4)))
+      (call-interactively 'org-refile)))
+
+  (defun ic/org-jump-in-buffer ()
+    "Jump to a heading in the current buffer."
+    (interactive)
+    (let ((org-refile-targets '((nil :maxlevel . 999))))
+      (ic/org-jump)))
 #+END_SRC
-***** Normal mode navigation
+
+**** Normal mode navigation
 #+BEGIN_SRC emacs-lisp
   (defun ic/outline-current-heading-or-up ()
     "When point is on an org-mode heading: move to parent heading;
@@ -392,20 +386,8 @@ Add ability to jump to any org heading with SPC-aoj
     (call-interactively (if (org-at-heading-p)
                             'org-backward-heading-same-level
                           'outline-previous-heading)))
-
-  (evil-define-key 'normal org-mode-map (kbd "<left>") 'ic/outline-current-heading-or-up)
-  (evil-define-key 'normal org-mode-map (kbd "<up>") 'ic/outline-current-heading-or-backward)
-  (evil-define-key 'normal org-mode-map (kbd "<down>") 'org-forward-heading-same-level)
-  (evil-define-key 'normal org-mode-map (kbd "<right>") 'outline-next-visible-heading)
-
-  (evil-define-key 'normal org-mode-map (kbd "S-<left>") 'org-promote-subtree)
-  (evil-define-key 'normal org-mode-map (kbd "S-<up>") 'org-move-subtree-up)
-  (evil-define-key 'normal org-mode-map (kbd "S-<down>") 'org-move-subtree-down)
-  (evil-define-key 'normal org-mode-map (kbd "S-<right>") 'org-demote-subtree)
-
-  (evil-define-key 'normal org-mode-map (kbd "C-S-<left>") 'org-do-promote)
-  (evil-define-key 'normal org-mode-map (kbd "C-S-<right>") 'org-do-demote)
 #+END_SRC
+
 **** Appearance
 Basic heading setup
 #+BEGIN_SRC emacs-lisp
@@ -965,8 +947,6 @@ should be entered.
     (insert ">")
     (let ((yas-fallback-behavior 'return-nil))
       (yas-expand)))
-
-  (define-key evil-insert-state-map (kbd ">") #'ic/yas-expand->)
 #+END_SRC
 
 Based on [[https://emacs.stackexchange.com/questions/29758/yasnippets-and-org-mode-yas-next-field-or-maybe-expand-does-not-expand][this]] stackexchange post =org-mode= binds the tab key in such a way that
@@ -977,10 +957,14 @@ snippets while in =org-mode=.
     (let ((yas-fallback-behavior 'return-nil))
       (yas-expand)))
 
-  (add-hook 'org-mode-hook
-            (lambda ()
-              (add-to-list 'org-tab-first-hook 'yas-org-very-safe-expand)
-              (define-key yas-keymap [tab] 'yas-next-field)))
+  (defun ic/set-org-mode-tab-key ()
+    (add-to-list 'org-tab-first-hook 'yas-org-very-safe-expand)
+    ;; XXX is this needed?
+    ;; (general-define-key yas-keymap
+    ;;   "<tab>" 'yas-next-field)
+    )
+
+  (add-hook 'org-mode-hook 'ic/set-org-mode-tab-key)
 #+END_SRC
 
 **** TODO Functions
@@ -1058,6 +1042,125 @@ Need to clean these up
        ;; (lambda () (delete-region (point) (progn (forward-line) (point)))))
       )
     ))
+#+END_SRC
+
+*** keybinds
+:PROPERTIES:
+:header-args: :noweb-ref org-keybinds
+:END:
+
+**** local-leader
+Main =local-leader= key binds:
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys org-mode-map
+    "'" 'org-edit-special
+    ":" 'org-set-tags
+    "^" 'org-sort
+    "A" 'org-archive-subtree
+    "D" 'org-insert-drawer
+    "d" 'org-deadline
+    "f" 'org-set-effort
+    "H" 'org-shiftleft
+    "J" 'org-shiftdown
+    "K" 'org-shiftup
+    "L" 'org-shiftright
+    "l" 'org-open-at-point
+    "N" 'widen
+    "n" 'org-narrow-to-subtree
+    "P" 'org-set-property
+    "r" 'org-refile
+    "s" 'org-schedule
+    "t" 'org-todo
+    )
+#+END_SRC
+
+=,c= clocks keybinds:
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys org-mode-map
+    :infix "c"
+    "" '(nil :which-key "clocks")
+    "i" 'org-clock-in
+    "o" 'org-clock-out
+    "q" 'org-clock-cancel)
+#+END_SRC
+
+=,i= insert keybinds:
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys org-mode-map
+    :infix "i"
+    "" '(nil :which-key "insert")
+    "a" 'org-attach
+    "f" 'org-footnote-new
+    "l" 'org-insert-link
+    "t" 'org-time-stamp
+    "T" 'org-time-stamp-inactive
+    "s" 'org-download-screenshot
+    "y" 'org-download-yank
+    )
+#+END_SRC
+
+TODO =,T= tables keybinds
+#+BEGIN_SRC emacs-lisp
+
+#+END_SRC
+
+**** org-src-mode
+=org-src-mode= bindings:
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys
+      :definer 'minor-mode
+      :states 'normal
+      :keymaps 'org-src-mode
+      ;; ,c has which-key information from "clocks"
+      "c" '(org-edit-src-exit :which-key "org-edit-src-exit")
+      "k" 'org-edit-src-abort
+      )
+#+END_SRC
+
+**** leader-key
+=leader-key= keybinds:
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+   "oj" 'ic/org-jump-in-buffer
+   "oJ" 'ic/org-jump)
+#+END_SRC
+
+**** global
+global keybinds:
+#+BEGIN_SRC emacs-lisp
+  (general-define-key
+   "<f12>" 'org-agenda
+   "M-<f12>" 'org-clock-goto)
+#+END_SRC
+
+**** normal mode
+Here I have some custom normal mode navigation.
+#+BEGIN_SRC emacs-lisp
+  (general-define-key
+    :states 'normal
+    :keymaps 'org-mode-map
+
+    "<left>"      'ic/outline-current-heading-or-up
+    "<up>"        'ic/outline-current-heading-or-backward
+    "<down>"      'org-forward-heading-same-level
+    "<right>"     'outline-next-visible-heading
+
+    "S-<left>"    'org-promote-subtree
+    "S-<up>"      'org-move-subtree-up
+    "S-<down>"    'org-move-subtree-down
+    "S-<right>"   'org-demote-subtree
+
+    "C-S-<left>"  'org-do-promote
+    "C-S-<right>" 'org-do-demote
+    )
+#+END_SRC
+
+**** insert mode
+#+BEGIN_SRC emacs-lisp
+  (general-define-key
+      :states 'insert
+      :keymaps 'org-mode-map
+      ">" 'ic/yas-expand->)
 #+END_SRC
 
 ** smartparens
@@ -1305,7 +1408,11 @@ For numbering and jumping to windows.
 
 ** yasnippet
 #+BEGIN_SRC emacs-lisp
-  (use-package yasnippet)
+  (use-package yasnippet
+      :init
+      ;; XXX
+      (setq yas-snippet-dirs '("~/.etc/spacemacs/snippets"))
+      (yas-global-mode 1))
 #+END_SRC
 
 * Modes
