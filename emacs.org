@@ -45,7 +45,7 @@ information, etc. I have a small python program called =secret= that I use to
 retrieve these secrets, let's expose that to emacs.
 
 #+BEGIN_SRC emacs-lisp
-  (setq ic/secret-cmd "secret")
+  (defvar ic/secret-cmd "secret")
 
   (defun ic/get-secret (secret)
     "Retrieve `secret' using the `ic/secret-cmd' program."
