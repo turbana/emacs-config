@@ -67,22 +67,22 @@ Some functions to trace the changing of variables.
   (defun ic/watch-variable (symbol &rest ops)
     "Watch for any OPS operations on SYMBOL and call `message'. OPS defaults to
   '(set), see `add-variable-watcher' for all possible values."
-    (defun watch-variable-call-message (symbol value operation buffer)
-      (message (ic//watch-variable-format symbol buffer operation value))
+    (defun watch-variable-call-message (sym value operation buffer)
+      (message (ic//watch-variable-format sym buffer operation value))
     (ic/watch-variable-call-func symbol #'watch-variable-call-message ops)))
 
   (defun ic/watch-variable-raise-debug (symbol &rest ops)
     "Watch for any changes to SYMBOL and raise on error."
-    (defun watch-variable-raise-debug (symbol value operation buffer)
-      (let ((msg (ic//watch-variable-format symbol buffer operation value)))
+    (defun watch-variable-raise-debug (sym value operation buffer)
+      (let ((msg (ic//watch-variable-format sym buffer operation value)))
         (message msg)
         (debug nil msg)))
     (ic/watch-variable-call-func symbol #'watch-variable-raise-debug ops))
 
   (defun ic/watch-variable-print-stack (symbol &rest ops)
     "Watch for any changes to SYMBOL and print a stack trace."
-    (defun watch-variable-print-stack (symbol value operation buffer)
-      (message (ic//watch-variable-format symbol buffer operation value))
+    (defun watch-variable-print-stack (sym value operation buffer)
+      (message (ic//watch-variable-format sym buffer operation value))
       (if-let ((stack-trace (with-output-to-string (backtrace))))
           (progn
             (message ">>>>>>>>>>")
@@ -98,9 +98,9 @@ Some functions to trace the changing of variables.
     (unless (assq symbol ic//variable-watchers)
       (when (equal ops (list nil))
         (setq ops '(set let unlet makunbound defvaralias)))
-      (defun watch-change (symbol value operation buffer)
+      (defun watch-change (sym value operation buffer)
         (when (member operation ops)
-          (apply func (list symbol value operation buffer))))
+          (apply func (list sym value operation buffer))))
       (add-variable-watcher symbol #'watch-change)
       (push (cons symbol #'watch-change) ic//variable-watchers)))
 
