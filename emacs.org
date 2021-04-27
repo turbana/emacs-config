@@ -1629,6 +1629,13 @@ of the line numbers. I'm not a fan of that, but I guess I'll live with it as
 there's no way around it currently. See [[https://www.reddit.com/r/emacs/comments/aa9rg7/how_to_make_line_numbers_in/ecq7nub/][this]] reddit post from the author of
 =display-line-numbers= for more info.
 
+** Web Browser
+=firefox=, duh.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq browse-url-browser-function 'browse-url-generic)
+  (setq browse-url-generic-program "firefox")
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
