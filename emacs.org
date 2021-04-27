@@ -1644,14 +1644,21 @@ Here we copy the spacemacs keybindings, more or less.
   (leader-keys
    "TAB" 'evil-switch-to-windows-last-buffer
    "u" 'universal-argument)
+#+END_SRC
 
-  ;; Make <escape> quit as much as possible
-  ;;; from spacemacs/layers/+distributions/spacemacs-base/keybindings.el
-  (define-key minibuffer-local-map (kbd "<escape>") 'keyboard-escape-quit)
-  (define-key minibuffer-local-ns-map (kbd "<escape>") 'keyboard-escape-quit)
-  (define-key minibuffer-local-completion-map (kbd "<escape>") 'keyboard-escape-quit)
-  (define-key minibuffer-local-must-match-map (kbd "<escape>") 'keyboard-escape-quit)
-  (define-key minibuffer-local-isearch-map (kbd "<escape>") 'keyboard-escape-quit)
+** Escape Key
+Make  =<escape>= quit as much as possible.
+
+XXX should these go in an override map?
+
+#+BEGIN_SRC emacs-lisp
+  (general-define-key
+      :keymaps '(minibuffer-local-map
+                 minibuffer-local-ns-map
+                 minibuffer-local-completion-map
+                 minibuffer-local-must-match-map
+                 minibuffer-local-isearch-map)
+      "<escape>" 'keyboard-escape-quit)
 #+END_SRC
 
 ** a :: applications
