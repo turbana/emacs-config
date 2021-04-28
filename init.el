@@ -21,5 +21,9 @@
        (org-file (concat base-dir "README.org"))
        (el-file (concat base-dir "init.el")))
   (org-babel-tangle-file org-file el-file)
+  ;; on first load we shadow the core emacs org-mode and when trying to quit
+  ;; emacs calls the non-existent function `org-clocking-buffer'. Define a dummy
+  ;; to allow us to exit cleanly on initial run
+  (defun org-clocking-buffer (&rest _))
   (load-file el-file)
   (warn "This is the first load of init.el so core emacs `org-mode' is loaded. Restart emacs to use newest version."))
