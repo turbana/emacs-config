@@ -1,45 +1,25 @@
-;;; init.el --- Ian Clark's Initialization File
+;; -*- lexical-binding: t -*-
+;;; init.el --- Ian Clark's Emacs Initialization File
 ;;
-;; Copyright (c) 2020 Ian Clark
+;; Copyright (c) 2021 Ian Clark
 ;;
 ;; Author: Ian Clark <turbana@gmail.com>
-;; URL: https://github.com/turbana/dotfiles
+;; URL: https://github.com/turbana/emacs-config
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
 ;;; License: GPLv3
 
+;; This file replaces itself with the actual configuration at first run.
 
-;;; bootstrap straight.el
-(defvar bootstrap-version)
-(let ((bootstrap-file
-       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 5))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
-         'silent 'inhibit-cookies)
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file nil 'nomessage))
+;; load core emacs `org-mode', but don't native compile it
+(let ((comp-deferred-compilation nil))
+  (require 'org))
 
-;;; prevent package.el from loading packages
-(when (>= emacs-major-version 27)
-  (setq package-enable-at-startup nil))
-
-;;; setup use-package
-(setq straight-use-package-by-default t)
-(straight-use-package 'use-package)
-
-;;; setup org
-(straight-use-package 'org)
-
-;;; tangle/load the real config
-(load-file
- (let* ((org-file (expand-file-name "~/.etc/emacs/emacs.org"))
-        (el-file (concat (substring org-file 0 -4) ".el")))
-   (when (file-newer-than-file-p org-file el-file)
-     (require 'ob-tangle)
-     (org-babel-tangle-file org-file))
-   el-file))
+;; tangle/load our init file
+(let* ((base-dir (file-name-directory load-file-name))
+       (org-file (concat base-dir "README.org"))
+       (el-file (concat base-dir "init.el")))
+  (org-babel-tangle-file org-file el-file)
+  (load-file el-file)
+  (warn "This is the first load of init.el so core emacs `org-mode' is loaded. Restart emacs to use newest version."))

@@ -1,6 +1,5 @@
 #+TITLE: Emacs Config
 #+STARTUP: content
-#+PROPERTY: header-args :tangle yes
 
 * Initial
 ** Lexical binding
@@ -8,6 +7,54 @@ All right-thinking people use lexical binding.
 
 #+BEGIN_SRC emacs-lisp
   ;; -*- lexical-binding: t -*-
+#+END_SRC
+
+** Bootstrap
+*** Portable emacs
+I want to be able to potentially load separate emacs configurations so set the
+base emacs directory to where the current loading configuration is.
+#+BEGIN_SRC emacs-lisp
+  (setq user-emacs-directory (file-name-directory load-file-name))
+#+END_SRC
+
+*** straight.el
+I use =straight.el= for package management so install this early.
+#+BEGIN_SRC emacs-lisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+END_SRC
+
+Integrate =straight.el= with =use-package=.
+#+BEGIN_SRC emacs-lisp
+  (setq straight-use-package-by-default t)
+  (straight-use-package 'use-package)
+#+END_SRC
+
+*** init.el
+This file (=README.org=) should be tangled into the startup config file (=init.el=)
+along with compiling (either native or byte). I want that to happen automatically.
+#+BEGIN_SRC emacs-lisp
+  (defun ic-tangle-init-file ()
+    "Tangle/compile my emacs configuration."
+    (let ((org-file (concat user-emacs-directory "README.org"))
+          (init-file (concat user-emacs-directory "init.el")))
+      (when (equal (buffer-file-name) org-file)
+        (org-babel-tangle nil init-file)
+        (byte-compile init-file)
+        (when (fboundp 'native-compile-async)
+          (native-compile-async init-file)))))
+
+  (add-hook 'after-save-hook 'ic-tangle-init-file)
 #+END_SRC
 
 ** Theme
@@ -238,7 +285,7 @@ color customization.
 
 *** Init
 :PROPERTIES:
-:header-args: :noweb-ref evil-init
+:header-args+: :noweb-ref evil-init :tangle no
 :END:
 
 The following are needed for =evil-collection=:
@@ -269,7 +316,7 @@ Misc setup
 
 *** Config
 :PROPERTIES:
-:header-args: :noweb-ref evil-config
+:header-args+: :noweb-ref evil-config :tangle no
 :END:
 
 #+BEGIN_SRC emacs-lisp
@@ -334,7 +381,7 @@ my configuration as well. Let's go...
 
 *** config
 :PROPERTIES:
-:header-args: :noweb-ref org-config
+:header-args+: :noweb-ref org-config :tangle no
 :END:
 
 **** Basic Setup
@@ -1046,7 +1093,7 @@ Need to clean these up
 
 *** keybinds
 :PROPERTIES:
-:header-args: :noweb-ref org-keybinds
+:header-args+: :noweb-ref org-keybinds :tangle no
 :END:
 
 **** local-leader
@@ -1212,7 +1259,7 @@ I want a pretty mode-line. Note: most of the configuration happens in the
 
 *** config
 :PROPERTIES:
-:header-args: :noweb-ref spaceline-ati-config
+:header-args+: :noweb-ref spaceline-ati-config :tangle no
 :END:
 
 By default =all-the-icons= returns an object without an =:inherit= property. You can
@@ -1595,7 +1642,7 @@ of the screen changed.
 
 Disable other line number modes and only enable =display-line-numbers= in certain
 text-heavy modes.
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp
   (global-linum-mode -1)
   (add-hook 'prog-mode-hook 'display-line-numbers-mode)
   (add-hook 'text-mode-hook 'display-line-numbers-mode)
@@ -1603,7 +1650,7 @@ text-heavy modes.
 
 I want relative line numbers that count only what's seen on the screen. I also
 want to minimize any changing of the screen width.
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp
   ;; use lines displayed on screen rather than new line characters; so folds work
   (setq-default display-line-numbers-type 'visual)
   ;; show the current line as absolute
@@ -1631,7 +1678,7 @@ there's no way around it currently. See [[https://www.reddit.com/r/emacs/comment
 
 ** Web Browser
 =firefox=, duh.
-#+BEGIN_SRC emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp
   (setq browse-url-browser-function 'browse-url-generic)
   (setq browse-url-generic-program "firefox")
 #+END_SRC
