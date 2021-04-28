@@ -1,23 +1,77 @@
 #+TITLE: Emacs Config
 #+STARTUP: content
 
-* Initial
-** Lexical binding
-All right-thinking people use lexical binding.
+Welcome to my emacs configuration.
 
+* Initial Setup
+All right-thinking people use lexical binding.
 #+BEGIN_SRC emacs-lisp
   ;; -*- lexical-binding: t -*-
 #+END_SRC
 
-** Bootstrap
-*** Portable emacs
 I want to be able to potentially load separate emacs configurations so set the
-base emacs directory to where the current loading configuration is.
+base emacs directory to where the currently loading configuration is.
 #+BEGIN_SRC emacs-lisp
   (setq user-emacs-directory (file-name-directory load-file-name))
 #+END_SRC
 
-*** straight.el
+I also want to keep my =user-emacs-directory= somewhat clean, so let's define a
+few sub directories that we'll try to keep the plethora of emacs files in.
+#+BEGIN_SRC emacs-lisp
+  (defvar user-save-directory (concat user-emacs-directory "save/"))
+  (defvar user-cache-directory (concat user-emacs-directory "cache/"))
+#+END_SRC
+
+Let's also setup a few variables that we'll use throughout the rest of the
+config:
+#+BEGIN_SRC emacs-lisp
+  ;; do we have native compilation available?
+  (defvar have-native-compilation (and (fboundp 'native-comp-available-p)
+                                       (native-comp-available-p)))
+#+END_SRC
+
+* Bootstrap
+** init.el
+On checking out this repo =init.el= will have temporary code in it to tangle /
+load this org file (=README.org=), overwriting itself. On this initial run we will
+have loaded both core =org-mode= and melpa =org-mode= so emit a warning that a
+restart is needed.
+#+BEGIN_SRC emacs-lisp :tangle no
+  ;; load core emacs `org-mode', but don't native compile it
+  (let ((comp-deferred-compilation nil))
+    (require 'org))
+
+  ;; tangle/load our init file
+  (let* ((base-dir (file-name-directory load-file-name))
+         (org-file (concat base-dir "README.org"))
+         (el-file (concat base-dir "init.el")))
+    (org-babel-tangle-file org-file el-file)
+    ;; on first load we shadow the core emacs org-mode and when trying to quit
+    ;; emacs calls the non-existent function `org-clocking-buffer'. Define a dummy
+    ;; to allow us to exit cleanly on initial run
+    (defun org-clocking-buffer (&rest _))
+    (load-file el-file)
+    (warn "This is the first load of init.el so core emacs `org-mode' is loaded.
+   Restart emacs to use newest version."))
+#+END_SRC
+
+This file (=README.org=) should be tangled into the startup config file (=init.el=)
+along with compiling (either native or byte). I want that to happen automatically.
+#+BEGIN_SRC emacs-lisp
+  (defun ic-maybe-tangle-init-file ()
+    "Tangle/compile my emacs configuration."
+    (let ((org-file (concat user-emacs-directory "README.org"))
+          (init-file (concat user-emacs-directory "init.el")))
+      (when (equal (buffer-file-name) org-file)
+        (org-babel-tangle nil init-file)
+        (byte-compile init-file)
+        (when have-native-compilation
+          (native-compile-async init-file)))))
+
+  (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
+#+END_SRC
+
+** straight.el
 I use =straight.el= for package management so install this early.
 #+BEGIN_SRC emacs-lisp
   (defvar bootstrap-version)
@@ -40,63 +94,12 @@ Integrate =straight.el= with =use-package=.
   (straight-use-package 'use-package)
 #+END_SRC
 
-*** init.el
-This file (=README.org=) should be tangled into the startup config file (=init.el=)
-along with compiling (either native or byte). I want that to happen automatically.
-#+BEGIN_SRC emacs-lisp
-  (defun ic-tangle-init-file ()
-    "Tangle/compile my emacs configuration."
-    (let ((org-file (concat user-emacs-directory "README.org"))
-          (init-file (concat user-emacs-directory "init.el")))
-      (when (equal (buffer-file-name) org-file)
-        (org-babel-tangle nil init-file)
-        (byte-compile init-file)
-        (when (fboundp 'native-compile-async)
-          (native-compile-async init-file)))))
-
-  (add-hook 'after-save-hook 'ic-tangle-init-file)
-#+END_SRC
-
 ** Theme
 Load my custom theme early so if we have errors emacs still looks pretty.
 
 #+BEGIN_SRC emacs-lisp
   (straight-use-package '(themian :type git :host github :repo "turbana/themian"))
   (load-theme 'themian-dark t)
-#+END_SRC
-
-** Misc cruft
-Turn off some default emacs settings I don't like, such as the menu bar, scroll
-bar, etc.
-
-#+BEGIN_SRC emacs-lisp
-  ;; disable unwanted UI elements
-  (tool-bar-mode -1)
-  (menu-bar-mode -1)
-  (scroll-bar-mode -1)
-
-  ;; static cursor
-  (blink-cursor-mode -1)
-
-  ;; don't show the initial emacs screen
-  (setq inhibit-startup-screen t)
-  ;; start in the *Messages* buffer
-  (setq initial-buffer-choice (lambda () (get-buffer "*Messages*")))
-  ;; let me use y/n in prompts
-  (fset 'yes-or-no-p 'y-or-n-p)
-#+END_SRC
-
-** Secrets
-I keep certain information out of source control: email addresses, account
-information, etc. I have a small python program called =secret= that I use to
-retrieve these secrets, let's expose that to emacs.
-
-#+BEGIN_SRC emacs-lisp
-  (defvar ic/secret-cmd "secret")
-
-  (defun ic/get-secret (secret)
-    "Retrieve `secret' using the `ic/secret-cmd' program."
-    (first (process-lines ic/secret-cmd secret)))
 #+END_SRC
 
 ** Debugging
@@ -1510,6 +1513,40 @@ I like being able to undo/redo window changes.
 #+END_SRC
 
 * Misc
+** Misc cruft
+Turn off some default emacs settings I don't like, such as the menu bar, scroll
+bar, etc.
+
+#+BEGIN_SRC emacs-lisp
+  ;; disable unwanted UI elements
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+
+  ;; static cursor
+  (blink-cursor-mode -1)
+
+  ;; don't show the initial emacs screen
+  (setq inhibit-startup-screen t)
+  ;; start in the *Messages* buffer
+  (setq initial-buffer-choice (lambda () (get-buffer "*Messages*")))
+  ;; let me use y/n in prompts
+  (fset 'yes-or-no-p 'y-or-n-p)
+#+END_SRC
+
+** Secrets
+I keep certain information out of source control: email addresses, account
+information, etc. I have a small python program called =secret= that I use to
+retrieve these secrets, let's expose that to emacs.
+
+#+BEGIN_SRC emacs-lisp
+  (defvar ic/secret-cmd "secret")
+
+  (defun ic/get-secret (secret)
+    "Retrieve `secret' using the `ic/secret-cmd' program."
+    (first (process-lines ic/secret-cmd secret)))
+#+END_SRC
+
 ** Customize
 I don't like =customize= so discard all settings.
 
