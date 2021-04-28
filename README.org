@@ -55,6 +55,12 @@ restart is needed.
    Restart emacs to use newest version."))
 #+END_SRC
 
+We also need to tell =git= to ignore changes to =init.el= so the following command
+was run:
+#+BEGIN_SRC shell :tangle no
+  git update-index --assume-unchanged init.el
+#+END_SRC
+
 This file (=README.org=) should be tangled into the startup config file (=init.el=)
 along with compiling (either native or byte). I want that to happen automatically.
 #+BEGIN_SRC emacs-lisp
