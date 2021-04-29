@@ -26,8 +26,8 @@ Let's also setup a few variables that we'll use throughout the rest of the
 config:
 #+BEGIN_SRC emacs-lisp
   ;; do we have native compilation available?
-  (defvar have-native-compilation (and (fboundp 'native-comp-available-p)
-                                       (native-comp-available-p)))
+  (defconst have-native-compilation (and (fboundp 'native-comp-available-p)
+                                         (native-comp-available-p)))
 #+END_SRC
 
 * Bootstrap
@@ -72,7 +72,7 @@ along with compiling (either native or byte). I want that to happen automaticall
         (org-babel-tangle nil init-file)
         (byte-compile init-file)
         (when have-native-compilation
-          (native-compile-async init-file)))))
+          (native-compile init-file)))))
 
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
@@ -125,7 +125,7 @@ Some functions to trace the changing of variables.
   '(set), see `add-variable-watcher' for all possible values."
     (defun watch-variable-call-message (sym value operation buffer)
       (message (ic//watch-variable-format sym buffer operation value))
-    (ic/watch-variable-call-func symbol #'watch-variable-call-message ops)))
+    (ic/watch-variable-call-func symbol 'watch-variable-call-message ops)))
 
   (defun ic/watch-variable-raise-debug (symbol &rest ops)
     "Watch for any changes to SYMBOL and raise on error."
@@ -133,7 +133,7 @@ Some functions to trace the changing of variables.
       (let ((msg (ic//watch-variable-format sym buffer operation value)))
         (message msg)
         (debug nil msg)))
-    (ic/watch-variable-call-func symbol #'watch-variable-raise-debug ops))
+    (ic/watch-variable-call-func symbol 'watch-variable-raise-debug ops))
 
   (defun ic/watch-variable-print-stack (symbol &rest ops)
     "Watch for any changes to SYMBOL and print a stack trace."
@@ -145,7 +145,7 @@ Some functions to trace the changing of variables.
             (message "%S" stack-trace)
             (message "<<<<<<<<<<"))
         (message "(no stack trace found)")))
-    (ic/watch-variable-call-func symbol #'watch-variable-print-stack ops))
+    (ic/watch-variable-call-func symbol 'watch-variable-print-stack ops))
 
   (defvar ic//variable-watchers nil "a-list of variable watchers")
 
@@ -157,8 +157,8 @@ Some functions to trace the changing of variables.
       (defun watch-change (sym value operation buffer)
         (when (member operation ops)
           (apply func (list sym value operation buffer))))
-      (add-variable-watcher symbol #'watch-change)
-      (push (cons symbol #'watch-change) ic//variable-watchers)))
+      (add-variable-watcher symbol 'watch-change)
+      (push (cons symbol 'watch-change) ic//variable-watchers)))
 
   (defun ic/unwatch-variable (symbol)
     "Remove any `ic/watch-variable-*' watchers from SYMBOL."
@@ -178,6 +178,8 @@ Some functions to trace the changing of variables.
 Some profiler keybindings.
 
 #+BEGIN_SRC emacs-lisp
+  (require 'profiler)
+
   (defun ic/start-cpu-profiler ()
     "Start the CPU profiler."
     (interactive)
@@ -187,40 +189,6 @@ Some profiler keybindings.
     "Start the memory profiler."
     (interactive)
     (profiler-start 'mem))
-#+END_SRC
-
-** Functional
-Let's have some functional functions.
-
-#+BEGIN_SRC emacs-lisp
-  (defun any (seq)
-    (reduce (lambda (x y) (or x y))
-            seq
-            :initial-value nil))
-
-  (defun all (seq)
-    ;; NOTE: we need to guard against an empty list as `(reduce :initial-value t)'
-    ;; will return `t' when given an empty list.
-    (when seq
-      (reduce (lambda (x y) (and x y))
-              seq)))
-#+END_SRC
-
-*** TODO Tests
-#+BEGIN_SRC emacs-lisp :tangle no
-  (ert-deftest ic-test-any ()
-    (should (eql (any '()) nil))
-    (should (eql (any '(t)) t))
-    (should (eql (any '(nil)) nil))
-    (should (eql (any '(nil t)) t))
-    (should (eql (any '(t t)) t)))
-
-  (ert-deftest ic-test-all ()
-    (should (eql (all '()) nil))
-    (should (eql (all '(t)) t))
-    (should (eql (all '(nil)) nil))
-    (should (eql (all '(nil t)) nil))
-    (should (eql (all '(t t)) t)))
 #+END_SRC
 
 ** Keybinds
@@ -294,7 +262,7 @@ color customization.
 
 *** Init
 :PROPERTIES:
-:header-args+: :noweb-ref evil-init :tangle no
+:header-args: :noweb-ref evil-init :tangle no
 :END:
 
 The following are needed for =evil-collection=:
@@ -325,7 +293,7 @@ Misc setup
 
 *** Config
 :PROPERTIES:
-:header-args+: :noweb-ref evil-config :tangle no
+:header-args: :noweb-ref evil-config :tangle no
 :END:
 
 #+BEGIN_SRC emacs-lisp
@@ -390,7 +358,7 @@ my configuration as well. Let's go...
 
 *** config
 :PROPERTIES:
-:header-args+: :noweb-ref org-config :tangle no
+:header-args: :noweb-ref org-config :tangle no
 :END:
 
 **** Basic Setup
@@ -576,6 +544,11 @@ Hide emphasis markers such as *bold*, /italic/, etc.
 
   ;; show agenda icons
   (setq org-agenda-prefix-format "  %i %?-2 t%s")
+#+END_SRC
+
+***** Test icons (disabled)
+#+BEGIN_SRC emacs-lisp :noweb-ref disable
+  ;;; DISABLED ;;;
 
   ;; (setq org-agenda-mode-hook nil)
   ;; (add-hook 'org-agenda-mode-hook
@@ -623,8 +596,8 @@ Hide emphasis markers such as *bold*, /italic/, etc.
 
   ;; (ic/org-agenda-icon 'faicon "calendar")
 
-  (let ((icon (all-the-icons-faicon "calendar")))
-    (string-to-char icon))
+  ;; (let ((icon (all-the-icons-faicon "calendar")))
+  ;;   (string-to-char icon))
 
   ;; setup agenda icons
   (setq org-agenda-category-icon-alist
@@ -736,14 +709,14 @@ Hide emphasis markers such as *bold*, /italic/, etc.
   ;;                   icon-mapping-alist)))
 #+END_SRC
 ***** Functions
-****** Stuck Projects
+****** Stuck Projects (disabled)
 An org heading is considered a stuck project if it satisfies all the following:
 
 - It has a todo state and it's parent does not
 - It has one or more immediate children with todo state
 - It has no descendants with a NEXT todo state
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :noweb-ref disable
   (defun ic/org-is-active-task-p ()
     "Returns `t' if the current task is a member of `org-not-done-keywords'."
     (member (org-get-todo-state) org-not-done-keywords))
@@ -909,7 +882,7 @@ Finally, call ~(delete-frame)~ after the capture is finalized.
   (add-hook 'org-capture-after-finalize-hook #'ic/maybe-org-capture-delete-frame)
 #+END_SRC
 **** Clocking (disabled)
-#+BEGIN_SRC emacs-lisp :tangle no
+#+BEGIN_SRC emacs-lisp :noweb-ref disabled
   ;; resolve open clocks for any amount of time
   (setq org-clock-idle-time nil)
   ;; start new clocking immediatly after clocking out
@@ -954,15 +927,15 @@ Add some custom =<X= templates.
 Don't prompt for code execution if we're in a file in certain locations.
 
 #+BEGIN_SRC emacs-lisp
-  (setq ic/allow-babel-evaluate-directories
+  (defvar ic/allow-babel-evaluate-directories
         '("~/org" "~/.etc"))
 
-  (defun ic/org-confirm-babel-evaluate (lang body)
-    (not (any
-          (mapcar (lambda (dir)
-                    (string-prefix-p (expand-file-name dir)
-                                     (buffer-file-name)))
-                  ic/allow-babel-evaluate-directories))))
+  (defun ic/org-confirm-babel-evaluate (_lang _body)
+    (let ((filename (buffer-file-name))
+          match)
+      (dolist (path ic/allow-babel-evaluate-directories (not match))
+        (when (string-prefix-p (expand-file-name path) filename)
+          (setq match t)))))
 
   (setq org-confirm-babel-evaluate #'ic/org-confirm-babel-evaluate)
 #+END_SRC
@@ -1001,20 +974,15 @@ should be entered.
   (defun ic/yas-expand-> ()
     (interactive)
     (insert ">")
-    (let ((yas-fallback-behavior 'return-nil))
-      (yas-expand)))
+    (yas-expand))
 #+END_SRC
 
 Based on [[https://emacs.stackexchange.com/questions/29758/yasnippets-and-org-mode-yas-next-field-or-maybe-expand-does-not-expand][this]] stackexchange post =org-mode= binds the tab key in such a way that
 =yas-snippets= can't use it. So we need the following to allow =TAB= to expand
 snippets while in =org-mode=.
 #+BEGIN_SRC emacs-lisp
-  (defun yas-org-very-safe-expand ()
-    (let ((yas-fallback-behavior 'return-nil))
-      (yas-expand)))
-
   (defun ic/set-org-mode-tab-key ()
-    (add-to-list 'org-tab-first-hook 'yas-org-very-safe-expand)
+    (add-to-list 'org-tab-first-hook 'yas-expand)
     ;; XXX is this needed?
     ;; (general-define-key yas-keymap
     ;;   "<tab>" 'yas-next-field)
@@ -1076,7 +1044,7 @@ Need to clean these up
           nil))))
 
 
-  (defun ic/org-recipe-publish-to-html (plist org-filename target-dir)
+  (defun ic/org-recipe-publish-to-html (_plist org-filename target-dir)
     "Export ORG-FILENAME as html. Similar to `org-html-publish-to-html', but only exporting certain sections"
     (interactive)
     (let* ((base-name (file-name-sans-extension (file-name-nondirectory org-filename)))
@@ -1102,7 +1070,7 @@ Need to clean these up
 
 *** keybinds
 :PROPERTIES:
-:header-args+: :noweb-ref org-keybinds :tangle no
+:header-args: :noweb-ref org-keybinds :tangle no
 :END:
 
 **** local-leader
@@ -1268,7 +1236,7 @@ I want a pretty mode-line. Note: most of the configuration happens in the
 
 *** config
 :PROPERTIES:
-:header-args+: :noweb-ref spaceline-ati-config :tangle no
+:header-args: :noweb-ref spaceline-ati-config :tangle no
 :END:
 
 By default =all-the-icons= returns an object without an =:inherit= property. You can
@@ -1414,7 +1382,8 @@ fixed width.
       org-table
       whitespace-space
       )
-    "A list of faces that should remain fixed width when enabling `variable-pitch-mode'.")
+    "A list of faces that should remain fixed width when enabling
+  `variable-pitch-mode'.")
 
   (defun ic//variable-pitch-add-inherit (attrs parent)
     "Add `:inherit PARENT' to ATTRS unless already present. Handles cases where :inherit is already specified."
@@ -1488,7 +1457,8 @@ For numbering and jumping to windows.
     (setq indent-tabs-mode nil)
     (setq tab-width 2)
     (setq lisp-indent-function 'common-lisp-indent-function))
-  (add-hook 'lisp-mode-hook #'ic/lisp-mode-hook)
+
+  (add-hook 'lisp-mode-hook #'ic/lisp-mode-setup)
 #+END_SRC
 
 ** prog-mode
@@ -1502,8 +1472,12 @@ For numbering and jumping to windows.
 
 ** python-mode
 #+BEGIN_SRC emacs-lisp
+  (eval-when-compile
+    (require 'python))
+
   (defun ic/python-mode-setup ()
-    (setq python-indent tab-width))
+    (setq python-indent-offset tab-width))
+
   (add-hook 'python-mode-hook #'ic/python-mode-setup)
 #+END_SRC
 
@@ -1550,7 +1524,7 @@ retrieve these secrets, let's expose that to emacs.
 
   (defun ic/get-secret (secret)
     "Retrieve `secret' using the `ic/secret-cmd' program."
-    (first (process-lines ic/secret-cmd secret)))
+    (nth 0 (process-lines ic/secret-cmd secret)))
 #+END_SRC
 
 ** Customize
@@ -1652,19 +1626,28 @@ And some =leader-key= bindings:
 Set the frame title to something meaningful.
 
 #+BEGIN_SRC emacs-lisp
-  (defun ic/short-persp-name (persp)
-    "Return a shortened name for `PERSP'."
-    (let ((name (safe-persp-name persp)))
-      (if (file-directory-p name)
-          (file-name-nondirectory (directory-file-name name))
-        name)))
+  (defun ic/short-persp-name ()
+    "Return a shortened name for currently active perspective. Returns `nil'
+  when `persp-mode' not enabled."
+    ;; we guard calls to `get-frame-persp' and `safe-persp-name' behind a
+    ;; check for `\'persp-mode' so shutup the compiler about unknown functions.
+    (eval-when-compile
+      (unless (fboundp 'get-frame-persp)
+        (defun get-frame-persp ()))
+      (unless (fboundp 'safe-persp-name)
+        (defun safe-persp-name (_))))
+    (when (boundp 'persp-mode)
+      (let ((name (safe-persp-name (get-frame-persp))))
+        (concat " <"
+                (if (file-directory-p name)
+                    (file-name-nondirectory (directory-file-name name))
+                  name)
+                "> "))))
 
   (setq frame-title-format
         '((:eval (buffer-name (window-buffer (minibuffer-selected-window))))
-          (:eval (when (fboundp 'safe-persp-name)
-                   (concat " <"
-                           (ic/short-persp-name (get-frame-persp))
-                           "> ")))))
+          (:eval (ic/short-persp-name))))
+
 #+END_SRC
 
 ** Spelling
