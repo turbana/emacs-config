@@ -1,4 +1,6 @@
 *~
 *#
 *.elc
-emacs.el
+/straight/
+/cache/
+/save/

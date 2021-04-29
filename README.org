@@ -16,10 +16,13 @@ base emacs directory to where the currently loading configuration is.
 #+END_SRC
 
 I also want to keep my =user-emacs-directory= somewhat clean, so let's define a
-few sub directories that we'll try to keep the plethora of emacs files in.
+few sub directories that we'll try to keep the plethora of emacs files in:
+- =user-cache-directory= :: files that contain transient data (history, projectile, etc).
+- =user-data-directory= :: files that contain version controlled data (snippets, etc)
+
 #+BEGIN_SRC emacs-lisp
-  (defvar user-save-directory (concat user-emacs-directory "save/"))
   (defvar user-cache-directory (concat user-emacs-directory "cache/"))
+  (defvar user-data-directory (concat user-emacs-directory "data/"))
 #+END_SRC
 
 Let's also setup a few variables that we'll use throughout the rest of the
@@ -892,6 +895,8 @@ Finally, call ~(delete-frame)~ after the capture is finalized.
 #+END_SRC
 **** Clocking (disabled)
 #+BEGIN_SRC emacs-lisp :noweb-ref disabled
+  (require 'org-clock)
+
   ;; resolve open clocks for any amount of time
   (setq org-clock-idle-time nil)
   ;; start new clocking immediatly after clocking out
@@ -908,11 +913,17 @@ Finally, call ~(delete-frame)~ after the capture is finalized.
   (setq org-clock-report-include-clocking-task t)
   ;; save all clocks in the LOGBOOK drawer
   (setq org-clock-into-drawer "LOGBOOK")
-  ;; show current clock in the modeline
-  (setq spacemacs-mode-line-org-clock-current-taskp t)
   ;; only show today's clock in the modeline
   (setq org-clock-mode-line-total 'today)
+  ;; persist open clocks
+  (setq org-clock-persist-file (concat user-cache-directory "org-clock-save.el"))
   (org-clock-persistence-insinuate)
+
+  (defun ic/org-clock-jump-to-current-clock ()
+    "Jump to the currently active clock."
+    (interactive)
+    ;; why isn't this (interactive) already, ugh
+    (org-clock-jump-to-current-clock))
 #+END_SRC
 **** Misc
 Add some custom =<X= templates.
@@ -931,6 +942,8 @@ Add some custom =<X= templates.
   (setq org-archive-mark-done nil)
   ;; catch modifying collapsed text
   (setq org-catch-invisible-edits 'error)
+  ;; save id locations in a nicer place
+  (setq org-id-locations-file (concat user-cache-directory "org-id-locations"))
 #+END_SRC
 **** Code Execution
 Don't prompt for code execution if we're in a file in certain locations.
@@ -1113,6 +1126,7 @@ Main =local-leader= key binds:
     :infix "c"
     "" '(nil :which-key "clocks")
     "i" 'org-clock-in
+    "j" 'ic/org-clock-jump-to-current-clock
     "o" 'org-clock-out
     "q" 'org-clock-cancel)
 #+END_SRC
@@ -1522,6 +1536,25 @@ bar, etc.
   ;; let me use y/n in prompts
   (fset 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
+** user-emacs-directory
+Try and keep the =user-emacs-directory= somewhat clean.
+#+BEGIN_SRC emacs-lisp
+  (setq recentf-save-file (concat user-cache-directory "recentf"))
+  (setq transient-history-file (concat user-cache-directory "transient-history.el"))
+
+  (let ((backup-dir (concat user-cache-directory "backups/"))
+        (autosave-dir (concat user-cache-directory "auto-saves/")))
+    ;; create directories if needed
+    (dolist (path (list backup-dir autosave-dir))
+      (unless (file-directory-p path)
+        (make-directory path t)))
+    (setq backup-directory-alist `((".*" . ,backup-dir)))
+    (setq auto-save-file-name-transforms `((".*" ,autosave-dir t)))
+    (setq auto-save-list-file-prefix (concat autosave-dir "saves-"))
+    (setq tramp-backup-directory-alist `((".*" ,backup-dir)))
+    (setq tramp-auto-save-directory autosave-dir))
+#+END_SRC
+
 ** Buffers
 Some useful buffer related functions.
 #+BEGIN_SRC emacs-lisp
