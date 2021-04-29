@@ -339,6 +339,15 @@ Some basic community =evil-mode= key bindings for =org-mode=.
       (helm-mode 1))
 #+END_SRC
 
+** magit
+#+BEGIN_SRC emacs-lisp
+  (use-package magit
+    :init
+    ;; don't use magit's default key bindings
+    (setq magit-define-global-key-bindings nil))
+
+#+END_SRC
+
 ** org
 =org-mode= is a large part of my daily emacs usage so it takes a large amount of
 my configuration as well. Let's go...
@@ -1836,6 +1845,16 @@ Profiler bindings.
 #+END_SRC
 
 ** g :: git/vc
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+    :infix "g"
+    "" '(nil :which-key "git")
+    "i" 'magit-gitignore
+    "s" 'magit-status
+    "S" 'magit-stage-file
+    "U" 'magit-unstage-file
+    )
+#+END_SRC
 
 ** h :: help
 #+BEGIN_SRC emacs-lisp
