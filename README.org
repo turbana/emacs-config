@@ -1513,6 +1513,35 @@ bar, etc.
   ;; let me use y/n in prompts
   (fset 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
+** Buffers
+Some useful buffer related functions.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/yank-buffer-to-clipboard ()
+    "Yank contents of current buffer to the clipboard."
+    (interactive)
+    (clipboard-kill-ring-save (point-min) (point-max)))
+
+  (defun ic/paste-clipboard-to-buffer ()
+    "Overwrite the current buffer with the clipboard contents."
+    (interactive)
+    (when (yes-or-no-p "Overwrite current buffer with clipboard?")
+      (widen)
+      (erase-buffer)
+      (clipboard-yank)))
+
+  (defun ic/yank-current-filename ()
+    "Yank the full filename of the currently active buffer. Return
+  `nil' if no underlying file."
+    (interactive)
+    (let ((filename (or (buffer-file-name) "nil")))
+      (kill-new filename)
+      (message filename)))
+
+  (defun ic/switch-to-scratch-buffer ()
+    "Switch to the `*scratch*' buffer."
+    (interactive)
+    (switch-to-buffer (startup--get-buffer-create-scratch)))
+#+END_SRC
 
 ** Secrets
 I keep certain information out of source control: email addresses, account
@@ -1743,11 +1772,11 @@ XXX should these go in an override map?
    "" '(nil :which-key "buffers")
    "b" 'helm-mini
    "d" 'kill-this-buffer
-   "p" 'paste-clipboard-to-whole-buffer
-   "R" 'safe-revert-buffer
-   "s" 'switch-to-scratch-buffer
+   "P" 'ic/paste-clipboard-to-buffer
+   "R" 'revert-buffer
+   "s" 'ic/switch-to-scratch-buffer
    "w" 'read-only-mode
-   "y" 'yank-whole-buffer-to-clipboard)
+   "Y" 'ic/yank-buffer-to-clipboard)
 #+END_SRC
 
 ** B :: build
@@ -1784,7 +1813,7 @@ Profiler bindings.
    "l" 'find-file-literally
    "r" 'helm-recentf
    "R" 'rename-current-buffer-file
-   "y" 'show-and-copy-buffer-filename)
+   "y" 'ic/yank-current-filename)
 #+END_SRC
 
 ** fC :: Convert
