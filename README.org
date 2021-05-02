@@ -1,5 +1,6 @@
 #+TITLE: Emacs Config
 #+STARTUP: content
+#+TODO: TODO TEST | DONE
 
 Welcome to my emacs configuration.
 
@@ -243,6 +244,7 @@ ensure it is with =(general-override-mode 1)=.
 #+BEGIN_SRC emacs-lisp
   (use-package all-the-icons)
 #+END_SRC
+
 ** auto-dim-other-buffers
 Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don't
 dim when the mini buffer is active. See the face =auto-dim-other-buffers-face= for
@@ -385,6 +387,7 @@ my configuration as well. Let's go...
   (setq org-archive-location "%s_archive::")
   (setq ic/org-capture-template-dir "~/.etc/spacemacs/org-capture-templates/")
 #+END_SRC
+
 **** Refile
 #+BEGIN_SRC emacs-lisp
   (setq org-refile-targets
@@ -489,6 +492,7 @@ Hide emphasis markers such as *bold*, /italic/, etc.
 #+BEGIN_SRC emacs-lisp
   (setq org-hide-emphasis-markers t)
 #+END_SRC
+
 **** Agenda
 ***** Setup
 #+BEGIN_SRC emacs-lisp
@@ -543,6 +547,7 @@ Hide emphasis markers such as *bold*, /italic/, etc.
                   ((org-agenda-overriding-header "Archive Tasks (*B$ to archive all):")))))
           ))
 #+END_SRC
+
 ***** Appearance
 #+BEGIN_SRC emacs-lisp
   ;; don't show completed DEADLINE and SCHEDULED in agenda
@@ -725,6 +730,7 @@ Hide emphasis markers such as *bold*, /italic/, etc.
   ;;                 `(,category (list ,(apply (cdr (assoc icon-family ati-family-alist)) (list icon-name :height 0.9 :v-adjust 0))) nil nil :ascent center :mask heuristic)))
   ;;                   icon-mapping-alist)))
 #+END_SRC
+
 ***** Functions
 ****** Stuck Projects (disabled)
 An org heading is considered a stuck project if it satisfies all the following:
@@ -785,6 +791,7 @@ An org heading is considered a stuck project if it satisfies all the following:
           (or (outline-next-heading) (point-max))))
       ))
 #+END_SRC
+
 ****** TODO Test stuck
 ******* TODO child task
 ******* NEXT next task
@@ -800,6 +807,7 @@ An org heading is considered a stuck project if it satisfies all the following:
   ;; only show the first occurrence of a repeating task
   (setq org-agenda-show-future-repeats 'next)
 #+END_SRC
+
 **** Todo
 #+BEGIN_SRC emacs-lisp
   (setq org-todo-keywords
@@ -809,6 +817,7 @@ An org heading is considered a stuck project if it satisfies all the following:
   (setq org-enforce-todo-dependencies t)
   (setq org-enforce-todo-checkbox-dependencies t)
 #+END_SRC
+
 **** Logging
 Create a log on certain state changes inside the =LOGBOOK= drawer.
 #+BEGIN_SRC emacs-lisp
@@ -818,6 +827,7 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
   (setq org-log-reschedule 'time)
   (setq org-log-into-drawer "LOGBOOK")
 #+END_SRC
+
 **** Capture
 ***** Templates
 #+BEGIN_SRC emacs-lisp
@@ -867,6 +877,7 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
           ))
   (add-hook 'org-capture-mode-hook 'evil-insert-state)
 #+END_SRC
+
 ***** Full Frame
 The standard =org-capture= behavior is to split the window before capturing a
 task. When this is started from outside emacs a random buffer occupies half the
@@ -898,6 +909,7 @@ Finally, call ~(delete-frame)~ after the capture is finalized.
       (delete-frame)))
   (add-hook 'org-capture-after-finalize-hook #'ic/maybe-org-capture-delete-frame)
 #+END_SRC
+
 **** Clocking (disabled)
 #+BEGIN_SRC emacs-lisp :noweb-ref disabled
   (require 'org-clock)
@@ -930,6 +942,7 @@ Finally, call ~(delete-frame)~ after the capture is finalized.
     ;; why isn't this (interactive) already, ugh
     (org-clock-jump-to-current-clock))
 #+END_SRC
+
 **** Misc
 Add some custom =<X= templates.
 #+BEGIN_SRC emacs-lisp
@@ -950,6 +963,7 @@ Add some custom =<X= templates.
   ;; save id locations in a nicer place
   (setq org-id-locations-file (concat user-cache-directory "org-id-locations"))
 #+END_SRC
+
 **** Code Execution
 Don't prompt for code execution if we're in a file in certain locations.
 
@@ -966,6 +980,7 @@ Don't prompt for code execution if we're in a file in certain locations.
 
   (setq org-confirm-babel-evaluate #'ic/org-confirm-babel-evaluate)
 #+END_SRC
+
 **** Exporting
 Let's set some defaults. I don't want to see a table of contents, but I do want
 to see most everything else.
@@ -993,6 +1008,7 @@ to see most everything else.
            )))
   (add-hook 'org-export-before-parsing-hook 'ic/org-export-filter-recipes)
 #+END_SRC
+
 **** Snippets
 By convention I title most of my snippets ={snippet}>= so I would like the =>= key
 to try and expand snippets automatically. When no snippet is found a regular =>=
@@ -1369,6 +1385,7 @@ prior to us generating the mode-line, so we need to reset their values:
           (with-current-buffer buffer
             (setq mode-line-format (default-toplevel-value 'mode-line-format))))))
 #+END_SRC
+
 ** variable-pitch
 =org-mode= should be mostly variable pitch with only code and =company-mode= being
 fixed width.
@@ -1541,6 +1558,7 @@ bar, etc.
   ;; let me use y/n in prompts
   (fset 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
+
 ** user-emacs-directory
 Try and keep the =user-emacs-directory= somewhat clean.
 #+BEGIN_SRC emacs-lisp
@@ -1609,6 +1627,7 @@ I don't like =customize= so discard all settings.
 #+BEGIN_SRC emacs-lisp
   (setq custom-file (concat (temporary-file-directory) "emacs-customize-settings"))
 #+END_SRC
+
 ** Tab Width
 Use 4 spaces by default for tabs. Note: these are commonly overwritten in mode
 hooks.
