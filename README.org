@@ -103,6 +103,11 @@ Integrate =straight.el= with =use-package=.
   (straight-use-package 'use-package)
 #+END_SRC
 
+I want to check in my packages to git so store the version file under =user-data-directory=.
+#+BEGIN_SRC emacs-lisp
+  (setq straight-profiles `((nil . ,(concat user-data-directory "straight-default.el"))))
+#+END_SRC
+
 ** Theme
 Load my custom theme early so if we have errors emacs still looks pretty.
 
