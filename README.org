@@ -1575,9 +1575,13 @@ bar, etc.
 ** user-emacs-directory
 Try and keep the =user-emacs-directory= somewhat clean.
 #+BEGIN_SRC emacs-lisp
+  ;; cache/ directory
   (setq recentf-save-file (concat user-cache-directory "recentf"))
   (setq transient-history-file (concat user-cache-directory "transient-history.el"))
+  (setq bookmark-default-file (concat user-cache-directory "bookmarks"))
+  (setq tramp-persistency-file-name (concat user-cache-directory "tramp"))
 
+  ;; cache/{backups,auto-saves}
   (let ((backup-dir (concat user-cache-directory "backups/"))
         (autosave-dir (concat user-cache-directory "auto-saves/")))
     ;; create directories if needed
@@ -1589,6 +1593,9 @@ Try and keep the =user-emacs-directory= somewhat clean.
     (setq auto-save-list-file-prefix (concat autosave-dir "saves-"))
     (setq tramp-backup-directory-alist `((".*" ,backup-dir)))
     (setq tramp-auto-save-directory autosave-dir))
+
+  ;; data/ directory
+  (setq abbrev-file-name (concat user-data-directory "abbrev"))
 #+END_SRC
 
 ** Buffers
