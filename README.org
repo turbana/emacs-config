@@ -1248,7 +1248,10 @@ Keep my toe-nail clippings in balance.
   (use-package smartparens
       :config
       (require 'smartparens-config)
-      (smartparens-global-strict-mode 1))
+      (smartparens-global-strict-mode 1)
+      ;; don't run smartparens in the minibuffer
+      (add-hook 'minibuffer-mode-hook 'turn-off-smartparens-strict-mode)
+      )
 #+END_SRC
 
 ** spaceline
