@@ -1504,6 +1504,11 @@ For numbering and jumping to windows.
 #+END_SRC
 
 * Modes
+** info-mode
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'Info-mode-hook 'variable-pitch-mode)
+#+END_SRC
+
 ** lisp-mode
 #+BEGIN_SRC emacs-lisp
   (defun ic/lisp-mode-setup ()
@@ -1927,6 +1932,7 @@ Profiler bindings.
    :infix "h"
    "" '(nil :which-key "help")
    "k" 'which-key-show-top-level
+   "i" 'info
    "m" 'helm-man-woman)
 #+END_SRC
 
