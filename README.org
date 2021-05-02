@@ -354,8 +354,13 @@ Some basic community =evil-mode= key bindings for =org-mode=.
   (use-package magit
     :init
     ;; don't use magit's default key bindings
-    (setq magit-define-global-key-bindings nil))
+    (setq magit-define-global-key-bindings nil)
 
+    :general
+    (general-define-key
+     :keymaps 'magit-status-mode-map
+     "<up>" 'magit-section-backward
+     "<down>" 'magit-section-forward))
 #+END_SRC
 
 ** org
