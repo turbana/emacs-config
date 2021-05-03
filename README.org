@@ -1714,6 +1714,36 @@ Some useful buffer related functions.
     (switch-to-buffer (startup--get-buffer-create-scratch)))
 #+END_SRC
 
+** display-buffer configuration
+#+BEGIN_SRC emacs-lisp
+  (setq display-buffer-alist
+        '(
+          ;; display help windows on the right
+          ("^\\*Help"
+           (display-buffer-reuse-window display-buffer-in-side-window)
+           (side . right)
+           (slot . 1)
+           (window-width . 80)
+           (reusable-frames . nil))
+
+          ;; display compile errors on the bottom
+          ("^\\*\\(Compile\\|Backtrace\\)"
+           (display-buffer-reuse-window display-buffer-at-bottom)
+           (window-width . 0.5)
+           (window-height . 15)
+           (reusable-frames . nil))
+
+          ;; display magit windows on the left
+          ("^magit:"
+           (display-buffer-reuse-window display-buffer-in-side-window)
+           (side . left)
+           (slot . 1)
+           (window-width . 80)
+           (window-height . 1.0)
+           (reusable-frames . nil))
+          ))
+#+END_SRC
+
 ** Secrets
 I keep certain information out of source control: email addresses, account
 information, etc. I have a small python program called =secret= that I use to
