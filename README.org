@@ -516,6 +516,12 @@ XXX what do these do?
   ;; (setq org-blank-before-new-entry nil)
 #+END_SRC
 
+Hide emphasis markers such as *bold*, /italic/, etc.
+#+BEGIN_SRC emacs-lisp
+  (setq org-hide-emphasis-markers t)
+#+END_SRC
+
+**** org-src
 Use current window to edit =org-src= blocks. Don't indent.
 #+BEGIN_SRC emacs-lisp
   (setq org-src-preserve-indentation nil)
@@ -523,9 +529,16 @@ Use current window to edit =org-src= blocks. Don't indent.
   (setq org-src-window-setup 'current-window)
 #+END_SRC
 
-Hide emphasis markers such as *bold*, /italic/, etc.
+When editing an =org-src= block =:w= should save the parent buffer.
 #+BEGIN_SRC emacs-lisp
-  (setq org-hide-emphasis-markers t)
+  (defun ic/evil-save-src-block-advice (write-fn &rest args)
+    "When edit an org-src block `:w' should call `(org-edit-src-save)'."
+    (interactive)
+    (if (string-prefix-p "*Org Src" (buffer-name))
+        (org-edit-src-save)
+      (apply write-fn args)))
+
+  (advice-add #'evil-write :around #'ic/evil-save-src-block-advice)
 #+END_SRC
 
 **** Agenda
@@ -1217,7 +1230,7 @@ TODO =,T= tables keybinds
 
 #+END_SRC
 
-**** org-src-mode
+**** org-src
 =org-src-mode= bindings:
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys
