@@ -345,16 +345,36 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 ** helm
 #+BEGIN_SRC emacs-lisp
   (use-package helm
-      :diminish t
-      ;; some temp key bindings
-      :bind (("M-x" . helm-M-x)
-             ("C-x C-f" . helm-find-files)
-             ("C-x f" . helm-recentf)
-             ("C-x b" . helm-buffers-list))
-      :bind (:map helm-map
-                  ("C-w" . backward-kill-word))
       :config
-      (helm-mode 1))
+      (helm-mode 1)
+
+      ;; bring up helm full width below other windows
+      (setq helm-default-display-buffer-functions '(display-buffer-in-side-window))
+
+      ;; short window by default
+      (setq helm-display-buffer-default-height 15)
+
+      :general
+      (general-define-key
+       :keymaps 'helm-map
+       ;; I'm too used to C-w killing a word backwards
+       "C-w" 'backward-kill-word
+       ;; TAB should be more useful than bringing up actions
+       "<tab>" 'helm-execute-persistent-action
+       "C-i" 'helm-execute-persistent-action
+       ;; C-, should start actions
+       "C-," 'helm-select-action
+       ;; C-. to paste into buffer
+       "C-." 'helm-copy-to-buffer
+       )
+
+      (general-define-key
+       "M-x" 'helm-M-x)
+
+      (general-define-key
+       :states '(normal)
+       "gi" 'helm-semantic-or-imenu)
+      )
 #+END_SRC
 
 ** magit
@@ -2045,6 +2065,7 @@ XXX should these go in an override map?
    "" '(nil :which-key "buffers")
    "b" 'helm-mini
    "d" 'kill-this-buffer
+   "i" 'ibuffer
    "P" 'ic/paste-clipboard-to-buffer
    "R" 'revert-buffer
    "s" 'ic/switch-to-scratch-buffer
@@ -2078,12 +2099,12 @@ Profiler bindings.
   (leader-keys
    :infix "f"
    "" '(nil :which-key "files")
-   "b" 'helm-filtered-bookmarks
+   "b" 'helm-bookmarks
    "c" 'copy-file
    "D" 'delete-current-buffer-file
    "E" 'sudo-edit
    "f" 'helm-find-files
-   "l" 'find-file-literally
+   "L" 'helm-locate-library
    "r" 'helm-recentf
    "R" 'rename-current-buffer-file
    "y" 'ic/yank-current-filename)
@@ -2125,8 +2146,10 @@ Profiler bindings.
   (leader-keys
    :infix "h"
    "" '(nil :which-key "help")
+   "a" 'apropos
    "k" 'which-key-show-top-level
    "i" 'info
+   "I" 'helm-info
    "m" 'helm-man-woman)
 #+END_SRC
 
@@ -2137,8 +2160,6 @@ Profiler bindings.
    "" '(nil :which-key "describe")
    "b" 'describe-bindings
    "c" 'describe-char
-   "d" 'apropos
-   "F" 'helm-faces
    "f" 'describe-function
    "K" 'describe-keymap
    "k" 'describe-key
@@ -2192,3 +2213,4 @@ Profiler bindings.
 #+END_SRC
 
 ** x :: text
+
