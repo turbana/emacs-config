@@ -1867,7 +1867,7 @@ Set the frame title to something meaningful.
         (defun get-frame-persp ()))
       (unless (fboundp 'safe-persp-name)
         (defun safe-persp-name (_))))
-    (when (boundp 'persp-mode)
+    (when (and (boundp 'persp-mode) (get-frame-persp))
       (let ((name (safe-persp-name (get-frame-persp))))
         (concat " <"
                 (if (file-directory-p name)
