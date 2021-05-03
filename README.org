@@ -26,15 +26,18 @@ few sub directories that we'll try to keep the plethora of emacs files in:
   (defvar user-data-directory (concat user-emacs-directory "data/"))
 #+END_SRC
 
-Let's also setup a few variables that we'll use throughout the rest of the
-config:
+* Bootstrap
+** Native compilation
+I want to make use of the native compilation system introduced in emacs 28.
 #+BEGIN_SRC emacs-lisp
   ;; do we have native compilation available?
-  (defconst have-native-compilation (and (fboundp 'native-comp-available-p)
-                                         (native-comp-available-p)))
-#+END_SRC
+  (defconst have-native-compilation
+    (and (fboundp 'native-comp-available-p)
+         (native-comp-available-p)))
 
-* Bootstrap
+  (when have-native-compilation
+    (setq comp-async-jobs-number 4))
+#+END_SRC
 ** init.el
 On checking out this repo =init.el= will have temporary code in it to tangle /
 load this org file (=README.org=), overwriting itself. On this initial run we will
@@ -79,6 +82,11 @@ along with compiling (either native or byte). I want that to happen automaticall
           (native-compile init-file)))))
 
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
+#+END_SRC
+
+Let's also tell emacs where =init.el= lives so packages can find it. =straight.el= requires it for updating packages.
+#+BEGIN_SRC emacs-lisp
+  (setq user-init-file (concat user-emacs-directory "init.el"))
 #+END_SRC
 
 ** straight.el
