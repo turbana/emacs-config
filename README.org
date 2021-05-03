@@ -1530,6 +1530,30 @@ For numbering and jumping to windows.
       ;; spaceline handles window numbers
       (setq winum-auto-setup-mode-line nil)
       (winum-mode)
+
+      (defun ic/winum-delete-window-0-or-10 (&optional _arg)
+        "Delete window 0 if assigned or 10 if exists."
+        (interactive "P")
+        (winum-select-window-0-or-10 '(4)))
+
+      (defmacro defun-ic--winum-delete-window-num (n)
+        "Create function for calling `winum-select-window-by-number'
+  so that it kills window N."
+        `(defun ,(intern (format "ic/winum-delete-window-%d" n)) (&optional _arg)
+           ,(format "Delete window %d." n)
+           (interactive "P")
+           (winum-select-window-by-number ,(- n))))
+
+      (defun-ic--winum-delete-window-num 1)
+      (defun-ic--winum-delete-window-num 2)
+      (defun-ic--winum-delete-window-num 3)
+      (defun-ic--winum-delete-window-num 4)
+      (defun-ic--winum-delete-window-num 5)
+      (defun-ic--winum-delete-window-num 6)
+      (defun-ic--winum-delete-window-num 7)
+      (defun-ic--winum-delete-window-num 8)
+      (defun-ic--winum-delete-window-num 9)
+
       :general
       (leader-keys
        "0" '(winum-select-window-0-or-10 :which-key ("0..9" . "winum-window 0..9"))
@@ -1541,7 +1565,18 @@ For numbering and jumping to windows.
        "6" '(winum-select-window-6 :which-key t)
        "7" '(winum-select-window-7 :which-key t)
        "8" '(winum-select-window-8 :which-key t)
-       "9" '(winum-select-window-9 :which-key t))
+       "9" '(winum-select-window-9 :which-key t)
+       "C-0" '(ic/winum-delete-window-0-or-10 :which-key ("C-0..9" . "ic/winum-delete-window 0..9"))
+       "C-1" '(ic/winum-delete-window-1 :which-key t)
+       "C-2" '(ic/winum-delete-window-2 :which-key t)
+       "C-3" '(ic/winum-delete-window-3 :which-key t)
+       "C-4" '(ic/winum-delete-window-4 :which-key t)
+       "C-5" '(ic/winum-delete-window-5 :which-key t)
+       "C-6" '(ic/winum-delete-window-6 :which-key t)
+       "C-7" '(ic/winum-delete-window-7 :which-key t)
+       "C-8" '(ic/winum-delete-window-8 :which-key t)
+       "C-9" '(ic/winum-delete-window-9 :which-key t)
+       )
       )
 #+END_SRC
 
