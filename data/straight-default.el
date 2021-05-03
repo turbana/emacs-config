@@ -18,6 +18,7 @@
  ("magit" . "471c63d92ce22b8ea653f821bc1893ecea324d4d")
  ("melpa" . "639747f3e5b2f8753478826a69b27727e1738d04")
  ("org" . "884a3454fc0a80ee044b91ea2173fe53baf5e71d")
+ ("org-bullets" . "767f55feb58b840a5a04eabfc3fbbf0d257c4792")
  ("popup-el" . "866a091b83369873b4d1c5d62a590fbb0a150bd0")
  ("powerline" . "346de84be53cae3663b4e2512222c279933846d4")
  ("s.el" . "3a5166c81ac9e50eaccf5490c5c632f93452287e")

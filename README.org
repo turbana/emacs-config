@@ -497,7 +497,6 @@ Use =visual-line-mode= as =org-mode= is mostly prose.
 Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]].
 #+BEGIN_SRC emacs-lisp
   ;; ⚫•⦾⦿—⬎⌄⌵
-  (setq org-bullets-bullet-list '("•"))
   (setq org-ellipsis " ⌵")
   (setq ic/org-list-icon "—")
   (font-lock-add-keywords
@@ -1287,6 +1286,15 @@ Here I have some custom normal mode navigation.
       :states 'insert
       :keymaps 'org-mode-map
       ">" 'ic/yas-expand->)
+#+END_SRC
+
+** org-bullets
+Let's have some fancy heading bullets.
+#+BEGIN_SRC emacs-lisp
+  (use-package org-bullets
+    :config
+    (setq org-bullets-bullet-list '("•"))
+    :hook (org-mode . org-bullets-mode))
 #+END_SRC
 
 ** smartparens
