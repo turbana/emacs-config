@@ -442,6 +442,8 @@ Add ability to jump to any org heading with SPC-aoj
   (defun ic/org-jump-in-buffer ()
     "Jump to a heading in the current buffer."
     (interactive)
+    ;; `org-refile-targets' needs to be dynamically bound
+    (defvar org-refile-targets)
     (let ((org-refile-targets '((nil :maxlevel . 999))))
       (ic/org-jump)))
 #+END_SRC
