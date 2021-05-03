@@ -2031,6 +2031,20 @@ there's no way around it currently. See [[https://www.reddit.com/r/emacs/comment
                                         ic/orderless-carrot-suffix))
     )
 #+END_SRC
+
+** Movement
+Some misc functions to support moving around.
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/move-to-outline-dwim ()
+    "Prompt for, and move to, an outline heading."
+    (interactive)
+    (cond ((eq major-mode 'org-mode)
+           (ic/org-jump-in-buffer))
+          (t
+           (message (format "No outline command found for mode `%s'" major-mode)))))
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
@@ -2039,6 +2053,13 @@ Here we copy the spacemacs keybindings, more or less.
   (leader-keys
    "TAB" 'evil-switch-to-windows-last-buffer
    "u" 'universal-argument)
+#+END_SRC
+
+** normal mode
+#+BEGIN_SRC emacs-lisp
+  (general-define-key
+   :states '(normal)
+   "go" 'ic/move-to-outline-dwim)
 #+END_SRC
 
 ** Escape Key
