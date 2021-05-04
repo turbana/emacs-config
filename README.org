@@ -530,14 +530,18 @@ Use current window to edit =org-src= blocks. Don't indent.
 
 When editing an =org-src= block =:w= should save the parent buffer.
 #+BEGIN_SRC emacs-lisp
-  (defun ic/evil-save-src-block-advice (write-fn &rest args)
-    "When edit an org-src block `:w' should call `(org-edit-src-save)'."
-    (interactive)
-    (if (string-prefix-p "*Org Src" (buffer-name))
+  (evil-define-operator ic/evil-write (&rest args)
+    "When editing an org-src block `:w' should call `(org-edit-src-save)'."
+    :motion nil
+    :move-point nil
+    :type line
+    :repeat nil
+    (interactive "<R><fsh><!>")
+    (if (bound-and-true-p org-src-mode)
         (org-edit-src-save)
-      (apply write-fn args)))
+      (call-interactively 'evil-write args)))
 
-  (advice-add #'evil-write :around #'ic/evil-save-src-block-advice)
+  (evil-ex-define-cmd "w" 'ic/evil-write)
 #+END_SRC
 
 **** Agenda
