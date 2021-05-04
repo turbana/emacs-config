@@ -1610,6 +1610,52 @@ Setup tab width.
   (add-hook 'lisp-mode-hook #'ic/lisp-mode-setup)
 #+END_SRC
 
+Some useful functions.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/eval-outer-sexp-dwim ()
+    "Evaluate the outermost sexp at POINT, stopping at any (def*) found."
+    (interactive)
+    (save-excursion
+      (condition-case nil
+          ;; move up as much as possible
+          (while (not (looking-at "(def"))
+            (up-list -1 t))
+        (error nil))
+      ;; are we on a left paren?
+      (if (eq ?\( (following-char))
+          (progn
+            ;; move to the end
+            (forward-sexp)
+            ;; and evaluate
+            (call-interactively 'eval-last-sexp))
+        (message "Cannot evaluate: not inside an sexp"))))
+
+  (defun ic/eval-enclosing-sexp ()
+    "Evaluate the sexp enclosing POINT."
+    (interactive)
+    (save-excursion
+      (condition-case nil
+          (progn
+            (up-list -1 t)
+            (forward-sexp)
+            (backward-char))
+        (error
+         (message "Cannot evaluate: not inside an sexp"))
+        (:success
+         (call-interactively 'eval-last-sexp)))))
+#+END_SRC
+
+Setup keybinds
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys
+    :keymaps 'emacs-lisp-mode-map
+    "e" '(ic/eval-enclosing-sexp :which-key "ic/eval-enclosing-sexp")
+    "E" 'ic/eval-outer-sexp-dwim
+    "B" 'eval-buffer
+    "M" 'emacs-lisp-macroexpand
+    )
+#+END_SRC
+
 ** prog-mode
 #+BEGIN_SRC emacs-lisp
   (defun ic/prog-mode-setup ()
