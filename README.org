@@ -345,36 +345,37 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 ** helm
 #+BEGIN_SRC emacs-lisp
   (use-package helm
-      :config
-      (helm-mode 1)
+    :demand t
+    :config
+    (helm-mode 1)
 
-      ;; bring up helm full width below other windows
-      (setq helm-default-display-buffer-functions '(display-buffer-in-side-window))
+    ;; bring up helm full width below other windows
+    (setq helm-default-display-buffer-functions '(display-buffer-in-side-window))
 
-      ;; short window by default
-      (setq helm-display-buffer-default-height 15)
+    ;; short window by default
+    (setq helm-display-buffer-default-height 15)
 
-      :general
-      (general-define-key
-       :keymaps 'helm-map
-       ;; I'm too used to C-w killing a word backwards
-       "C-w" 'backward-kill-word
-       ;; TAB should be more useful than bringing up actions
-       "<tab>" 'helm-execute-persistent-action
-       "C-i" 'helm-execute-persistent-action
-       ;; C-, should start actions
-       "C-," 'helm-select-action
-       ;; C-. to paste into buffer
-       "C-." 'helm-copy-to-buffer
-       )
+    :general
+    (general-define-key
+     :keymaps 'helm-map
+     ;; I'm too used to C-w killing a word backwards
+     "C-w" 'backward-kill-word
+     ;; TAB should be more useful than bringing up actions
+     "<tab>" 'helm-execute-persistent-action
+     "C-i" 'helm-execute-persistent-action
+     ;; C-, should start actions
+     "C-," 'helm-select-action
+     ;; C-. to paste into buffer
+     "C-." 'helm-copy-to-buffer
+     )
 
-      (general-define-key
-       "M-x" 'helm-M-x)
+    (general-define-key
+     "M-x" 'helm-M-x)
 
-      (general-define-key
-       :states '(normal)
-       "gi" 'helm-semantic-or-imenu)
-      )
+    (general-define-key
+     :states '(normal)
+     "gi" 'helm-semantic-or-imenu)
+    )
 #+END_SRC
 
 ** magit
