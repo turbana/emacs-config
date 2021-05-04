@@ -386,6 +386,66 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     )
 #+END_SRC
 
+** helm-projectile
+#+BEGIN_SRC emacs-lisp
+  (use-package helm-projectile
+    :demand t
+    :after (helm projectile)
+    :config
+    (helm-projectile-on)
+
+    (defmacro ic/defproject-call-switch (name proj-func non-proj-func)
+      "Bind function NAME and have it call PROJ-FUNC when inside a
+  `projectile-mode' project, or NON-PROJ-FUNC otherwise."
+      (declare (indent defun))
+      (cond ((not (fboundp proj-func))
+             (error "Function `%s' not bound" (symbol-name proj-func)))
+            ((not (fboundp non-proj-func))
+             (error "Function `%s' not bound" (symbol-name non-proj-func)))
+            (t
+             `(defun ,name ()
+                ,(format "Call `%s' when inside a project, `%s' otherwise"
+                         (symbol-name proj-func) (symbol-name non-proj-func))
+                (interactive)
+                (if (and (fboundp 'projectile-project-p) (projectile-project-p))
+                    (,proj-func)
+                  (,non-proj-func))))))
+
+    (defun ic//helm-find-files ()
+      "Call `(help-find-files nil)'."
+      (interactive "P")
+      (call-interactively 'helm-find-files nil))
+
+    (ic/defproject-call-switch ic/helm-buffers
+      helm-projectile-switch-to-buffer helm-buffer-list)
+
+    (ic/defproject-call-switch ic/helm-find-files
+      helm-projectile-find-file ic//helm-find-files)
+
+    (ic/defproject-call-switch ic/helm-recentf
+      helm-projectile-recentf helm-recentf)
+
+    :general
+    (leader-keys
+      "bb" 'ic/helm-buffers
+      "ff" 'ic/helm-find-files
+      "fr" 'ic/helm-recentf
+      )
+    )
+#+END_SRC
+
+** Projects
+*** add new project
+- bind =projectile-add-known-project=
+
+*** navigate to project
+- call =project-switch-project=, then restore =persp-mode= without projectile asking about file to visit.
+  
+*** find-file to file in other project
+- Prompt to [switch / create / keep current] project
+
+*** switch to "nil" persp?
+
 ** magit
 #+BEGIN_SRC emacs-lisp
   (use-package magit
@@ -1310,6 +1370,71 @@ Let's have some fancy heading bullets.
     :hook (org-mode . org-bullets-mode))
 #+END_SRC
 
+** persp-mode
+Use the =perspective= fork =persp-mode= as I want the perspective to span frames.
+#+BEGIN_SRC emacs-lisp
+  (use-package persp-mode
+    :demand t
+    :init
+    (setq persp-save-dir user-cache-directory)
+    :config
+    (setq persp-autokill-buffer-on-remove 'kill-weak)
+    (persp-mode 1)
+    )
+
+  ;; (get-current-persp)
+  ;; (safe-persp-name (get-frame-persp))
+#+END_SRC
+
+** persp-mode-projectile-bridge
+=persp-mode-projectile-bridge= not only needs to be installed after both
+=persp-mode= and =projectile=, but it also needs to be /loaded/ after as
+well. So setup some mode hooks to try and load it at the proper time.
+#+BEGIN_SRC emacs-lisp
+  (use-package persp-mode-projectile-bridge
+    :demand t
+    :after (persp-mode projectile)
+    :init
+    (setq persp-mode-projectile-bridge-persp-name-prefix "")
+    ;; (defun ic/maybe-switch-projects ()
+    ;;   "Switch to a project if we're visiting a file outside the current project."
+    ;;   )
+
+    :config
+    (defun ic//try-load-persp-projectile-bridge ()
+      (when (and persp-mode projectile-mode (not persp-mode-projectile-bridge-mode))
+        ;; actual :config goes here :(
+        (persp-mode-projectile-bridge-mode 1)
+        (persp-mode-projectile-bridge-find-perspectives-for-all-buffers)))
+
+    (unless persp-mode
+      (add-hook 'persp-mode-hook #'ic//try-load-persp-projectile-bridge))
+    (unless projectile-mode
+      (add-hook 'projectile-mode-hook #'ic//try-load-persp-projectile-bridge))
+    (ic//try-load-persp-projectile-bridge)
+
+    ;; :hook (find-file . ic/maybe-switch-projects)
+    )
+#+END_SRC
+
+** projectile
+#+BEGIN_SRC emacs-lisp
+  (use-package projectile
+    :demand t
+    :init
+    (setq projectile-cache-file
+          (concat user-cache-directory "projectile.cache"))
+    (setq projectile-known-projects-file
+          (concat user-cache-directory "projectile-bookmarks.eld"))
+    :config
+    (projectile-mode 1)
+    :general
+    ;; XXX
+    (leader-keys
+      "p" 'projectile-command-map)
+    )
+#+END_SRC
+
 ** smartparens
 Keep my toe-nail clippings in balance.
 
@@ -1431,15 +1556,16 @@ Set the mode line.
        flycheck-warning
        flycheck-info)
       :priority 85)
-     ((ic-vc-icon)
-      :priority 87)
-     all-the-icons-git-status
      process)
 
    ;; right side
-   '(((buffer-encoding-abbrev buffer-size
-       input-method)
-      :priority 5)
+   '(((ic-vc-icon)
+      :priority 87)
+     all-the-icons-git-status
+     (persp-name)
+     ;; ((buffer-encoding-abbrev buffer-size
+     ;;   input-method)
+     ;;  :priority 5)
      (buffer-position
       :priority 91)))
 
@@ -1945,7 +2071,6 @@ Set the frame title to something meaningful.
   (setq frame-title-format
         '((:eval (buffer-name (window-buffer (minibuffer-selected-window))))
           (:eval (ic/short-persp-name))))
-
 #+END_SRC
 
 ** Spelling
@@ -2293,9 +2418,7 @@ Profiler bindings.
    "c" 'copy-file
    "D" 'delete-current-buffer-file
    "E" 'sudo-edit
-   "f" 'helm-find-files
    "L" 'helm-locate-library
-   "r" 'helm-recentf
    "R" 'rename-current-buffer-file
    "y" 'ic/yank-current-filename)
 #+END_SRC
