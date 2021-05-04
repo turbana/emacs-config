@@ -1600,10 +1600,11 @@ For numbering and jumping to windows.
 #+END_SRC
 
 ** lisp-mode
+Setup tab width.
 #+BEGIN_SRC emacs-lisp
   (defun ic/lisp-mode-setup ()
     (setq indent-tabs-mode nil)
-    (setq tab-width 2)
+    (setq tab-width 8)
     (setq lisp-indent-function 'common-lisp-indent-function))
 
   (add-hook 'lisp-mode-hook #'ic/lisp-mode-setup)
