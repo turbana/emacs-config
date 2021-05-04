@@ -2198,7 +2198,8 @@ Here we copy the spacemacs keybindings, more or less.
 #+BEGIN_SRC emacs-lisp
   (general-define-key
    :states '(normal)
-   "go" 'ic/move-to-outline-dwim)
+   "go" 'ic/move-to-outline-dwim
+   "gl" 'helm-occur)
 #+END_SRC
 
 ** Escape Key
