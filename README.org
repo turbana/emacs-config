@@ -1721,6 +1721,37 @@ well. So setup some mode hooks to try and load it at the proper time.
           (concat user-cache-directory "projectile-bookmarks.eld"))
     :config
     (projectile-mode 1)
+
+    (defun ic/projectile-switch-project-action ()
+      "Do nothing if we loaded a `persp-mode' perspective, call
+  `projectile-helm-find-file' if a new project. Called when switching to
+  a `projectile' project."
+      (interactive)
+      (let* ((project (projectile-project-name))
+             (persp (persp-get-by-name project))
+             (active-buffers (unless (eq :nil persp) (safe-persp-buffers persp))))
+        ;; (message (format "to project: %s" project))
+        ;; (message (format "active-buffers: %s" active-buffers))
+
+        ;; if we have an active perspective, switch the current buffer to it's main (first) buffer
+        (if active-buffers
+            (progn
+              ;; (message (format "switch-to-buffer: %s" (car active-buffers)))
+              (switch-to-buffer (car active-buffers))
+              )
+          ;; (message "helm-projectile-find-file")
+
+          ;; we haven't activated the new persp yet, so don't register result of *-find-file
+          (let ((persp-add-buffer-on-find-file nil))
+            (helm-projectile-find-file))
+            ;; (let ((helm-result (helm-projectile-find-file)))
+            ;;   (message (format "helm returned: %s" helm-result))
+            ;;   helm-result)
+            ;; )
+          )))
+
+    (setq projectile-switch-project-action #'ic/projectile-switch-project-action)
+
     :general
     ;; XXX
     (leader-keys
