@@ -1771,7 +1771,7 @@ Some useful buffer related functions.
   (setq display-buffer-alist
         '(
           ;; display help windows on the right
-          ("^\\*Help"
+          ("^\\*\\(Help\\|info\\)"
            (display-buffer-reuse-window display-buffer-in-side-window)
            (side . right)
            (slot . 1)
