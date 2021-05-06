@@ -76,7 +76,9 @@ along with compiling (either native or byte). I want that to happen automaticall
     (let ((org-file (concat user-emacs-directory "README.org"))
           (init-file (concat user-emacs-directory "init.el")))
       (when (equal (buffer-file-name) org-file)
-        (org-babel-tangle nil init-file)
+        (save-restriction
+          (widen)
+          (org-babel-tangle nil init-file))
         (byte-compile init-file)
         (when have-native-compilation
           (native-compile init-file)))))
