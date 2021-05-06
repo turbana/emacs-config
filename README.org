@@ -1649,7 +1649,7 @@ Some useful functions.
 Setup keybinds
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys
-    :keymaps 'emacs-lisp-mode-map
+    :keymaps '(emacs-lisp-mode-map lisp-interaction-mode-map)
     "e" '(ic/eval-enclosing-sexp :which-key "ic/eval-enclosing-sexp")
     "E" 'ic/eval-outer-sexp-dwim
     "B" 'eval-buffer
