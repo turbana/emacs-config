@@ -1676,19 +1676,37 @@ For numbering and jumping to windows.
 #+END_SRC
 
 ** persp-mode
-Use the =perspective= fork =persp-mode= as I want the perspective to span frames.
+Use the =perspective= fork =persp-mode= as I want the perspectives to span frames.
 #+BEGIN_SRC emacs-lisp
   (use-package persp-mode
     :demand t
     :init
     (setq persp-save-dir user-cache-directory)
     :config
-    (setq persp-autokill-buffer-on-remove 'kill-weak)
     (persp-mode 1)
-    )
+    (setq persp-autokill-buffer-on-remove 'kill-weak)
 
-  ;; (get-current-persp)
-  ;; (safe-persp-name (get-frame-persp))
+    (setq persp-auto-resume-time 0.01)
+
+    ;; don't switch to *scratch* on a new perspective
+    (setq persp-reset-windows-on-nil-window-conf nil)
+
+    ;; save all perspectives to the auto-save file
+    (setq persp-auto-save-persps-to-their-file nil)
+
+    ;; do save the perspective before killing it
+    (setq persp-auto-save-persps-to-their-file-before-kill t)
+
+    ;; save magit-status buffers
+    (with-eval-after-load "magit-autoloads"
+      (autoload 'magit-status-mode "magit")
+      (autoload 'magit-refresh "magit")
+      (persp-def-buffer-save/load
+       :mode 'magit-status-mode :tag-symbol 'def-magit-status-buffer
+       :save-vars '(major-mode default-directory)
+       :after-load-function #'(lambda (b &rest _)
+                                (with-current-buffer b (magit-refresh)))))
+    )
 #+END_SRC
 
 ** persp-mode-projectile-bridge
@@ -1717,6 +1735,32 @@ well. So setup some mode hooks to try and load it at the proper time.
     (unless projectile-mode
       (add-hook 'projectile-mode-hook #'ic//try-load-persp-projectile-bridge))
     (ic//try-load-persp-projectile-bridge)
+
+
+    (defun ic//persp-mode-projectile-bridge-hook-switch ()
+      "Swap perspective when we swap projects."
+      (let ((persp
+             (persp-mode-projectile-bridge-find-perspective-for-buffer
+              (current-buffer))))
+        (persp-frame-switch (persp-name persp))))
+
+    (defun ic//projectile-switch-project-action ()
+      "Try and load a `persp-mode' perspective, otherwise call `projectile-find-file'."
+      (let ((project (projectile-project-name)))
+        (if (persp-with-name-exists-p project)
+            (persp-frame-switch (persp-get-by-name project))
+          (projectile-find-file)))
+      )
+
+    (remove-hook 'projectile-before-switch-project-hook
+                 #'persp-mode-projectile-bridge-hook-before-switch)
+    (remove-hook 'projectile-after-switch-project-hook
+                 #'persp-mode-projectile-bridge-hook-switch)
+    ;; (add-hook 'projectile-before-switch-project-hook
+    ;;           #'ic//persp-mode-projectile-bridge-hook-switch)
+
+    (setq projectile-switch-project-action #'ic//projectile-switch-project-action)
+
 
     ;; :hook (find-file . ic/maybe-switch-projects)
     )
