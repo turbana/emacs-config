@@ -1604,16 +1604,15 @@ For numbering and jumping to windows.
 #+END_SRC
 
 * Projects
-** add new project
+** Tasks
+*** TODO add prose on project setup
+*** TODO add new project
 - bind =projectile-add-known-project=
-
-** navigate to project
-- call =project-switch-project=, then restore =persp-mode= without projectile asking about file to visit.
   
-** find-file to file in other project
+*** TODO find-file to file in other project
 - Prompt to [switch / create / keep current] project
 
-** switch to "nil" persp?
+*** TODO switch to "nil" persp?
 
 ** helm-projectile
 #+BEGIN_SRC emacs-lisp
