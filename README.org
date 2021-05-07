@@ -1405,6 +1405,19 @@ file's status.
               (t (propertize (format "%s" vc-mode))))))
 #+END_SRC
 
+I want to see when our current =projectile= differs from the active =persp-mode=
+perspective. This shouldn't happen, but I am seeing it when first getting the
+two to work together.
+#+BEGIN_SRC emacs-lisp
+  (spaceline-define-segment
+      ic-project-name "A segment for the active projectile project."
+      (let ((project (projectile-project-name))
+            (persp (safe-persp-name (get-frame-persp))))
+        (if (equal project persp)
+            project
+          (concat project "|" persp))))
+#+END_SRC
+
 Set the mode line.
 #+BEGIN_SRC emacs-lisp
   ;; bring in bundled segments
@@ -1437,7 +1450,7 @@ Set the mode line.
    '(((ic-vc-icon)
       :priority 87)
      all-the-icons-git-status
-     (persp-name)
+     (ic-project-name)
      ;; ((buffer-encoding-abbrev buffer-size
      ;;   input-method)
      ;;  :priority 5)
