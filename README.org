@@ -2193,6 +2193,18 @@ Some misc functions to support moving around.
            (message (format "No outline command found for mode `%s'" major-mode)))))
 #+END_SRC
 
+** Garbage Collection
+I have problems typing in =org-mode= documents with the default garbage collector
+settings. So let's give the GC 100mb to work with and call it when emacs is
+idle.
+
+#+BEGIN_SRC emacs-lisp
+  (setq gc-cons-threshold (* 100 (expt 2 20)))
+  (setq gc-cons-percentage 0.5)
+  (run-with-idle-timer 5 t #'garbage-collect)
+  (setq garbage-collection-messages nil)
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
