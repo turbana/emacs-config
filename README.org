@@ -79,9 +79,10 @@ along with compiling (either native or byte). I want that to happen automaticall
         (save-restriction
           (widen)
           (org-babel-tangle nil init-file))
-        (byte-compile init-file)
-        (when have-native-compilation
-          (native-compile init-file)))))
+        ;; (byte-compile init-file)
+        ;; (when have-native-compilation
+        ;;   (native-compile init-file))
+        )))
 
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
