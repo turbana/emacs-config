@@ -209,6 +209,11 @@ Some profiler keybindings.
     "Start the memory profiler."
     (interactive)
     (profiler-start 'mem))
+
+  (defun ic/start-cpu-mem-profiler ()
+    "Start both CPU and memory profiling."
+    (interactive)
+    (profiler-start 'cpu+mem))
 #+END_SRC
 
 ** Keybinds
@@ -2255,6 +2260,7 @@ Profiler bindings.
    "" '(nil :which-key "emacs profiler")
    "c" #'ic/start-cpu-profiler
    "m" #'ic/start-mem-profiler
+   "p" #'ic/start-cpu-mem-profiler
    "s" #'profiler-stop
    "r" #'profiler-report)
 #+END_SRC
