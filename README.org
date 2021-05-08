@@ -1603,11 +1603,16 @@ For numbering and jumping to windows.
 #+END_SRC
 
 * Modes
+** auto-fill-mode
+By default wrap lines at 80 characters.
+#+BEGIN_SRC emacs-lisp
+  (setq-default fill-column 80)
+#+END_SRC
+
 ** info-mode
 #+BEGIN_SRC emacs-lisp
   (add-hook 'Info-mode-hook 'variable-pitch-mode)
 #+END_SRC
-
 ** lisp-mode
 Setup tab width.
 #+BEGIN_SRC emacs-lisp
@@ -1686,8 +1691,10 @@ Setup keybinds
 #+END_SRC
 
 ** text-mode
+Let's have automatic spell checking and line wrapping for text heavy buffers.
 #+BEGIN_SRC emacs-lisp
   (add-hook 'text-mode-hook 'flyspell-mode)
+  (add-hook 'text-mode-hook 'turn-on-auto-fill)
 #+END_SRC
 
 ** winner-mode
