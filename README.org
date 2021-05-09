@@ -394,43 +394,42 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     :config
     (helm-projectile-on)
 
-    (defmacro ic/defproject-call-switch (name proj-func non-proj-func)
+    (defmacro ic/defproject-call-switch (name-sym proj-func-sym non-proj-func-sym)
       "Bind function NAME and have it call PROJ-FUNC when inside a
   `projectile-mode' project, or NON-PROJ-FUNC otherwise."
       (declare (indent defun))
-      (cond ((not (fboundp proj-func))
-             (error "Function `%s' not bound" (symbol-name proj-func)))
-            ((not (fboundp non-proj-func))
-             (error "Function `%s' not bound" (symbol-name non-proj-func)))
-            (t
-             `(defun ,name ()
-                ,(format "Call `%s' when inside a project, `%s' otherwise"
-                         (symbol-name proj-func) (symbol-name non-proj-func))
-                (interactive)
-                (if (and (fboundp 'projectile-project-p) (projectile-project-p))
-                    (,proj-func)
-                  (,non-proj-func))))))
+      (let ((proj-func (cadr proj-func-sym))
+            (non-proj-func (cadr non-proj-func-sym))
+            (name (cadr name-sym)))
+        (cond ((not (fboundp proj-func))
+               (error "Function `%s' not bound" (symbol-name proj-func)))
+              ((not (fboundp non-proj-func))
+               (error "Function `%s' not bound" (symbol-name non-proj-func)))
+              (t
+               `(defun ,name ()
+                  ,(format "Call `%s' when inside a project, `%s' otherwise."
+                           (symbol-name proj-func) (symbol-name non-proj-func))
+                  (interactive)
+                  (if (and (fboundp 'projectile-project-p) (projectile-project-p))
+                      (call-interactively ,proj-func-sym)
+                    (call-interactively ,non-proj-func-sym)))))))
 
     (defun ic//helm-find-files ()
       "Call `(help-find-files nil)'."
       (interactive "P")
       (call-interactively 'helm-find-files nil))
 
-    (ic/defproject-call-switch ic/helm-buffers
-      helm-projectile-switch-to-buffer helm-buffer-list)
+    (ic/defproject-call-switch 'ic/helm-buffers
+      'helm-projectile-switch-to-buffer 'helm-mini)
 
-    (ic/defproject-call-switch ic/helm-find-files
-      helm-projectile-find-file ic//helm-find-files)
+    (ic/defproject-call-switch 'ic/helm-find-files
+      'helm-projectile-find-file 'helm-find-files)
 
-    (ic/defproject-call-switch ic/helm-recentf
-      helm-projectile-recentf helm-recentf)
+    (ic/defproject-call-switch 'ic/helm-recentf
+      'helm-projectile-recentf 'helm-recentf)
 
-    :general
-    (leader-keys
-      "bb" 'ic/helm-buffers
-      "ff" 'ic/helm-find-files
-      "fr" 'ic/helm-recentf
-      )
+    (ic/defproject-call-switch 'ic/projectile-ibuffer
+      'projectile-ibuffer 'ibuffer)
     )
 #+END_SRC
 
@@ -2511,9 +2510,11 @@ XXX should these go in an override map?
   (leader-keys
    :infix "b"
    "" '(nil :which-key "buffers")
-   "b" 'helm-mini
+   "b" 'ic/helm-buffers
+   "B" 'helm-mini
    "d" 'kill-this-buffer
-   "i" 'ibuffer
+   "i" 'ic/projectile-ibuffer
+   "I" 'ibuffer
    "P" 'ic/paste-clipboard-to-buffer
    "R" 'revert-buffer
    "s" 'ic/switch-to-scratch-buffer
@@ -2552,8 +2553,12 @@ Profiler bindings.
    "c" 'copy-file
    "D" 'delete-current-buffer-file
    "E" 'sudo-edit
+   "f" 'ic/helm-find-files
+   "F" 'helm-find-files
    "L" 'helm-locate-library
-   "R" 'rename-current-buffer-file
+   "M" 'rename-current-buffer-file
+   "r" 'ic/helm-recentf
+   "R" 'helm-recentf
    "y" 'ic/yank-current-filename)
 #+END_SRC
 
