@@ -274,6 +274,33 @@ color customization.
       (auto-dim-other-buffers-mode t))
 #+END_SRC
 
+** company-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package company
+    :demand t
+    :config
+    (global-company-mode)
+
+    ;; company-show-location
+    ;; company-show-doc-buffer
+
+    (setq company-tooltip-align-annotations nil)
+    (setq company-abort-on-unique-match t)
+
+    ;; (company-search-candidates)
+    ;; (company-filter-candidates)
+    :general
+    (general-define-key
+     :keymaps 'company-active-map
+     "C-l" 'company-show-location
+     "C-h" 'company-show-doc-buffer
+     "C-w" 'backward-kill-word
+     "C-s" 'company-search-candidates
+     "C-f" 'company-filter-candidates
+     )
+    )
+#+END_SRC
+
 ** evil
 *** use-package
 #+BEGIN_SRC emacs-lisp :noweb yes
