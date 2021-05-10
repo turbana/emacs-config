@@ -313,7 +313,7 @@ color customization.
       )
 #+END_SRC
 
-*** Init
+*** evil-init
 :PROPERTIES:
 :header-args: :noweb-ref evil-init :tangle no
 :END:
@@ -344,7 +344,7 @@ Misc setup
   (setq evil-respect-visual-line-mode t)
 #+END_SRC
 
-*** Config
+*** evil-config
 :PROPERTIES:
 :header-args: :noweb-ref evil-config :tangle no
 :END:
@@ -503,7 +503,6 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 =org-mode= is a large part of my daily emacs usage so it takes a large amount of
 my configuration as well. Let's go...
 
-*** use-package
 #+BEGIN_SRC emacs-lisp :noweb yes
   (use-package org
       :mode (("\\.org$" . org-mode))
@@ -516,7 +515,7 @@ my configuration as well. Let's go...
       )
 #+END_SRC
 
-*** config
+*** org-config
 :PROPERTIES:
 :header-args: :noweb-ref org-config :tangle no
 :END:
@@ -1270,7 +1269,7 @@ Need to clean these up
     ))
 #+END_SRC
 
-*** keybinds
+*** org-keybinds
 :PROPERTIES:
 :header-args: :noweb-ref org-keybinds :tangle no
 :END:
@@ -1459,7 +1458,7 @@ were active when that configuration was saved.
     )
 #+END_SRC
 
-*** config
+*** projectile-config
 :PROPERTIES:
 :header-args: :noweb-ref projectile-config :tangle no
 :END:
@@ -1649,7 +1648,7 @@ I want a pretty mode-line. Note: most of the configuration happens in the
       )
 #+END_SRC
 
-*** config
+*** spaceline-ati-config
 :PROPERTIES:
 :header-args: :noweb-ref spaceline-ati-config :tangle no
 :END:
