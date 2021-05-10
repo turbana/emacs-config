@@ -383,6 +383,9 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     (general-define-key
      :states '(normal)
      "gi" 'helm-semantic-or-imenu)
+
+    (leader-keys
+      "R" 'helm-resume)
     )
 #+END_SRC
 
