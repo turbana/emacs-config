@@ -463,6 +463,28 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     )
 #+END_SRC
 
+** lsp
+#+BEGIN_SRC emacs-lisp
+  (use-package lsp-mode
+    :demand t
+    :commands lsp
+
+    :init
+    (setq lsp-keymap-prefix "C-c l")
+
+    ;; don't show the top breadcrumbs by default
+    (setq lsp-headerline-breadcrumb-enable nil)
+
+    :hook
+    ((lsp-mode . lsp-enable-which-key-integration))
+
+    :general
+    (local-leader-keys
+      :keymaps 'prog-mode-map
+      "l" lsp-command-map)
+    )
+#+END_SRC
+
 ** magit
 #+BEGIN_SRC emacs-lisp
   (use-package magit
@@ -1981,7 +2003,8 @@ Setup keybinds
     (require 'python))
 
   (defun ic/python-mode-setup ()
-    (setq python-indent-offset tab-width))
+    (setq python-indent-offset tab-width)
+    (lsp))
 
   (add-hook 'python-mode-hook #'ic/python-mode-setup)
 #+END_SRC
