@@ -1409,7 +1409,7 @@ Let's have some fancy heading bullets.
     :hook (org-mode . org-bullets-mode))
 #+END_SRC
 
-** projectile
+** TODO projectile
 =projectile= makes it easy to perform actions on a project, like grepping or
 listing relevant files or running tests/compiling. It also keeps buffers grouped
 by project so navigating between them is pleasant inside a project.
@@ -1606,6 +1606,8 @@ Now we can finally enable =projectile=.
 #+BEGIN_SRC emacs-lisp
   (projectile-mode 1)
 #+END_SRC
+
+*** TODO save layout when =find-file='ing away 
 
 ** smartparens
 Keep my toe-nail clippings in balance.
