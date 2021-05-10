@@ -1852,6 +1852,13 @@ For numbering and jumping to windows.
       )
 #+END_SRC
 
+** yaml
+#+BEGIN_SRC emacs-lisp
+  (use-package yaml-mode
+    :demand t
+    )
+#+END_SRC
+
 ** yasnippet
 #+BEGIN_SRC emacs-lisp
   (use-package yasnippet
