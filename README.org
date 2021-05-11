@@ -279,7 +279,6 @@ color customization.
   (use-package company
     :demand t
     :config
-    (global-company-mode)
 
     ;; company-show-location
     ;; company-show-doc-buffer
@@ -1993,6 +1992,7 @@ Setup keybinds
 #+BEGIN_SRC emacs-lisp
   (defun ic/prog-mode-setup ()
     (flyspell-prog-mode)
+    (company-mode 1)
     (setq indent-tabs-mode nil)
     (setq tab-width 4))
   (add-hook 'prog-mode-hook #'ic/prog-mode-setup)
