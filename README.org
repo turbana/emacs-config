@@ -1923,8 +1923,7 @@ For numbering and jumping to windows.
 #+BEGIN_SRC emacs-lisp
   (use-package yasnippet
       :init
-      ;; XXX
-      (setq yas-snippet-dirs '("~/.etc/spacemacs/snippets"))
+      (setq yas-snippet-dirs (list (concat user-data-directory "snippets")))
       (yas-global-mode 1))
 #+END_SRC
 

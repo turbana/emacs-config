@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: yaml org block
+# key: y>
+# --
+#+BEGIN_SRC yaml :tangle $1.yml
+$0
+#+END_SRC

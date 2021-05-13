@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: scheme org block
+# key: s>
+# --
+#+BEGIN_SRC scheme :tangle $1.scm
+$0
+#+END_SRC
