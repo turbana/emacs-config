@@ -1836,6 +1836,14 @@ fixed width.
   (add-hook 'org-mode-hook #'ic/variable-pitch-mode)
 #+END_SRC
 
+** visual-fill-column
+I want emacs to wrap long lines automatically and refill when modifying text. =visual-fill-column= does just that.
+#+BEGIN_SRC emacs-lisp
+  (use-package visual-fill-column
+    :init (setq-default fill-column 80)
+    :hook (visual-line-mode . visual-fill-column-mode))
+#+END_SRC
+
 ** which-key
 #+BEGIN_SRC emacs-lisp
   (use-package which-key
@@ -1921,12 +1929,6 @@ For numbering and jumping to windows.
 #+END_SRC
 
 * Modes
-** auto-fill-mode
-By default wrap lines at 80 characters.
-#+BEGIN_SRC emacs-lisp
-  (setq-default fill-column 80)
-#+END_SRC
-
 ** info-mode
 #+BEGIN_SRC emacs-lisp
   (add-hook 'Info-mode-hook 'variable-pitch-mode)
@@ -2011,10 +2013,9 @@ Setup keybinds
 #+END_SRC
 
 ** text-mode
-Let's have automatic spell checking and line wrapping for text heavy buffers.
+Let's have automatic spell checking for text heavy buffers.
 #+BEGIN_SRC emacs-lisp
   (add-hook 'text-mode-hook 'flyspell-mode)
-  (add-hook 'text-mode-hook 'turn-on-auto-fill)
 #+END_SRC
 
 ** winner-mode
