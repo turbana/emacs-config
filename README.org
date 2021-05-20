@@ -650,6 +650,15 @@ When editing an =org-src= block =:w= should save the parent buffer.
   (evil-ex-define-cmd "w" 'ic/evil-write)
 #+END_SRC
 
+**** org-babel
+Allow us to execute various languages in =org-src= blocks.
+#+BEGIN_SRC emacs-lisp
+  (org-babel-do-load-languages
+    'org-babel-load-languages
+    '((emacs-lisp . t)
+      (shell . t)))
+#+END_SRC
+
 **** Agenda
 ***** Setup
 #+BEGIN_SRC emacs-lisp
