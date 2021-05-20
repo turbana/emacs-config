@@ -462,6 +462,12 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     )
 #+END_SRC
 
+** helm-rg
+#+BEGIN_SRC emacs-lisp
+  (use-package helm-rg
+    :after (helm))
+#+END_SRC
+
 ** lsp
 #+BEGIN_SRC emacs-lisp
   (use-package lsp-mode
