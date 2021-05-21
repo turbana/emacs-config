@@ -73,9 +73,11 @@ along with compiling (either native or byte). I want that to happen automaticall
 #+BEGIN_SRC emacs-lisp
   (defun ic-maybe-tangle-init-file ()
     "Tangle/compile my emacs configuration."
-    (let ((org-file (concat user-emacs-directory "README.org"))
+    (let ((org-files (list
+                      (expand-file-name "~/src/emacs/README.org")
+                      (concat user-emacs-directory "README.org")))
           (init-file (concat user-emacs-directory "init.el")))
-      (when (equal (buffer-file-name) org-file)
+      (when (member (buffer-file-name) org-files)
         (save-restriction
           (widen)
           (org-babel-tangle nil init-file))
