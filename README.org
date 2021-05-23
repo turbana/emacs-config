@@ -2191,7 +2191,7 @@ Some good variable spaced fonts:
 
 #+BEGIN_SRC emacs-lisp
   (defvar ic/fixed-pitch-font '("DejaVu Sans Mono" . 11.0))
-  (defvar ic/variable-pitch-font '("Gillius ADF" . 13.0))
+  (defvar ic/variable-pitch-font '("DejaVu Sans Condensed" . 12.0))
 
   (defun ic/setup-fonts (fixed-pitch-font variable-pitch-font)
     (let ((fixed-family (car fixed-pitch-font))
