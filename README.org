@@ -10,14 +10,12 @@ All right-thinking people use lexical binding.
   ;; -*- lexical-binding: t -*-
 #+END_SRC
 
-I want to be able to potentially load separate emacs configurations so set the
-base emacs directory to where the currently loading configuration is.
+I want to be able to potentially load separate emacs configurations so set the base emacs directory to where the currently loading configuration is.
 #+BEGIN_SRC emacs-lisp
   (setq user-emacs-directory (file-name-directory load-file-name))
 #+END_SRC
 
-I also want to keep my =user-emacs-directory= somewhat clean, so let's define a
-few sub directories that we'll try to keep the plethora of emacs files in:
+I also want to keep my =user-emacs-directory= somewhat clean, so let's define a few sub directories that we'll try to keep the plethora of emacs files in:
 - =user-cache-directory= :: files that contain transient data (history, projectile, etc).
 - =user-data-directory= :: files that contain version controlled data (snippets, etc)
 
@@ -39,10 +37,7 @@ I want to make use of the native compilation system introduced in emacs 28.
     (setq comp-async-jobs-number 4))
 #+END_SRC
 ** init.el
-On checking out this repo =init.el= will have temporary code in it to tangle /
-load this org file (=README.org=), overwriting itself. On this initial run we will
-have loaded both core =org-mode= and melpa =org-mode= so emit a warning that a
-restart is needed.
+On checking out this repo =init.el= will have temporary code in it to tangle / load this org file (=README.org=), overwriting itself. On this initial run we will have loaded both core =org-mode= and melpa =org-mode= so emit a warning that a restart is needed.
 #+BEGIN_SRC emacs-lisp :tangle no
   ;; load core emacs `org-mode', but don't native compile it
   (let ((comp-deferred-compilation nil))
@@ -62,14 +57,12 @@ restart is needed.
    Restart emacs to use newest version."))
 #+END_SRC
 
-We also need to tell =git= to ignore changes to =init.el= so the following command
-was run:
+We also need to tell =git= to ignore changes to =init.el= so the following command was run:
 #+BEGIN_SRC shell :tangle no
   git update-index --assume-unchanged init.el
 #+END_SRC
 
-This file (=README.org=) should be tangled into the startup config file (=init.el=)
-along with compiling (either native or byte). I want that to happen automatically.
+This file (=README.org=) should be tangled into the startup config file (=init.el=) along with compiling (either native or byte). I want that to happen automatically.
 #+BEGIN_SRC emacs-lisp
   (defun ic-maybe-tangle-init-file ()
     "Tangle/compile my emacs configuration."
@@ -89,8 +82,7 @@ along with compiling (either native or byte). I want that to happen automaticall
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
 
-Let's also tell emacs where =init.el= lives so packages can find it. =straight.el= requires it for updating packages.
-#+BEGIN_SRC emacs-lisp
+Let's also tell emacs where =init.el= lives so packages can find it. =straight.el= requires it for updating packages. #+BEGIN_SRC emacs-lisp
   (setq user-init-file (concat user-emacs-directory "init.el"))
 #+END_SRC
 
@@ -219,21 +211,11 @@ Some profiler keybindings.
 #+END_SRC
 
 ** Keybinds
-I like the spacemacs idea of having both a leader key (=SPC=) and a (mode-specific)
-local leader key (=,=). The leader key being how all the major functions are
-accessed, such as buffers/files/windows/etc. Where the local leader is how
-mode-specific functions are accessed, such as =org-mode= bindings or =mu4e=, etc.
+I like the spacemacs idea of having both a leader key (=SPC=) and a (mode-specific) local leader key (=,=). The leader key being how all the major functions are accessed, such as buffers/files/windows/etc. Where the local leader is how mode-specific functions are accessed, such as =org-mode= bindings or =mu4e=, etc.
 
-There are a few things I don't care for though: I don't need emacs bindings, nor
-do I want access to the local leader map from the leader map (=SPC m=). So I want
-a dual leader key system without the cruft.
+There are a few things I don't care for though: I don't need emacs bindings, nor do I want access to the local leader map from the leader map (=SPC m=). So I want a dual leader key system without the cruft.
 
-The package =general.el= makes all of the above rather simple. Here we ensure it's
-installed and activated with =:demand t=. We then setup two =definers=, one for the
-leader key (=leader-keys=) and one for the local leader key (=local-leader-keys=).
-Both =definers= define their keys in the =general-override-mode-map= keymap. This
-keymap has a high priority, but only when =general-override-mode= is active so
-ensure it is with =(general-override-mode 1)=.
+The package =general.el= makes all of the above rather simple. Here we ensure it's installed and activated with =:demand t=. We then setup two =definers=, one for the leader key (=leader-keys=) and one for the local leader key (=local-leader-keys=). Both =definers= define their keys in the =general-override-mode-map= keymap. This keymap has a high priority, but only when =general-override-mode= is active so ensure it is with =(general-override-mode 1)=.
 
 #+BEGIN_SRC emacs-lisp
   (use-package general
@@ -264,9 +246,7 @@ ensure it is with =(general-override-mode 1)=.
 #+END_SRC
 
 ** auto-dim-other-buffers
-Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don't
-dim when the mini buffer is active. See the face =auto-dim-other-buffers-face= for
-color customization.
+Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don't dim when the mini buffer is active. See the face =auto-dim-other-buffers-face= for color customization.
 
 #+BEGIN_SRC emacs-lisp
   (use-package auto-dim-other-buffers
@@ -355,8 +335,7 @@ Misc setup
 #+END_SRC
 
 ** evil-collection
-Some basic community =evil-mode= bindings for various modes. See
-=evil-collection--supported-modes= for a list.
+Some basic community =evil-mode= bindings for various modes. See =evil-collection--supported-modes= for a list.
 
 #+BEGIN_SRC emacs-lisp
   (use-package evil-collection
@@ -507,8 +486,7 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 #+END_SRC
 
 ** org
-=org-mode= is a large part of my daily emacs usage so it takes a large amount of
-my configuration as well. Let's go...
+=org-mode= is a large part of my daily emacs usage so it takes a large amount of my configuration as well. Let's go...
 
 #+BEGIN_SRC emacs-lisp :noweb yes
   (use-package org
@@ -1053,13 +1031,7 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
 #+END_SRC
 
 ***** Full Frame
-The standard =org-capture= behavior is to split the window before capturing a
-task. When this is started from outside emacs a random buffer occupies half the
-frame. What I want is the capture buffer to take the full frame when starting
-the capture from outside emacs. My window manager will start the capture task
-with a frame name of =OrgCapture=. Because =org-capture= doesn't provide a hook
-where it splits the frame we'll need to advise it to ~(delete-other-windows)~
-when our frame is =OrgCapture= and one of the following:
+The standard =org-capture= behavior is to split the window before capturing a task. When this is started from outside emacs a random buffer occupies half the frame. What I want is the capture buffer to take the full frame when starting the capture from outside emacs. My window manager will start the capture task with a frame name of =OrgCapture=. Because =org-capture= doesn't provide a hook where it splits the frame we'll need to advise it to ~(delete-other-windows)~ when our frame is =OrgCapture= and one of the following:
 
 1. When choosing the capture template (buffer name: =*Org Select*=)
 2. When inside the capture task (buffer name: =CAPTURE-<filename>=)
@@ -1156,8 +1128,7 @@ Don't prompt for code execution if we're in a file in certain locations.
 #+END_SRC
 
 **** Exporting
-Let's set some defaults. I don't want to see a table of contents, but I do want
-to see most everything else.
+Let's set some defaults. I don't want to see a table of contents, but I do want to see most everything else.
 #+BEGIN_SRC emacs-lisp
   (setq org-export-with-toc nil)
   (setq org-export-with-timestamps t)
@@ -1184,9 +1155,7 @@ to see most everything else.
 #+END_SRC
 
 **** Snippets
-By convention I title most of my snippets ={snippet}>= so I would like the =>= key
-to try and expand snippets automatically. When no snippet is found a regular =>=
-should be entered.
+By convention I title most of my snippets ={snippet}>= so I would like the =>= key to try and expand snippets automatically. When no snippet is found a regular =>= should be entered.
 #+BEGIN_SRC emacs-lisp
   (defun ic/yas-expand-> ()
     (interactive)
@@ -1194,9 +1163,7 @@ should be entered.
     (yas-expand))
 #+END_SRC
 
-Based on [[https://emacs.stackexchange.com/questions/29758/yasnippets-and-org-mode-yas-next-field-or-maybe-expand-does-not-expand][this]] stackexchange post =org-mode= binds the tab key in such a way that
-=yas-snippets= can't use it. So we need the following to allow =TAB= to expand
-snippets while in =org-mode=.
+Based on [[https://emacs.stackexchange.com/questions/29758/yasnippets-and-org-mode-yas-next-field-or-maybe-expand-does-not-expand][this]] stackexchange post =org-mode= binds the tab key in such a way that =yas-snippets= can't use it. So we need the following to allow =TAB= to expand snippets while in =org-mode=.
 #+BEGIN_SRC emacs-lisp
   (defun ic/set-org-mode-tab-key ()
     (add-to-list 'org-tab-first-hook 'yas-expand)
@@ -1425,26 +1392,13 @@ Let's have some fancy heading bullets.
 #+END_SRC
 
 ** TODO projectile
-=projectile= makes it easy to perform actions on a project, like grepping or
-listing relevant files or running tests/compiling. It also keeps buffers grouped
-by project so navigating between them is pleasant inside a project.
+=projectile= makes it easy to perform actions on a project, like grepping or listing relevant files or running tests/compiling. It also keeps buffers grouped by project so navigating between them is pleasant inside a project.
 
-One thing I wish it did was restore the window layout when opening a
-project. I've tried to use =persp-mode= for that, but it's heavy-weight and
-difficult to configure for my use. The author's =persp-mode-projectile-bridge=
-package has some design choices I don't care for. Such as prefixing
-perspectives with =[p]= (configurable at least), and /setting the window config to
-not permit saving to disk/ (huh?).
+One thing I wish it did was restore the window layout when opening a project. I've tried to use =persp-mode= for that, but it's heavy-weight and difficult to configure for my use. The author's =persp-mode-projectile-bridge= package has some design choices I don't care for. Such as prefixing perspectives with =[p]= (configurable at least), and /setting the window config to not permit saving to disk/ (huh?).
 
-All I want is to restore the window layout, as best as possible, to as close as
-it was to the previous time I visited the project. Luckily, emacs has a couple
-of functions to save/restore the window configuration builtin.
+All I want is to restore the window layout, as best as possible, to as close as it was to the previous time I visited the project. Luckily, emacs has a couple of functions to save/restore the window configuration builtin.
 
-So, we can save the window configuration when either moving to a new project or
-closing emacs, then we can load the new project's layout. When loading, any
-buffer that is a part of the window configuration, but not active will cause
-that window to not load. So we need to make sure we re-visit any buffers that
-were active when that configuration was saved.
+So, we can save the window configuration when either moving to a new project or closing emacs, then we can load the new project's layout. When loading, any buffer that is a part of the window configuration, but not active will cause that window to not load. So we need to make sure we re-visit any buffers that were active when that configuration was saved.
 
 #+BEGIN_SRC emacs-lisp :noweb yes
   (use-package projectile
@@ -1479,8 +1433,7 @@ were active when that configuration was saved.
 :header-args: :noweb-ref projectile-config :tangle no
 :END:
 
-We need a couple of functions to walk through the window state data structure as
-returned by =(window-state-get)=. Shamelessly stolen from [[https://depp.brause.cc/eyebrowse/][eyebrowse]].
+We need a couple of functions to walk through the window state data structure as returned by =(window-state-get)=. Shamelessly stolen from [[https://depp.brause.cc/eyebrowse/][eyebrowse]].
 #+BEGIN_SRC emacs-lisp
   ;; eyebrowse functions taken from: https://depp.brause.cc/eyebrowse/
   (defun eyebrowse--dotted-list-p (list)
@@ -1498,12 +1451,7 @@ returned by =(window-state-get)=. Shamelessly stolen from [[https://depp.brause.
           (eyebrowse--walk-window-config (cdr item) function)))))
 #+END_SRC
 
-Next, a couple functions to walk through the window state data structure. The
-first, will replace any buffers that are in the (loading) window state, but are
-not active are replace with the =*scratch*= buffer. This is because when emacs
-encounters a buffer that is in the window state, but is not active that window
-is not loaded. I at least want a window restored, so replace the buffer with
-something harmless.
+Next, a couple functions to walk through the window state data structure. The first, will replace any buffers that are in the (loading) window state, but are not active are replace with the =*scratch*= buffer. This is because when emacs encounters a buffer that is in the window state, but is not active that window is not loaded. I at least want a window restored, so replace the buffer with something harmless.
 #+BEGIN_SRC emacs-lisp
   (defun ic/projectile-window--replace-dead-buffers (layout)
     "Replace any unloadable buffers in LAYOUT with *scratch*."
@@ -1525,10 +1473,7 @@ something harmless.
                    (s-join ", " replaced-buffers))))))
 #+END_SRC
 
-The next function will return a list of full paths for any visible buffer
-(i.e. it exists in the window state) that is visiting a file. We want to save
-these paths along with the window state so that we can restore the buffers upon
-loading.
+The next function will return a list of full paths for any visible buffer (i.e. it exists in the window state) that is visiting a file. We want to save these paths along with the window state so that we can restore the buffers upon loading.
 #+BEGIN_SRC emacs-lisp
   (defun ic/projectile-window--full-buffer-paths (layout)
     "Return a list of full paths for any visible buffer in LAYOUT
@@ -1544,8 +1489,7 @@ loading.
       full-paths))
 #+END_SRC
 
-A helper function to return the filename of where we should store the project's
-window state.
+A helper function to return the filename of where we should store the project's window state.
 #+BEGIN_SRC emacs-lisp
   (defun ic/projectile-window--get-filename ()
     "Return the filename for the active project."
@@ -1555,10 +1499,7 @@ window state.
               (or project ic/projectile-window-default-name))))
 #+END_SRC
 
-Finally the pair of function to save/restore the window state. Here we store a
-cons cell of the format =(<full paths of active buffers> . <window state>)= in the
-file specified by =ic/projectile-window--get-filename=. When loading, we ensure we
-visit any files listed and then restore the window state.
+Finally the pair of function to save/restore the window state. Here we store a cons cell of the format =(<full paths of active buffers> . <window state>)= in the file specified by =ic/projectile-window--get-filename=. When loading, we ensure we visit any files listed and then restore the window state.
 #+BEGIN_SRC emacs-lisp
   (defun ic/projectile-window-save-layout ()
     "Save the active window's layout to disk. The filename is based
@@ -1600,11 +1541,7 @@ visit any files listed and then restore the window state.
         nil)))
 #+END_SRC
 
-When we open a new project =projectile= will call
-=projectile-switch-project-action=, by default it's bound to
-=projectile-find-file=. If we were able to load a saved layout then we already
-have open buffers. So we only need to prompt for a file if this is a new project
-(i.e. no layout found).
+When we open a new project =projectile= will call =projectile-switch-project-action=, by default it's bound to =projectile-find-file=. If we were able to load a saved layout then we already have open buffers. So we only need to prompt for a file if this is a new project (i.e. no layout found).
 #+BEGIN_SRC emacs-lisp
   (defun ic/projectile-window--find-file-maybe ()
     "Call `projectile-find-file' if we couldn't load a window config,
@@ -1638,8 +1575,7 @@ Keep my toe-nail clippings in balance.
 #+END_SRC
 
 ** spaceline
-I want a pretty mode-line. Note: most of the configuration happens in the
-=spaceline-all-the-icons= package.
+I want a pretty mode-line. Note: most of the configuration happens in the =spaceline-all-the-icons= package.
 
 #+BEGIN_SRC emacs-lisp
   (use-package spaceline
@@ -1669,11 +1605,7 @@ I want a pretty mode-line. Note: most of the configuration happens in the
 :header-args: :noweb-ref spaceline-ati-config :tangle no
 :END:
 
-By default =all-the-icons= returns an object without an =:inherit= property. You can
-pass a face to inherit from, but can't specify a bare =:inherit=. This has the
-issue where an icon has the wrong background color based on which section of the
-modeline it occupies. So we need a function that will both apply a bare =:inherit=
-property along with some default scaling values.
+By default =all-the-icons= returns an object without an =:inherit= property. You can pass a face to inherit from, but can't specify a bare =:inherit=. This has the issue where an icon has the wrong background color based on which section of the modeline it occupies. So we need a function that will both apply a bare =:inherit= property along with some default scaling values.
 #+BEGIN_SRC emacs-lisp
   (defun ic/icon (name &optional group)
     (setf group (or group 'alltheicon))
@@ -1686,10 +1618,7 @@ property along with some default scaling values.
       (propertize icon 'face face 'font-lock-face face 'display '(raise 0.1))))
 #+END_SRC
 
-For the version control segment I would like the see the git icon along with the
-current file's status if we're in the master branch. If we're in a non-master
-branch I want to see the git branch icon along with the branch name and current
-file's status.
+For the version control segment I would like the see the git icon along with the current file's status if we're in the master branch. If we're in a non-master branch I want to see the git branch icon along with the branch name and current file's status.
 #+BEGIN_SRC emacs-lisp
   (defun ic//vc-icon-git ()
     (let* ((branch (cadr (split-string vc-mode "Git[:-]")))
@@ -1719,9 +1648,7 @@ file's status.
               (t (propertize (format "%s" vc-mode))))))
 #+END_SRC
 
-I want to see when our current =projectile= differs from the active =persp-mode=
-perspective. This shouldn't happen, but I am seeing it when first getting the
-two to work together.
+I want to see when our current =projectile= differs from the active =persp-mode= perspective. This shouldn't happen, but I am seeing it when first getting the two to work together.
 #+BEGIN_SRC emacs-lisp
   (spaceline-define-segment
       ic-project-name "A segment for the active projectile project."
@@ -1776,8 +1703,7 @@ Set the mode line.
   (setq-default mode-line-format '("%e" (:eval (spaceline-ml-main))))
 #+END_SRC
 
-=mode-line-format= is buffer-local and there are some buffers that have set it
-prior to us generating the mode-line, so we need to reset their values:
+=mode-line-format= is buffer-local and there are some buffers that have set it prior to us generating the mode-line, so we need to reset their values:
 #+BEGIN_SRC emacs-lisp
   (save-excursion
     (dolist (name '("*Messages*" "*scratch*" "*straight-process*"))
@@ -1787,8 +1713,7 @@ prior to us generating the mode-line, so we need to reset their values:
 #+END_SRC
 
 ** variable-pitch
-=org-mode= should be mostly variable pitch with only code and =company-mode= being
-fixed width.
+=org-mode= should be mostly variable pitch with only code and =company-mode= being fixed width.
 
 #+BEGIN_SRC emacs-lisp
   (defvar ic/org-faces-fixed-pitch
@@ -1949,6 +1874,7 @@ For numbering and jumping to windows.
 #+BEGIN_SRC emacs-lisp
   (add-hook 'Info-mode-hook 'variable-pitch-mode)
 #+END_SRC
+
 ** lisp-mode
 Setup tab width.
 #+BEGIN_SRC emacs-lisp
@@ -2149,9 +2075,7 @@ Some useful buffer related functions.
 #+END_SRC
 
 ** Secrets
-I keep certain information out of source control: email addresses, account
-information, etc. I have a small python program called =secret= that I use to
-retrieve these secrets, let's expose that to emacs.
+I keep certain information out of source control: email addresses, account information, etc. I have a small python program called =secret= that I use to retrieve these secrets, let's expose that to emacs.
 
 #+BEGIN_SRC emacs-lisp
   (defvar ic/secret-cmd "secret")
@@ -2169,8 +2093,7 @@ I don't like =customize= so discard all settings.
 #+END_SRC
 
 ** Tab Width
-Use 4 spaces by default for tabs. Note: these are commonly overwritten in mode
-hooks.
+Use 4 spaces by default for tabs. Note: these are commonly overwritten in mode hooks.
 
 #+BEGIN_SRC emacs-lisp
   (setq-default indent-tabs-mode nil)
@@ -2207,8 +2130,7 @@ Some good variable spaced fonts:
 #+END_SRC
 
 ** Quitting
-I want emacs to continue to run as a server whenever I "quit". I should have to
-use an infrequent key sequence to fully kill emacs. Taken from [[https://www.reddit.com/r/spacemacs/comments/6p3w0l/making_q_not_kill_emacs/][here]].
+I want emacs to continue to run as a server whenever I "quit". I should have to use an infrequent key sequence to fully kill emacs. Taken from [[https://www.reddit.com/r/spacemacs/comments/6p3w0l/making_q_not_kill_emacs/][here]].
 
 #+BEGIN_SRC emacs-lisp
   (defun ic/save-and-kill-buffer-and-window ()
@@ -2285,8 +2207,7 @@ Set the frame title to something meaningful.
 #+END_SRC
 
 ** Spelling
-When typing in insert mode I want to hit =C-e= to automatically correct the
-previous misspelled word.
+When typing in insert mode I want to hit =C-e= to automatically correct the previous misspelled word.
 
 #+BEGIN_SRC emacs-lisp
   (general-define-key
@@ -2295,21 +2216,16 @@ previous misspelled word.
 #+END_SRC
 
 ** Line Numbers
-Use =display-line-numbers= to show line numbers as it's written in C and part of
-the re-display code so can run only when needed. Lisp implementations such as
-=linum= and =nlinum= have to run over an entire window as they can't know which part
-of the screen changed.
+Use =display-line-numbers= to show line numbers as it's written in C and part of the re-display code so can run only when needed. Lisp implementations such as =linum= and =nlinum= have to run over an entire window as they can't know which part of the screen changed.
 
-Disable other line number modes and only enable =display-line-numbers= in certain
-text-heavy modes.
+Disable other line number modes and only enable =display-line-numbers= in certain text-heavy modes.
 #+BEGIN_SRC emacs-lisp
   (global-linum-mode -1)
   (add-hook 'prog-mode-hook 'display-line-numbers-mode)
   (add-hook 'text-mode-hook 'display-line-numbers-mode)
 #+END_SRC
 
-I want relative line numbers that count only what's seen on the screen. I also
-want to minimize any changing of the screen width.
+I want relative line numbers that count only what's seen on the screen. I also want to minimize any changing of the screen width.
 #+BEGIN_SRC emacs-lisp
   ;; use lines displayed on screen rather than new line characters; so folds work
   (setq-default display-line-numbers-type 'visual)
@@ -2323,18 +2239,10 @@ want to minimize any changing of the screen width.
   (setq-default display-line-numbers-grow-only nil)
 #+END_SRC
 
-I would really like to set =display-line-numbers-grow-only= to =t= so that it only
-grows and prevents shrinkage, but it seems there is a significant performance
-cost associated with it. I've increased the default width slightly to offset it,
-but that will waste a bit more space on small files.
+I would really like to set =display-line-numbers-grow-only= to =t= so that it only grows and prevents shrinkage, but it seems there is a significant performance cost associated with it. I've increased the default width slightly to offset it, but that will waste a bit more space on small files.
 
 *** Note on fringe
-=display-line-numbers= doesn't use the =display-margin= to show line numbers like
-=linum-mode=, instead it uses the =text-area= where the main buffer text is. This
-means that anything in the fringe (=display-margin=) now shows up to the left
-of the line numbers. I'm not a fan of that, but I guess I'll live with it as
-there's no way around it currently. See [[https://www.reddit.com/r/emacs/comments/aa9rg7/how_to_make_line_numbers_in/ecq7nub/][this]] reddit post from the author of
-=display-line-numbers= for more info.
+=display-line-numbers= doesn't use the =display-margin= to show line numbers like =linum-mode=, instead it uses the =text-area= where the main buffer text is. This means that anything in the fringe (=display-margin=) now shows up to the left of the line numbers. I'm not a fan of that, but I guess I'll live with it as there's no way around it currently. See [[https://www.reddit.com/r/emacs/comments/aa9rg7/how_to_make_line_numbers_in/ecq7nub/][this]] reddit post from the author of =display-line-numbers= for more info.
 
 ** Web Browser
 =firefox=, duh.
@@ -2537,9 +2445,7 @@ Some misc functions to support moving around.
 #+END_SRC
 
 ** Garbage Collection
-I have problems typing in =org-mode= documents with the default garbage collector
-settings. So let's give the GC 100mb to work with and call it when emacs is
-idle.
+I have problems typing in =org-mode= documents with the default garbage collector settings. So let's give the GC 100mb to work with and call it when emacs is idle.
 
 #+BEGIN_SRC emacs-lisp
   (setq gc-cons-threshold (* 100 (expt 2 20)))
