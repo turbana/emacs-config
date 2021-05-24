@@ -687,10 +687,10 @@ Allow us to execute various languages in =org-src= blocks.
                         (org-agenda-skip-function
                          '(org-agenda-skip-entry-if 'scheduled 'deadline))
                         ))
-            (tags "+HOME"
-                  ((org-agenda-overriding-header "\nStuck Projects")
-                   (org-agenda-skip-function 'ic/org-skip-nonstuck-projects
-                    )))
+            ;; (tags "+HOME"
+            ;;       ((org-agenda-overriding-header "\nStuck Projects")
+            ;;        (org-agenda-skip-function 'ic/org-skip-nonstuck-projects)
+            ;;        ))
             )
            ((org-agenda-tag-filter-preset '("+HOME"))))
 
