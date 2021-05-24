@@ -357,6 +357,12 @@ Some basic community =evil-mode= key bindings for =org-mode=.
       (evil-org-agenda-set-keys))
 #+END_SRC
 
+** haskell-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package haskell-mode
+    :demand t)
+#+END_SRC
+
 ** helm
 #+BEGIN_SRC emacs-lisp
   (use-package helm
