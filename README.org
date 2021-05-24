@@ -510,7 +510,6 @@ Some basic community =evil-mode= key bindings for =org-mode=.
   (setq org-agenda-files '("~/org" "~/org/home"))
   (setq org-default-notes-file "~/org/refile.org")
   (setq org-archive-location "%s_archive::")
-  (setq ic/org-capture-template-dir "~/.etc/spacemacs/org-capture-templates/")
 #+END_SRC
 
 **** Refile
@@ -1020,13 +1019,7 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
           ("R" "recipe" entry (file org-default-notes-file)
            "* %^{name}\n:PROPERTIES:\n:SOURCE: %^{source}\n:SERVINGS: %^{servings}\n:END:\n%U\n** Ingredients\n- %?\n** Steps\n-\n** Notes")
           ("J" "job" entry (file org-default-notes-file)
-           "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")
-          ("P" "meal plan" entry (file+datetree ic/recipes-plan-file)
-           (file ,(concat ic/org-capture-template-dir "meal-plan.org"))
-           :immediate-finish t
-           :time-prompt t
-           :tree-type week)
-          ))
+           "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n"))
   (add-hook 'org-capture-mode-hook 'evil-insert-state)
 #+END_SRC
 
