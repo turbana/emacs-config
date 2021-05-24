@@ -1019,7 +1019,9 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
           ("R" "recipe" entry (file org-default-notes-file)
            "* %^{name}\n:PROPERTIES:\n:SOURCE: %^{source}\n:SERVINGS: %^{servings}\n:END:\n%U\n** Ingredients\n- %?\n** Steps\n-\n** Notes")
           ("J" "job" entry (file org-default-notes-file)
-           "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n"))
+           "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")))
+
+  ;; start capture in insert mode
   (add-hook 'org-capture-mode-hook 'evil-insert-state)
 #+END_SRC
 
