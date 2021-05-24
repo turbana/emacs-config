@@ -508,7 +508,7 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 **** Basic Setup
 #+BEGIN_SRC emacs-lisp
   (setq org-agenda-files '("~/org" "~/org/home"))
-  (setq org-default-notes-file "~/org/refile.org")
+  (setq org-default-notes-file "~/org/inbox.org")
   (setq org-archive-location "%s_archive::")
 #+END_SRC
 
