@@ -1692,13 +1692,13 @@ Set the mode line.
    '(((ic-vc-icon)
       :priority 87)
      all-the-icons-git-status
-     (projectile-root)
+     ;; XXX (projectile-root) is really slow outside a project
+     ;; (projectile-root)
      ;; ((buffer-encoding-abbrev buffer-size
      ;;   input-method)
      ;;  :priority 5)
      (buffer-position
       :priority 91)))
-
 
   ;; and enable it
   (setq-default mode-line-format '("%e" (:eval (spaceline-ml-main))))
