@@ -1945,6 +1945,7 @@ Setup keybinds
 #+BEGIN_SRC emacs-lisp
   (defun ic/prog-mode-setup ()
     (flyspell-prog-mode)
+    (auto-fill-mode)
     (company-mode 1)
     (setq indent-tabs-mode nil)
     (setq tab-width 4))
