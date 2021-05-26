@@ -226,14 +226,14 @@ The package =general.el= makes all of the above rather simple. Here we ensure it
 
       ;; create leader (SPC) definer
       (general-create-definer leader-keys
-        :states '(normal insert emacs)
+        :states '(normal motion insert emacs)
         :keymaps 'general-override-mode-map
         :prefix "SPC"
         :non-normal-prefix "C-SPC")
 
       ;; create local leader (,) definer
       (general-create-definer local-leader-keys
-        :states '(normal insert emacs)
+        :states '(normal motion insert emacs)
         :keymaps 'general-override-mode-map
         :prefix ","
         :non-normal-prefix "C-,"))
