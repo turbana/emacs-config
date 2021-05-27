@@ -1332,6 +1332,19 @@ TODO =,T= tables keybinds
 
 #+END_SRC
 
+**** org-agenda-mode
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys org-agenda-mode-map
+    "d" 'org-agenda-deadline
+    "f" 'org-agenda-set-effort
+    "p" 'org-agenda-priority
+    "P" 'org-agenda-set-property
+    "r" 'org-agenda-refile
+    "s" 'org-agenda-schedule
+    "t" 'org-agenda-todo
+    )
+#+END_SRC
+
 **** org-src
 =org-src-mode= bindings:
 #+BEGIN_SRC emacs-lisp
