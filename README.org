@@ -687,6 +687,8 @@ Allow us to execute various languages in =org-src= blocks.
             ;;       ((org-agenda-overriding-header "\nArchive tasks:")
             ;;        (org-agenda-skip-function 'ic/skip-non-archivable-tasks)
             ;;        (org-tags-match-list-sublevels nil)))
+            (todo "NEXT"
+                  ((org-agenda-overriding-header "\nNext Steps:")))
             (tags-todo "chores+PRIORITY=\"A\"|jobs+PRIORITY=\"A\""
                        ((org-agenda-overriding-header "\nImportant Chores:")))
             (tags-todo "chores-PRIORITY=\"A\"|jobs-PRIORITY=\"A\""
