@@ -694,10 +694,10 @@ Allow us to execute various languages in =org-src= blocks.
                         (org-agenda-skip-function
                          '(org-agenda-skip-entry-if 'scheduled 'deadline))
                         ))
-            ;; (tags "+HOME"
-            ;;       ((org-agenda-overriding-header "\nStuck Projects")
-            ;;        (org-agenda-skip-function 'ic/org-skip-nonstuck-projects)
-            ;;        ))
+            (tags "+HOME"
+                  ((org-agenda-overriding-header "\nStuck Projects")
+                   (org-agenda-skip-function 'ic/org-skip-nonstuck-projects)
+                   ))
             )
            ((org-agenda-tag-filter-preset '("+HOME"))))
 
@@ -896,69 +896,69 @@ Allow us to execute various languages in =org-src= blocks.
 #+END_SRC
 
 ***** Functions
-****** Stuck Projects (disabled)
-An org heading is considered a stuck project if it satisfies all the following:
+****** Stuck Projects
+I have a somewhat loose definition of what constitutes a project. I consider any org heading a project if:
+- It has a todo state and none of it's ancestors do
+- It has one or more immediate children with todo states
 
-- It has a todo state and it's parent does not
-- It has one or more immediate children with todo state
-- It has no descendants with a NEXT todo state
+Furthermore I consider a stuck project:
+- A project with no descendants having a NEXT todo state
 
-#+BEGIN_SRC emacs-lisp :noweb-ref disable
-  (defun ic/org-is-active-task-p ()
-    "Returns `t' if the current task is a member of `org-not-done-keywords'."
-    (member (org-get-todo-state) org-not-done-keywords))
-
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-is-active-task-p (&optional state)
+    "Returns `t' if the current task is a member of
+  `org-not-done-keywords'. When specified, use STATE as the active
+  state, defaulting to `org-not-done-keywords'."
+    (member (org-get-todo-state)
+            (if state (list state) org-not-done-keywords)))
 
   (defun ic/org-any-active-parent-p ()
     "Return `t' if any parent task is an active task."
-    (save-excursion)
-    (widen)
-    (let (active-parent)
-      (while (org-up-heading-safe)
-        (when (ic/org-is-active-task-p)
-          (setq active-parent t)))
-      active-parent))
-
-  (defun ic/org-stuck-project-p ()
     (save-excursion
-      (let (
-            ;; (parent-is-active (save-excursion
-            ;;                     (when (org-up-heading-safe)
-            ;;                       (ic/org-is-active-task-p))))
-            (has-next-children
-             (save-excursion
-               (let ((subtree-end (save-excursion (org-end-of-subtree t))))
-                 (re-search-forward "^\\*+ NEXT " subtree-end t)))))
-        ;; (message (concat (org-get-heading) " :: " (org-get-todo-state) " " (prin1-to-string org-not-done-keywords)))
-        ;; (prin1 (ic/org-is-active-task-p))
-        ;; (prin1 (not parent-is-active))
-        ;; (prin1 has-next-children)
-        (and (ic/org-is-active-task-p)
-             (not (ic/org-any-active-parent-p))
-             (not has-next-children))
-        )))
+      (widen)
+      (let (active-parent)
+        (while (and (not active-parent)
+                    (org-up-heading-safe))
+          (when (ic/org-is-active-task-p)
+            (setq active-parent t)))
+        active-parent)))
 
+  (defun ic/org-any-active-children-p (&optional state)
+    "Return `t' when any descendant is an active task. When
+    specified, use STATE as the active state, defaulting to
+    `org-not-done-keywords'."
+    (save-excursion
+      (let ((subtree-end (save-excursion
+                           (org-end-of-subtree t)))
+            (child-regex (format "^\\*\\{%d,\\} "
+                                 (+ 1 (org-current-level))))
+            active-child)
+        (while (and (not active-child)
+                    (re-search-forward child-regex
+                                       subtree-end t))
+          (when (ic/org-is-active-task-p state)
+            (setq active-child t)))
+        active-child)))
 
-  (defun ic/test (args)
-    (interactive "P")
-    (message (if (ic/org-stuck-project-p)
-                 "stuck"
-               "non-stuck")))
-  (define-key org-mode-map (kbd "C-=") 'ic/test)
+  (defun ic/org-is-project-p ()
+    "Return `t' when the current task is considered a project."
+    (and (ic/org-is-active-task-p)
+         (not (ic/org-any-active-parent-p))
+         (ic/org-any-active-children-p)))
 
+  (defun ic/org-is-stuck-project-p ()
+    "Return `t' when the current task is considered a stuck
+  project."
+    (and (ic/org-is-project-p)
+         (not (ic/org-any-active-children-p "NEXT"))))
 
   (defun ic/org-skip-nonstuck-projects ()
     (let ((debug-on-error t))
       (save-excursion
         (widen)
-        (unless (ic/org-stuck-project-p)
-          (or (outline-next-heading) (point-max))))
-      ))
+        (unless (ic/org-is-stuck-project-p)
+          (or (outline-next-heading) (point-max))))))
 #+END_SRC
-
-****** TODO Test stuck
-******* TODO child task
-******* NEXT next task
 
 **** Habits
 #+BEGIN_SRC emacs-lisp
