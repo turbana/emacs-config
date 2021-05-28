@@ -976,7 +976,7 @@ Furthermore I consider a stuck project:
 #+BEGIN_SRC emacs-lisp
   (setq org-todo-keywords
   '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
-    (sequence "WAIT(a@/!)" "HOLD(h@/!)" "|"
+    (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|"
               "CANCELLED(c@/!)" "PHONE" "MEETING" "HABIT(a)")))
   (setq org-enforce-todo-dependencies t)
   (setq org-enforce-todo-checkbox-dependencies t)
