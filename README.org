@@ -251,8 +251,13 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
 #+BEGIN_SRC emacs-lisp
   (use-package auto-dim-other-buffers
       :config
+      (defun ic-dont-auto-dim-helm-windows (buffer)
+        "Return `t' if inside a helm buffer, so `auto-dim-other-buffers' won't dim the current helm window."
+        (equal "*helm" (substring (buffer-name buffer) 0 5)))
       (setq auto-dim-other-buffers-dim-on-focus-out t)
       (setq auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+      (push #'ic-dont-auto-dim-helm-windows
+            auto-dim-other-buffers-never-dim-buffer-functions)
       (auto-dim-other-buffers-mode t))
 #+END_SRC
 
