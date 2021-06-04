@@ -123,6 +123,11 @@ Load my custom theme early so if we have errors emacs still looks pretty.
     :init
     (setq themian-org-mode-variable-pitch t)
     (setq themian--show-unknowns t)
+    (custom-theme-set-faces
+     'user
+     '(default ((t (:family "Iosevka Extended" :height 110 :weight normal))))
+     '(fixed-pitch ((t (:family "Iosevka Extended" :height 110 :weight normal))))
+     '(variable-pitch ((t (:family "DejaVu Sans Condensed" :height 120 :weight normal)))))
     ;; TODO set fonts here
     :config
     (load-theme 'themian-dark t))
@@ -629,6 +634,11 @@ Example: E \equal{} \gamma{}mc^2
 Use =visual-line-mode= as =org-mode= is mostly prose.
 #+BEGIN_SRC emacs-lisp
   (add-hook 'org-mode-hook #'visual-line-mode)
+#+END_SRC
+
+Because =org-mode= is mostly prose use =buffer-face-mode= (along with setting the face =org-default=) to get variable pitch text. See the variable =themian-force-fixed-faces= for a list of faces that will remain fixed.
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'org-mode-hook #'buffer-face-mode)
 #+END_SRC
 
 Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]].
@@ -1788,72 +1798,6 @@ Set the mode line.
             (setq mode-line-format (default-toplevel-value 'mode-line-format))))))
 #+END_SRC
 
-** variable-pitch
-=org-mode= should be mostly variable pitch with only code and =company-mode= being fixed width.
-
-#+BEGIN_SRC emacs-lisp
-  (defvar ic/org-faces-fixed-pitch
-    '(company-echo
-      company-echo-common
-      company-preview
-      ;; keep this variable pitched as it's used on the same line as the input
-      ;; text (which is variable).
-      ;; company-preview-common
-      company-preview-search
-      company-scrollbar-bg
-      company-scrollbar-fg
-      company-template-field
-      company-tooltip
-      company-tooltip-annotation
-      company-tooltip-annotation-selection
-      company-tooltip-common
-      company-tooltip-common-selection
-      company-tooltip-mouse
-      company-tooltip-search
-      company-tooltip-search-selection
-      company-tooltip-selection
-      linum
-      org-block
-      org-block-begin-line
-      org-block-end-line
-      org-checkbox
-      org-code
-      org-date
-      org-document-info-keyword
-      org-hide
-      org-indent
-      org-link
-      org-meta-line
-      org-special-keyword
-      org-table
-      whitespace-space
-      )
-    "A list of faces that should remain fixed width when enabling
-  `variable-pitch-mode'.")
-
-  (defun ic//variable-pitch-add-inherit (attrs parent)
-    "Add `:inherit PARENT' to ATTRS unless already present. Handles cases where :inherit is already specified."
-    (let ((current-parent (plist-get attrs :inherit)))
-      (unless (or (eq parent current-parent)
-                  (and (listp current-parent) (member parent current-parent)))
-        (plist-put attrs :inherit (if current-parent
-                                      (list current-parent parent)
-                                    parent)))))
-
-  (defun ic/variable-pitch-mode ()
-    (variable-pitch-mode 1)
-    (mapc
-     (lambda (face)
-       (when (facep face)
-         (apply 'set-face-attribute
-                face nil (ic//variable-pitch-add-inherit
-                          (face-attr-construct face)
-                          'fixed-pitch))))
-     ic/org-faces-fixed-pitch))
-
-  (add-hook 'org-mode-hook #'ic/variable-pitch-mode)
-#+END_SRC
-
 ** visual-fill-column
 I want emacs to wrap long lines automatically and refill when modifying text. =visual-fill-column= does just that.
 #+BEGIN_SRC emacs-lisp
@@ -2175,35 +2119,6 @@ Use 4 spaces by default for tabs. Note: these are commonly overwritten in mode h
 #+BEGIN_SRC emacs-lisp
   (setq-default indent-tabs-mode nil)
   (setq-default tab-width 4)
-#+END_SRC
-
-** Font setup
-Setup both monospaced and non-monospaced fonts.
-
-Some good variable spaced fonts:
-- Century Schoolbook L
-- TeX Gyre Pagella
-- Utopia
-- Caladea
-- Gentium
-- Gillius ADF
-- URW Palladio L
-
-#+BEGIN_SRC emacs-lisp
-  (defvar ic/fixed-pitch-font '("DejaVu Sans Mono" . 11.0))
-  (defvar ic/variable-pitch-font '("DejaVu Sans Condensed" . 12.0))
-
-  (defun ic/setup-fonts (fixed-pitch-font variable-pitch-font)
-    (let ((fixed-family (car fixed-pitch-font))
-          (fixed-height (truncate (* 10 (cdr fixed-pitch-font))))
-          (variable-family (car variable-pitch-font))
-          (variable-height (truncate (* 10 (cdr variable-pitch-font)))))
-      (custom-theme-set-faces
-       'user
-       `(default ((t (:family ,fixed-family :height ,fixed-height))))
-       `(fixed-pitch ((t (:family ,fixed-family :height ,fixed-height))))
-       `(variable-pitch ((t (:family ,variable-family :height ,variable-height)))))))
-  (ic/setup-fonts ic/fixed-pitch-font ic/variable-pitch-font)
 #+END_SRC
 
 ** Quitting
