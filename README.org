@@ -423,7 +423,7 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 ** helm-posframe
 Let's try having =helm= popup in a frame. I'd like it to cover to full screen width and have minimal styling.
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package helm-posframe
     :config
     (setq helm-posframe-poshandler
