@@ -2533,6 +2533,7 @@ Here we copy the spacemacs keybindings, more or less.
 #+BEGIN_SRC emacs-lisp
   (general-define-key
    :states '(normal)
+   :keymaps 'general-override-mode-map
    "go" 'ic/move-to-outline-dwim
    "gl" 'helm-occur)
 #+END_SRC
