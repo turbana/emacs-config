@@ -2663,6 +2663,7 @@ Profiler bindings.
    "b" 'describe-bindings
    "c" 'describe-char
    "f" 'describe-function
+   "F" 'describe-face
    "K" 'describe-keymap
    "k" 'describe-key
    "l" 'describe-last-keys
@@ -2674,7 +2675,13 @@ Profiler bindings.
 #+END_SRC
 
 ** i :: insert
-
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+   :infix "i"
+   "" '(nil :which-key "insert")
+   "8" 'helm-ucs
+   )
+#+END_SRC
 ** l :: layouts
 
 ** m :: major mode
