@@ -385,7 +385,7 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     (setq helm-default-display-buffer-functions '(display-buffer-in-side-window))
 
     ;; short window by default
-    (setq helm-display-buffer-default-height 15)
+    (setq helm-display-buffer-default-height 20)
 
     :general
     (general-define-key
