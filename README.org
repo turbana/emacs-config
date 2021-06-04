@@ -118,8 +118,14 @@ I want to check in my packages to git so store the version file under =user-data
 Load my custom theme early so if we have errors emacs still looks pretty.
 
 #+BEGIN_SRC emacs-lisp
-  (straight-use-package '(themian :type git :host github :repo "turbana/themian"))
-  (load-theme 'themian-dark t)
+  (use-package themian-theme
+    :straight (themian :type git :host github :repo "turbana/themian")
+    :init
+    (setq themian-org-mode-variable-pitch t)
+    (setq themian--show-unknowns t)
+    ;; TODO set fonts here
+    :config
+    (load-theme 'themian-dark t))
 #+END_SRC
 
 ** Debugging
