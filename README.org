@@ -1299,7 +1299,7 @@ Main =local-leader= key binds:
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys org-mode-map
     "'" 'org-edit-special
-    ":" 'org-set-tags
+    ":" 'org-set-tags-command
     "^" 'org-sort
     "A" 'org-archive-subtree
     "D" 'org-insert-drawer
@@ -1391,8 +1391,20 @@ TODO =,T= tables keybinds
 =leader-key= keybinds:
 #+BEGIN_SRC emacs-lisp
   (leader-keys
-   "oj" 'ic/org-jump-in-buffer
-   "oJ" 'ic/org-jump)
+    :infix "o"
+    "" '(nil :which-key "org-mode")
+    "j" 'ic/org-jump-in-buffer
+    "J" 'ic/org-jump)
+
+  (leader-keys
+    :infix "oc"
+    "" '(nil :which-key "clocks")
+    "f" 'org-clock-modify-effort-estimate
+    "i" 'org-clock-in
+    "g" 'org-clock-goto
+    "o" 'org-clock-out
+    "l" 'org-clock-in-last
+    "r" 'org-clock-report)
 #+END_SRC
 
 **** global
@@ -1739,7 +1751,8 @@ Set the mode line.
      process)
 
    ;; right side
-   '(((ic-vc-icon)
+   '(((org-clock) :when active)
+     ((ic-vc-icon)
       :priority 87)
      all-the-icons-git-status
      ;; XXX (projectile-root) is really slow outside a project
