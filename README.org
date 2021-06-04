@@ -1,6 +1,5 @@
 #+TITLE: Emacs Config
 #+STARTUP: content
-#+TODO: TODO TEST | DONE
 
 Welcome to my emacs configuration.
 
@@ -356,6 +355,8 @@ Some basic community =evil-mode= bindings for various modes. See =evil-collectio
 #+BEGIN_SRC emacs-lisp
   (use-package evil-collection
       :after evil
+      :init
+      (setq evil-collection-company-use-tng nil)
       :config
       (evil-collection-init))
 #+END_SRC
