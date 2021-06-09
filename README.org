@@ -122,12 +122,9 @@ Load my custom theme early so if we have errors emacs still looks pretty.
     :init
     (setq themian-org-mode-variable-pitch t)
     (setq themian--show-unknowns t)
-    (custom-theme-set-faces
-     'user
-     '(default ((t (:family "Iosevka Extended" :height 110 :weight normal))))
-     '(fixed-pitch ((t (:family "Iosevka Extended" :height 110 :weight normal))))
-     '(variable-pitch ((t (:family "DejaVu Sans Condensed" :height 120 :weight normal)))))
-    ;; TODO set fonts here
+    (set-face-attribute 'default nil :family "Iosevka Extended" :height 110 :weight 'normal)
+    (set-face-attribute 'fixed-pitch nil :family "Iosevka Extended" :height 110 :weight 'normal)
+    (set-face-attribute 'variable-pitch nil :family "DejaVu Sans Condensed" :height 120 :weight 'normal)
     :config
     (load-theme 'themian-dark t))
 #+END_SRC
