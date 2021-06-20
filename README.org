@@ -639,10 +639,28 @@ Because =org-mode= is mostly prose use =buffer-face-mode= (along with setting th
   (add-hook 'org-mode-hook #'buffer-face-mode)
 #+END_SRC
 
-Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]].
+Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]]. See [[*org-bullets][org-bullets]] setup as well.
 #+BEGIN_SRC emacs-lisp
   ;; ⚫•⦾⦿—⬎⌄⌵
   (setq org-ellipsis " ⌵")
+
+  ;; replace certain org-mode text with symbols
+  (defun ic/org-mode-pretty-symbols ()
+    "Enable `prettify-symbols-mode' and set `prettify-symbols-alist' for certain
+  `org-mode' symbols."
+    (setq prettify-symbols-alist
+          '(("[#A]" . ?)
+            ("[#B]" . ?)
+            ("[#C]" . ?)
+            ("[ ]" . ?)
+            ("[X]" . ?)
+            ("[-]" . ?)
+            ("SCHEDULED:" . ?)
+            ("DEADLINE:" . ?)))
+    (prettify-symbols-mode 1))
+
+  (add-hook 'org-mode-hook #'ic/org-mode-pretty-symbols)
+  (add-hook 'org-agenda-mode-hook #'ic/org-mode-pretty-symbols)
 #+END_SRC
 
 Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/questions/59882/how-to-change-color-of-font-lock-add-keywords][this]] stack exchange question.
@@ -669,6 +687,32 @@ Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/
        append)))
    t)
 #+END_SRC
+
+Color priorities based on how important they are.
+#+BEGIN_SRC emacs-lisp
+  (setq org-priority-faces '((?A . '(:inherit (themian-error org-priority)))
+                             (?B . 'org-priority)
+                             (?C . '(:inherit (themian-weak org-priority)))))
+#+END_SRC
+
+Change certain =org-mode= items into symbols.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-mode-pretty-symbols ()
+    (setq prettify-symbols-alist
+          '(("[#A]" . ?)
+            ("[#B]" . ?)
+            ("[#C]" . ?)
+            ("[ ]" . ?)
+            ("[X]" . ?)
+            ("[-]" . ?)
+            ("SCHEDULED:" . ?)
+            ("DEADLINE:" . ?)))
+    (prettify-symbols-mode 1))
+
+  (add-hook 'org-mode-hook #'ic/org-mode-pretty-symbols)
+  (add-hook 'org-agenda-mode-hook #'ic/org-mode-pretty-symbols)
+#+END_SRC
+
 
 XXX what do these do?
 #+BEGIN_SRC emacs-lisp
