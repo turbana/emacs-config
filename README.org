@@ -624,9 +624,11 @@ Basic heading setup
 #+END_SRC
 
 Let's use some fancy LaTeX symbols.
-Example: E \equal{} \gamma{}mc^2
+Example: \Delta{}v \ne \pi
 #+BEGIN_SRC emacs-lisp
   (setq org-pretty-entities t)
+  ;; don't use super/sub-scripts as they mess with headings
+  (setq org-pretty-entities-include-sub-superscripts nil)
 #+END_SRC
 
 Use =visual-line-mode= as =org-mode= is mostly prose.
