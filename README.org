@@ -643,14 +643,31 @@ Change some characters to unicode icons. Some good icons [[http://csbruce.com/so
 #+BEGIN_SRC emacs-lisp
   ;; ⚫•⦾⦿—⬎⌄⌵
   (setq org-ellipsis " ⌵")
-  (setq ic/org-list-icon "—")
+#+END_SRC
+
+Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/questions/59882/how-to-change-color-of-font-lock-add-keywords][this]] stack exchange question.
+#+BEGIN_SRC emacs-lisp
+  (require 'org-element)
+
+  (setq ic/org-list-icon (propertize "" 'face 'themian-subtle))
+
+  (defun org+-match-item-marker (bound)
+    "Match the bullet of itemizations."
+    (and
+     (re-search-forward "^ *\\(-\\) " bound t)
+     (save-match-data
+       (save-excursion
+         (goto-char (match-end 1))
+         (eq (org-element-type (org-element-at-point)) 'item)))))
+
+  ;; change list dashes
   (font-lock-add-keywords
    'org-mode
-   '(("^ *\\([-]\\) "
-      (0 (prog1 ()
-           (compose-region (match-beginning 1)
-                           (match-end 1)
-                           ic/org-list-icon))))))
+   `((org+-match-item-marker
+      (1
+       '(face default display ,ic/org-list-icon)
+       append)))
+   t)
 #+END_SRC
 
 XXX what do these do?
