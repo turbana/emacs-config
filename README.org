@@ -1867,6 +1867,14 @@ I want emacs to wrap long lines automatically and refill when modifying text. =v
     :hook (visual-line-mode . visual-fill-column-mode))
 #+END_SRC
 
+** wgrep
+=wgrep= is a package that let's us live edit a =helm-occur= buffer.
+#+BEGIN_SRC emacs-lisp
+  (use-package wgrep
+    :init
+    (add-hook 'helm-occur-mode-hook #'wgrep-change-to-wgrep-mode))
+#+END_SRC
+
 ** which-key
 #+BEGIN_SRC emacs-lisp
   (use-package which-key
