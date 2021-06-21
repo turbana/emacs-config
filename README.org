@@ -2515,14 +2515,27 @@ I have problems typing in =org-mode= documents with the default garbage collecto
   (setq garbage-collection-messages nil)
 #+END_SRC
 
+** Shell replace
+I'd like a way to call =shell-command-on-region= and have it replace the current region without using a prefix arg.
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/shell-command-on-region-replace ()
+    "Call `shell-command-on-region' with prefix arg set."
+    (interactive)
+    (let ((current-prefix-arg '(4)))
+      (call-interactively 'shell-command-on-region)))
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
 ** main
 #+BEGIN_SRC emacs-lisp
   (leader-keys
-   "TAB" 'evil-switch-to-windows-last-buffer
-   "u" 'universal-argument)
+    "|" 'ic/shell-command-on-region-replace
+    "C-|" 'shell-command-on-region
+    "TAB" 'evil-switch-to-windows-last-buffer
+    "u" 'universal-argument)
 #+END_SRC
 
 ** normal mode
