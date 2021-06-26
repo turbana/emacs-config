@@ -2690,6 +2690,16 @@ Profiler bindings.
 
 ** s :: search
 
+** S :: snippets
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+    :infix "S"
+    "" '(nil :which-key "snippets")
+    "e" #'yas-visit-snippet-file
+    "i" #'yas-insert-snippet
+    "n" #'yas-new-snippet)
+#+END_SRC
+
 ** t :: toggle
 
 ** w :: windows
