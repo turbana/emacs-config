@@ -807,10 +807,10 @@ Allow us to execute various languages in =org-src= blocks.
           ("a" . "Archiving")
           ("ah" "Home archive"
            ((tags "+HOME-noarchive/DONE|CANCELLED|APPLIED"
-                  ((org-agenda-overriding-header "Archive Tasks (*B$ to archive all):")))))
+                  ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
           ("aw" "Work archive"
            ((tags "-HOME-noarchive+TIMESTAMP_IA<=\"<-2w>\"/DONE|CANCELLED"
-                  ((org-agenda-overriding-header "Archive Tasks (*B$ to archive all):")))))
+                  ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
           ))
 #+END_SRC
 
