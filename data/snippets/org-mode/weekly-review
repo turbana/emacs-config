@@ -1,0 +1,19 @@
+# key: nil
+# name: weekly review
+# --
+#+TITLE: Weekly review for week `(format-time-string "%U of %Y")`
+`(format-time-string "<%Y-%m-%d %b %H:%M>")`
+
+* Completed Tasks
+/What tasks were completed this week?/
+
+`(ic/weekly-review-items)`
+
+* TODO Accomplishments
+/What did I accomplish this week?/
+
+* TODO Goals
+/What are my goals for the upcoming week?/
+
+* Next Steps [0/1]
+- [ ] archive completed tasks =<F12>ah=
