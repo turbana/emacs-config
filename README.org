@@ -571,7 +571,12 @@ Let's try having =helm= popup in a frame. I'd like it to cover to full screen wi
 
 **** Basic Setup
 #+BEGIN_SRC emacs-lisp
-  (setq org-agenda-files '("~/org" "~/org/home/home.org"))
+  (setq org-agenda-files
+        (append
+         '("~/org/home/home.org"
+           "~/org/home/jobs.org"
+           "~/org/home/mobileinbox.org")
+         (directory-files "~/org" t "\\.org$")))
   (setq org-default-notes-file "~/org/inbox.org")
   (setq org-archive-location "%s_archive::")
 #+END_SRC
