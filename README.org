@@ -439,6 +439,11 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     )
 #+END_SRC
 
+** helm-org-ql
+#+BEGIN_SRC emacs-lisp
+  (use-package helm-org-ql)
+#+END_SRC
+
 ** helm-posframe
 Let's try having =helm= popup in a frame. I'd like it to cover to full screen width and have minimal styling.
 
@@ -1521,6 +1526,13 @@ Let's have some fancy heading bullets.
     :config
     (setq org-bullets-bullet-list '("•"))
     :hook (org-mode . org-bullets-mode))
+#+END_SRC
+
+** org-ql
+Let's try having a nice search interface for =org-mode=.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org-ql)
 #+END_SRC
 
 ** TODO projectile
