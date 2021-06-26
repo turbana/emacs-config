@@ -1382,6 +1382,7 @@ Main =local-leader= key binds:
     "r" 'org-refile
     "s" 'org-schedule
     "t" 'org-todo
+    "w" 'org-save-all-org-buffers
     )
 #+END_SRC
 
