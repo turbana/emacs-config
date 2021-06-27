@@ -1530,6 +1530,7 @@ TODO =,T= tables keybinds
     "r" 'org-agenda-refile
     "s" 'org-agenda-schedule
     "t" 'org-agenda-todo
+    "w" 'org-save-all-org-buffers
     )
 #+END_SRC
 
