@@ -560,6 +560,14 @@ Let's try having =helm= popup in a frame. I'd like it to cover to full screen wi
      "<down>" 'magit-section-forward))
 #+END_SRC
 
+** oauth2
+Mostly needed for google authentication in =org-caldav=.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package oauth2
+    :ensure t)
+#+END_SRC
+
 ** org
 =org-mode= is a large part of my daily emacs usage so it takes a large amount of my configuration as well. Let's go...
 
@@ -585,6 +593,8 @@ Let's try having =helm= popup in a frame. I'd like it to cover to full screen wi
   (setq org-agenda-files
         (append
          '("~/org/home/home.org"
+           "~/org/home/calendar.org"
+           "~/org/home/birthdays.org"
            "~/org/home/jobs.org"
            "~/org/home/mobileinbox.org")
          (directory-files "~/org" t "\\.org$")))
@@ -1623,6 +1633,88 @@ Let's have some fancy heading bullets.
     :config
     (setq org-bullets-bullet-list '("•"))
     :hook (org-mode . org-bullets-mode))
+#+END_SRC
+
+** org-caldav
+I want my google calendar sync'd with =org-mode=.
+
+#+BEGIN_SRC emacs-lisp :noweb yes
+  (use-package org-caldav
+    :after oauth2
+    :config
+    <<org-caldav-config>>
+  )
+#+END_SRC
+
+*** org-caldav-config
+:PROPERTIES:
+:header-args: :noweb-ref org-caldav-config :tangle no
+:END:
+
+Some basic =org-icalendar= setup. Add my timezone, and use scheduled time for event times as much as possible.
+#+BEGIN_SRC emacs-lisp
+  (setq org-icalendar-timezone "America/Los_Angeles")
+  (setq org-icalendar-use-scheduled '(event-if-todo event-if-not-todo))
+  (setq org-icalendar-use-deadline '(todo-due))
+#+END_SRC
+
+=epa-pinentry-mode= let's us talk with =gpg= from the minibuffer. =plstore-cache-passphrase-for-symmetric-encryption= is so that we only need to enter the store password once (for the life of emacs). I should probably populate the secure plist from my secrets files someday.
+#+BEGIN_SRC emacs-lisp
+  ;; needed for gpg
+  (setf epa-pinentry-mode 'loopback)
+  ;; needed to shutup secure plstore
+  (setq plstore-cache-passphrase-for-symmetric-encryption t)
+#+END_SRC
+
+I currently have my calendar on google, so setup some basic authentication.
+#+BEGIN_SRC emacs-lisp
+  (setq org-caldav-url 'google)
+  (setq org-caldav-oauth2-client-id
+        (ic/get-secret "calendar.personal.clientid"))
+  (setq org-caldav-oauth2-client-secret
+        (ic/get-secret "calendar.personal.secret"))
+#+END_SRC
+
+Now the calendar setup.
+#+BEGIN_SRC emacs-lisp
+  ;; don't use a built in calendar
+  (setq org-caldav-inbox nil)
+  (setq org-caldav-files nil)
+
+  (setq org-caldav-calendars
+        `((:calendar-id ,(ic/get-secret "calendar.personal.main-id")
+                        :inbox "~/org/inbox.org"
+                        :files ("~/org/home/home.org"
+                                "~/org/home/home.org_archive"
+                                "~/org/home/historical-calendar.org"))
+          (:calendar-id ,(ic/get-secret "calendar.personal.birthdays-id")
+                        :inbox "~/org/home/birthdays.org")))
+#+END_SRC
+
+For me, =org= data takes precedence over google. So I want events that are removed from =org-mode= to be silently deleted from google, but events removed in google to be prompted prior to removal from =org-mode=.
+#+BEGIN_SRC emacs-lisp
+  (setq org-caldav-delete-calendar-entries 'always)
+  (setq org-caldav-delete-org-entries 'ask)
+  (setq org-caldav-sync-changes-to-org 'title-and-timestamp)
+#+END_SRC
+
+Keep backup and cache files in a sane location.
+#+BEGIN_SRC emacs-lisp
+  (setq org-caldav-backup-file (concat user-cache-directory "org-caldav-backup.org"))
+  (setq org-caldav-save-directory user-cache-directory)
+#+END_SRC
+
+Now, for the dumb stuff.
+
+=org-icalendar= prepends certain strings to each event summary (title). It adds ="S: "= before scheduled events, and ="DL: "= for deadline events. This is bizarre, so strip those out before sending to google.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-icalendar-remove-title-junk (orig-fun &rest args)
+    "Remove \"S: \" and \"DL: \" from the start of calendar event titles."
+    (setf (nth 3 args)
+          (replace-regexp-in-string (rx bol (or "S: " "DL: ")) "" (nth 3 args)))
+    (apply orig-fun args))
+
+  (advice-add 'org-icalendar--vevent :around #'ic/org-icalendar-remove-title-junk)
 #+END_SRC
 
 ** org-ql
