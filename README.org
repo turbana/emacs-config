@@ -246,6 +246,17 @@ The package =general.el= makes all of the above rather simple. Here we ensure it
         :non-normal-prefix "C-,"))
 #+END_SRC
 
+** Secrets
+I keep certain information out of source control: email addresses, account information, etc. I have a small python program called =secret= that I use to retrieve these secrets, let's expose that to emacs.
+
+#+BEGIN_SRC emacs-lisp
+  (defvar ic/secret-cmd "secret")
+
+  (defun ic/get-secret (secret)
+    "Retrieve `secret' using the `ic/secret-cmd' program."
+    (nth 0 (process-lines ic/secret-cmd secret)))
+#+END_SRC
+
 * Packages
 ** all-the-icons
 #+BEGIN_SRC emacs-lisp
@@ -2252,17 +2263,6 @@ Some useful buffer related functions.
            (window-height . 1.0)
            (reusable-frames . nil))
           ))
-#+END_SRC
-
-** Secrets
-I keep certain information out of source control: email addresses, account information, etc. I have a small python program called =secret= that I use to retrieve these secrets, let's expose that to emacs.
-
-#+BEGIN_SRC emacs-lisp
-  (defvar ic/secret-cmd "secret")
-
-  (defun ic/get-secret (secret)
-    "Retrieve `secret' using the `ic/secret-cmd' program."
-    (nth 0 (process-lines ic/secret-cmd secret)))
 #+END_SRC
 
 ** Customize
