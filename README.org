@@ -1922,6 +1922,8 @@ I want my google calendar sync'd with =org-mode=.
     :after oauth2
     :config
     <<org-caldav-config>>
+    :bind
+    <<org-caldav-keybinds>>
   )
 #+END_SRC
 
@@ -1999,6 +2001,16 @@ Now, for the dumb stuff.
     (apply orig-fun args))
 
   (advice-add 'org-icalendar--vevent :around #'ic/org-icalendar-remove-title-junk)
+#+END_SRC
+
+*** org-caldav-keybinds
+:PROPERTIES:
+:header-args: :noweb-ref org-caldav-keybinds :tangle no
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys org-mode-map
+    "ec" 'org-caldav-sync)
 #+END_SRC
 
 ** org-msg
