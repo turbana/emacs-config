@@ -1977,6 +1977,11 @@ For me, =org= data takes precedence over google. So I want events that are remov
   (setq org-caldav-sync-changes-to-org 'title-and-timestamp)
 #+END_SRC
 
+Only sync items with =cal= tag.
+#+BEGIN_SRC emacs-lisp
+  (setq org-caldav-select-tags '("cal"))
+#+END_SRC
+
 Keep backup and cache files in a sane location.
 #+BEGIN_SRC emacs-lisp
   (setq org-caldav-backup-file (concat user-cache-directory "org-caldav-backup.org"))
