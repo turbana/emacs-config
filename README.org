@@ -81,7 +81,8 @@ This file (=README.org=) should be tangled into the startup config file (=init.e
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
 
-Let's also tell emacs where =init.el= lives so packages can find it. =straight.el= requires it for updating packages. #+BEGIN_SRC emacs-lisp
+Let's also tell emacs where =init.el= lives so packages can find it. =straight.el= requires it for updating packages.
+#+BEGIN_SRC emacs-lisp
   (setq user-init-file (concat user-emacs-directory "init.el"))
 #+END_SRC
 
