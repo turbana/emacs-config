@@ -1921,9 +1921,10 @@ I want my google calendar sync'd with =org-mode=.
 #+BEGIN_SRC emacs-lisp :noweb yes
   (use-package org-caldav
     :after oauth2
+    :ensure t
     :config
     <<org-caldav-config>>
-    :bind
+    :general
     <<org-caldav-keybinds>>
   )
 #+END_SRC
