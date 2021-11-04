@@ -23,6 +23,14 @@ I also want to keep my =user-emacs-directory= somewhat clean, so let's define a 
   (defvar user-data-directory (concat user-emacs-directory "data/"))
 #+END_SRC
 
+I want my config to be portable between machines. So I'll need some variables to key on for various changes
+
+#+BEGIN_SRC emacs-lisp
+  (setq on-linux (string-equal system-type "gnu/linux"))
+  (setq on-windows (string-equal system-type "windows-nt"))
+  (setq on-tablet (string-equal system-name "DESKTOP-F6Q3GN2"))
+#+END_SRC
+
 * Bootstrap
 ** Native compilation
 I want to make use of the native compilation system introduced in emacs 28.
