@@ -1905,6 +1905,20 @@ I want to see when our current =projectile= differs from the active =persp-mode=
           (concat project "|" persp))))
 #+END_SRC
 
+Sometimes I use an older Surface Pro 4 tablet. This has a nasty habit of screen flickering when it gets hot. It seems to be alievated when the screen refreshes. So I hack around it by ensuring the modeline displays alternating =,= and =.= every second. I then need a timer to force the modeline to update, causing emacs to do a screen repaint, "fixing" the screen flickering.
+#+BEGIN_SRC emacs-lisp
+  (spaceline-define-segment
+      ic-tablet-fix "A segment to hack around the screen flickering on the Surface
+      Pro 4."
+      (let ((seconds (% (floor (time-to-seconds)) 2)))
+        (if (= seconds 0) "." ",")))
+
+  (when on-tablet
+    (setq ic//tablet-fix-timer (run-at-time nil 1 #'force-mode-line-update))
+    ;; (cancel-timer ic//tablet-fix-timer)
+    )
+#+END_SRC
+
 Set the mode line.
 #+BEGIN_SRC emacs-lisp
   ;; bring in bundled segments
@@ -1912,39 +1926,40 @@ Set the mode line.
 
   ;; and define our custom mode-line
   (spaceline-compile
-   'main
-   ;; left side
-   '((window-number
-      :priority 100
-      :fallback evil-state
-      :face highlight-face)
-     ((buffer-modified
-       all-the-icons-mode-icon
-       remote-host)
-      :priority 95)
-     ((buffer-id)
+    'main
+    ;; left side
+    '((window-number
+       :priority 100
+       :fallback evil-state
+       :face highlight-face)
+      ((buffer-modified
+        all-the-icons-mode-icon
+        remote-host)
+       :priority 95)
+      ((buffer-id)
        :priority 96)
-     ((anzu
-       selection-info)
-      :priority 90)
-     ((flycheck-error
-       flycheck-warning
-       flycheck-info)
-      :priority 85)
-     process)
+      ((anzu
+        selection-info)
+       :priority 90)
+      ((flycheck-error
+        flycheck-warning
+        flycheck-info)
+       :priority 85)
+      process)
 
-   ;; right side
-   '(((org-clock) :when active)
-     ((ic-vc-icon)
-      :priority 87)
-     all-the-icons-git-status
-     ;; XXX (projectile-root) is really slow outside a project
-     ;; (projectile-root)
-     ;; ((buffer-encoding-abbrev buffer-size
-     ;;   input-method)
-     ;;  :priority 5)
-     (buffer-position
-      :priority 91)))
+    ;; right side
+    '(((org-clock) :when active)
+      ((ic-vc-icon)
+       :priority 87)
+      all-the-icons-git-status
+      ;; XXX (projectile-root) is really slow outside a project
+      ;; (projectile-root)
+      ;; ((buffer-encoding-abbrev buffer-size
+      ;;   input-method)
+      ;;  :priority 5)
+      (((ic-tablet-fix :when (and active on-tablet))
+        buffer-position)
+       :priority 91)))
 
   ;; and enable it
   (setq-default mode-line-format '("%e" (:eval (spaceline-ml-main))))
