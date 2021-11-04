@@ -2702,7 +2702,10 @@ XXX should these go in an override map?
 
 ** E :: Emacs
 #+BEGIN_SRC emacs-lisp
-  (leader-keys "E" '(nil :which-key "emacs"))
+  (leader-keys
+    :infix "E"
+    "" '(nil :which-key "emacs")
+    "d" 'toggle-debug-on-error)
 #+END_SRC
 
 ** Ep :: Emacs profiler
