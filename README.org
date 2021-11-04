@@ -547,6 +547,13 @@ Let's try having =helm= popup in a frame. I'd like it to cover to full screen wi
 #+END_SRC
 
 ** magit
+For some reason on the Surface Pro 4 tablet we need to manually load =magit-section= before loading =magit= proper.
+#+BEGIN_SRC emacs-lisp
+  (when on-tablet
+    (use-package magit-section))
+#+END_SRC
+
+Main =magit= config.
 #+BEGIN_SRC emacs-lisp
   (use-package magit
     :init
@@ -1905,7 +1912,7 @@ I want to see when our current =projectile= differs from the active =persp-mode=
           (concat project "|" persp))))
 #+END_SRC
 
-Sometimes I use an older Surface Pro 4 tablet. This has a nasty habit of screen flickering when it gets hot. It seems to be alievated when the screen refreshes. So I hack around it by ensuring the modeline displays alternating =,= and =.= every second. I then need a timer to force the modeline to update, causing emacs to do a screen repaint, "fixing" the screen flickering.
+Sometimes I use an older Surface Pro 4 tablet. This has a nasty habit of screen flickering when it gets hot. It seems to be alievated when the screen refreshes. So I hack around it by ensuring the modeline displays alternating =,= and =.= every second. I then need a timer to force the modeline to update, causing emacs to do a screen repaint, "fixing" the screen flickering. Simply calling =(redisplay t)= is not sufficient it seems.
 #+BEGIN_SRC emacs-lisp
   (spaceline-define-segment
       ic-tablet-fix "A segment to hack around the screen flickering on the Surface
