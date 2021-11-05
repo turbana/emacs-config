@@ -681,17 +681,17 @@ Because =org-mode= is mostly prose use =buffer-face-mode= (along with setting th
 
 Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]]. See [[*org-bullets][org-bullets]] setup as well.
 #+BEGIN_SRC emacs-lisp
-  ;; ⚫•⦾⦿—⬎⌄⌵
-  (setq org-ellipsis " ⌵")
+  ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅
+  (setq org-ellipsis (if on-tablet " …" " ⌵"))
 
   ;; replace certain org-mode text with symbols
   (defun ic/org-mode-pretty-symbols ()
     "Enable `prettify-symbols-mode' and set `prettify-symbols-alist' for certain
   `org-mode' symbols."
     (setq prettify-symbols-alist
-          '(("[#A]" . ?)
-            ("[#B]" . ?)
-            ("[#C]" . ?)
+          `(("[#A]" . ?🅐)
+            ("[#B]" . ?🅑)
+            ("[#C]" . ?🅒)
             ("[ ]" . ?)
             ("[X]" . ?)
             ("[-]" . ?)
@@ -707,7 +707,7 @@ Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/
 #+BEGIN_SRC emacs-lisp
   (require 'org-element)
 
-  (setq ic/org-list-icon (propertize "" 'face 'themian-subtle))
+  (setq ic/org-list-icon (propertize "—" 'face 'themian-subtle))
 
   (defun org+-match-item-marker (bound)
     "Match the bullet of itemizations."
