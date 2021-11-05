@@ -2831,6 +2831,7 @@ Profiler bindings.
    :infix "i"
    "" '(nil :which-key "insert")
    "8" 'helm-ucs
+   "c" 'insert-char
    )
 #+END_SRC
 ** l :: layouts
