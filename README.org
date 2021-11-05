@@ -2727,7 +2727,9 @@ XXX should these go in an override map?
   (leader-keys
     :infix "E"
     "" '(nil :which-key "emacs")
-    "d" 'toggle-debug-on-error)
+    "d" 'toggle-debug-on-error
+    "f" 'toggle-frame-fullscreen
+    "m" 'toggle-frame-maximized)
 #+END_SRC
 
 ** Ep :: Emacs profiler
