@@ -2648,6 +2648,21 @@ I'd like a way to call =shell-command-on-region= and have it replace the current
       (call-interactively 'shell-command-on-region)))
 #+END_SRC
 
+** Windows fixes
+For some reason on windows emacs doesn't associate =FontAwesome= code points with the font, so specifiy that manually. Taken from [[https://www.reddit.com/r/emacs/comments/34ttb8/get_fontawesome_to_display_correctly_under_windows/?][here]].
+
+Note: =f2b4= was chosen as the ending codepoint by inspecting =data-faicons.el= from =all-the-icons= package. This might change on updates.
+#+BEGIN_SRC emacs-lisp
+  (when on-windows
+    (set-fontset-font "fontset-default" '(#xf000 . #xf2b4) "FontAwesome"))
+#+END_SRC
+
+Start the frame maximized.
+#+BEGIN_SRC emacs-lisp
+  (when on-windows
+    (toggle-frame-maximized))
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
