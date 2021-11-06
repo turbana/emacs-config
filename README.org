@@ -2856,6 +2856,14 @@ Profiler bindings.
 #+END_SRC
 
 ** t :: toggle
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+   :infix "t"
+   "" '(nil :which-key "toggle")
+   "w" 'whitespace-mode
+   "T" 'load-theme
+   )
+#+END_SRC
 
 ** w :: windows
 #+BEGIN_SRC emacs-lisp
