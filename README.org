@@ -1918,7 +1918,7 @@ Sometimes I use an older Surface Pro 4 tablet. This has a nasty habit of screen 
       ic-tablet-fix "A segment to hack around the screen flickering on the Surface
       Pro 4."
       (let ((seconds (% (floor (time-to-seconds)) 2)))
-        (if (= seconds 0) "." ",")))
+        (if (= seconds 0) "☳" "☷")))
 
   (when on-tablet
     (setq ic//tablet-fix-timer (run-at-time nil 1 #'force-mode-line-update))
