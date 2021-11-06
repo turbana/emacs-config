@@ -2729,6 +2729,7 @@ XXX should these go in an override map?
     "" '(nil :which-key "emacs")
     "d" 'toggle-debug-on-error
     "f" 'toggle-frame-fullscreen
+    "F" 'make-frame
     "m" 'toggle-frame-maximized)
 #+END_SRC
 
@@ -2863,7 +2864,6 @@ Profiler bindings.
    "" '(nil :which-key "windows")
    "=" 'balance-windows
    "d" 'delete-window
-   "F" 'make-frame
    "f" 'follow-mode
    "H" 'evil-window-move-far-left
    "h" 'evil-window-left
