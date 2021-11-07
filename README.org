@@ -2278,6 +2278,39 @@ First, some shortcuts to my configuration files.
     (find-file (concat user-emacs-directory "README.org")))
 #+END_SRC
 
+Some functions to manipulate underlying files.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/delete-current-buffer-file ()
+    "Delete the currently visited file."
+    (interactive)
+    (if-let (filename (buffer-file-name))
+        (when (yes-or-no-p (format "Delete file %S? " filename))
+          (delete-file filename)
+          (kill-buffer)
+          (when (and (fboundp 'projectile-project-p)
+                     (projectile-project-p))
+            (delete-file-projectile-remove-from-cache filename))
+          (message (format "Deleted file %S." filename)))))
+
+
+  (defun ic/rename-current-buffer-file ()
+    "Rename the currently visited file."
+    (interactive)
+    (if-let (cur-filename (buffer-file-name))
+        (let ((new-filename (read-file-name
+                             (format "Rename %S to: "
+                                     (file-name-nondirectory cur-filename))))
+              (cur-buffer (buffer-name)))
+          (rename-file cur-filename new-filename)
+          (find-file new-filename)
+          (kill-buffer cur-buffer)
+          (when (and (fboundp 'projectile-project-p)
+                     (projectile-project-p))
+            (delete-file-projectile-remove-from-cache cur-filename)
+            (call-interactively 'projectile-cache-current-file))
+          (message (format "Renamed %S to %S." cur-filename new-filename)))))
+#+END_SRC
+
 ** display-buffer configuration
 #+BEGIN_SRC emacs-lisp
   (setq display-buffer-alist
@@ -2775,12 +2808,12 @@ Profiler bindings.
    "" '(nil :which-key "files")
    "b" 'helm-bookmarks
    "c" 'copy-file
-   "D" 'delete-current-buffer-file
+   "D" 'ic/delete-current-buffer-file
    "E" 'sudo-edit
    "f" 'ic/helm-find-files
    "F" 'helm-find-files
    "L" 'helm-locate-library
-   "M" 'rename-current-buffer-file
+   "M" 'ic/rename-current-buffer-file
    "r" 'ic/helm-recentf
    "R" 'helm-recentf
    "y" 'ic/yank-current-filename)
