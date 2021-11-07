@@ -89,7 +89,8 @@ This file (=README.org=) should be tangled into the startup config file (=init.e
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
 
-Let's also tell emacs where =init.el= lives so packages can find it. =straight.el= requires it for updating packages. #+BEGIN_SRC emacs-lisp
+Let's also tell emacs where =init.el= lives so packages can find it. =straight.el= requires it for updating packages.
+#+BEGIN_SRC emacs-lisp
   (setq user-init-file (concat user-emacs-directory "init.el"))
 #+END_SRC
 
@@ -2256,6 +2257,27 @@ Some useful buffer related functions.
     (switch-to-buffer (startup--get-buffer-create-scratch)))
 #+END_SRC
 
+** Files
+Some useful file related functions.
+
+First, some shortcuts to my configuration files.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/edit-init-file ()
+    "Open the `init. l' file for editing."
+    (interactive)
+    (find-file (concat user-emacs-directory "init.el")))
+
+  (defun ic/edit-early-init-file ()
+    "Open the `early-init.el' file for editing."
+    (interactive)
+    (find-file (concat user-emacs-directory "early-init.el")))
+
+  (defun ic/edit-org-config-file ()
+    "Open the `README.org' file for editing."
+    (interactive)
+    (find-file (concat user-emacs-directory "README.org")))
+#+END_SRC
+
 ** display-buffer configuration
 #+BEGIN_SRC emacs-lisp
   (setq display-buffer-alist
@@ -2778,8 +2800,9 @@ Profiler bindings.
   (leader-keys
    :infix "fe"
    "" '(nil :which-key "emacs")
-   "i" 'edit-init-file
-   "o" 'edit-org-config
+   "i" 'ic/edit-init-file
+   "I" 'ic/edit-early-init-file
+   "o" 'ic/edit-org-config-file
    "l" 'helm-locate-library)
 #+END_SRC
 
