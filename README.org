@@ -654,7 +654,7 @@ Basic heading setup
   (setq org-hide-leading-stars t)
   (setq org-odd-levels-only nil)
 
-  (setq org-adapt-indentation t)
+  (setq org-adapt-indentation nil)
   (setq org-indent-indentation-per-level 2)
 
   (setq org-fontify-whole-heading-line t)
