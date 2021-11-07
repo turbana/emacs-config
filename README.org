@@ -1498,10 +1498,10 @@ Main =local-leader= key binds:
     )
 #+END_SRC
 
-=,c= clocks keybinds:
+=,C= clocks keybinds:
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys org-mode-map
-    :infix "c"
+    :infix "C"
     "" '(nil :which-key "clocks")
     "i" 'org-clock-in
     "j" 'ic/org-clock-jump-to-current-clock
@@ -1571,11 +1571,12 @@ TODO =,T= tables keybinds
   (leader-keys
     :infix "o"
     "" '(nil :which-key "org-mode")
+    "c" 'org-capture
     "j" 'ic/org-jump-in-buffer
     "J" 'ic/org-jump)
 
   (leader-keys
-    :infix "oc"
+    :infix "oC"
     "" '(nil :which-key "clocks")
     "f" 'org-clock-modify-effort-estimate
     "i" 'org-clock-in
