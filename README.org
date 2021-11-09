@@ -1185,10 +1185,7 @@ As =Goodreads= is no longer offering API access I had to research where to pull 
 
 First, we need some variables defined:
 #+BEGIN_SRC emacs-lisp
-  (defconst ic/openlibrary-query-endpoint
-    "http://openlibrary.org/search.json")
-
-  (defconst ic/openlibrary-works-endpoint
+  (defconst ic/openlibrary-base-endpoint
     "http://openlibrary.org")
 
   (defvar ic/openlibrary-max-results 100
@@ -1207,7 +1204,8 @@ Functions for working with the development cache:
     (interactive)
     (setq ic/openlibrary--query-string-cache nil)
     (setq ic/openlibrary--query-cache nil)
-    (setq ic/openlibrary--work-cache nil))
+    (setq ic/openlibrary--work-cache nil)
+    (setq ic/openlibrary--edition-cache nil))
 
   (defun ic/openlibrary--disable-cache ()
     (interactive)
@@ -1223,7 +1221,18 @@ Functions for working with the development cache:
     (setq ic/openlibrary--use-cached-data nil)
     (makunbound 'ic/openlibrary--query-string-cache)
     (makunbound 'ic/openlibrary--query-cache)
-    (makunbound 'ic/openlibrary--work-cache))
+    (makunbound 'ic/openlibrary--work-cache)
+    (makunbound 'ic/openlibrary--edition-cache))
+
+  (defun ic/openlibrary--trace-functions ()
+    (interactive)
+    (dolist (f '(ic/openlibrary--add-edition-data
+                 ic/openlibrary--add-work-data
+                 ic/openlibrary--helm-candidates
+                 ic/openlibrary--parse-helm-format
+                 ic/openlibrary-find-book
+                 ic/org-capture-book))
+      (trace-function f)))
 #+END_SRC
 
 We'll be using =helm= to narrow the results and provide fuzzy matching. Before we call =helm= though we need to prompt the user for a query string to send to =OpenLibrary=. Since =helm= takes over the minibuffer, we need to do this prior to calling =helm=. We also need to ensure the query string is available to the actual request function and =helm= expects it's =:candidates= function to accept zero parameters. So we'll set the global variable :( =ic/openlibrary--query-string= to the user's query and use that in the fetching function.
@@ -1248,7 +1257,10 @@ We'll be using =helm= to narrow the results and provide fuzzy matching. Before w
             :candidates 'ic/openlibrary--helm-candidates
             :candidate-number-limit ic/openlibrary-max-results
             :fuzzy-match t
-            :coerce 'ic/openlibrary--add-work-data)
+            :coerce (lambda (data)
+                      (ic/openlibrary--add-edition-data
+                       (ic/openlibrary--add-work-data
+                        data))))
           :buffer "*helm openlibrary*"))
 #+END_SRC
 
@@ -1265,7 +1277,7 @@ Now we need a function to query the search page from =OpenLibrary=. It uses the 
       (let ((values))
         (unless (string-empty-p ic/openlibrary--query-string)
           (request
-            ic/openlibrary-query-endpoint
+            (format "%s/search.json" ic/openlibrary-base-endpoint)
             :params `(("q" . ,(split-string ic/openlibrary--query-string " " t))
                       ("limit" . ic/openlibrary-max-results)
                       ("mode" . "everything"))
@@ -1274,6 +1286,7 @@ Now we need a function to query the search page from =OpenLibrary=. It uses the 
             :timeout 10
             :success (cl-function
                       (lambda (&key data &allow-other-keys)
+                        (setq ic/openlibrary--search-data-raw data)
                         (setq values (ic/openlibrary--parse-helm-format data)))))
           (when ic/openlibrary--use-cached-data
             (message "saving query cache")
@@ -1293,23 +1306,63 @@ Because the =OpenLibrary= query only returns so much data about a work, we'll ne
       (let ((values))
         (unless (string-empty-p ic/openlibrary--query-string)
           (request
-            (concat ic/openlibrary-works-endpoint (assoc-default 'key data) ".json")
+            (format "%s/%s.json" ic/openlibrary-base-endpoint (assoc-default 'key data))
             :parser 'json-read
             :sync t
             :timeout 10
             :success (cl-function
                       (lambda (&key data &allow-other-keys)
+                        (setq ic/openlibrary--work-data-raw data)
                         (setq values data))))
           (let* ((desc-raw (assoc-default 'description values))
                  (desc-value (if (eq (type-of desc-raw) 'cons)
                                  (assoc-default 'value desc-raw)
                                desc-raw))
-                 (desc-clean (replace-regexp-in-string "\u000d" "" desc-value)))
+                 (desc-clean (if desc-value
+                                 (replace-regexp-in-string
+                                  ;; OL links in [title](link format)
+                                  "\\[\\(.*\\)](\\(.*\\))"
+                                  ;; replace with org-mode format
+                                  "[[\\2][\\1]]"
+                                  ;; remove windows new lines
+                                  (replace-regexp-in-string "\u000d" "" desc-value))
+                               nil)))
             (push (cons 'description desc-clean) data))
           (when ic/openlibrary--use-cached-data
             (message "saving work cache")
             (setq ic/openlibrary--work-cache data))
           data))))
+#+END_SRC
+
+We'll also need a function to pull in information on an edition.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/openlibrary--add-edition-data (data)
+    "Takes query DATA and adds in any edition-specific data."
+    (if (and ic/openlibrary--use-cached-data
+             (bound-and-true-p ic/openlibrary--edition-cache))
+        (progn
+          (message "loading from edition cache")
+          ic/openlibrary--edition-cache)
+      (let* ((editions (append (assoc-default 'edition_key data) nil))
+             (edition (car (last editions)))
+             values)
+        (request
+          (format "%s/books/%s.json" ic/openlibrary-base-endpoint edition)
+          :parser 'json-read
+          :sync t
+          :timeout 10
+          :success (cl-function
+                    (lambda (&key data &allow-other-keys)
+                      (setq ic/openlibrary--edition-data-raw data)
+                      (setq values data))))
+        (dolist (attr '(publishers number_of_pages isbn_10 isbn_13 identifiers
+                                   publish_date))
+          (push (cons attr (assoc-default attr values)) data))
+        (push (cons 'edition edition) data)
+        (when ic/openlibrary--use-cached-data
+          (message "saving edition cache")
+          (setq ic/openlibrary--edition-cache data))
+        data)))
 #+END_SRC
 
 Now we need a function that translates the list of =works= into a format that =helm= can use to build it's internal list. This is of the form =(("display string" . DATA) ...)=. So we use some of the =OpenLibrary= data to generate a =display string= for =helm= to use.
@@ -1321,13 +1374,23 @@ Now we need a function that translates the list of =works= into a format that =h
           (docs (assoc-default 'docs data)))
       (mapcar
        (lambda (doc)
-         (let ((key (assoc-default 'key doc))
-               (published-year (assoc-default 'first_publish_year doc))
-               (author-key (assoc-default 'author_key doc))
-               (author (s-join ", " (assoc-default 'author_name doc)))
-               (title (assoc-default 'title doc)))
-           (cons (format "%s :: %s (%s)" title author published-year)
-                 doc)))
+         (let* ((key (assoc-default 'key doc))
+                (published-year (assoc-default 'first_publish_year doc))
+                (editions (append (assoc-default 'edition_key doc) nil))
+                (author-key (assoc-default 'author_key doc))
+                (author (s-join ", " (assoc-default 'author_name doc)))
+                (title (assoc-default 'title doc)))
+           (cons
+            (concat (propertize title 'face 'helm-ol-title)
+                    (propertize " :: " 'face 'helm-ol-separator)
+                    (propertize author 'face 'helm-ol-author)
+                    (propertize " [" 'face 'helm-ol-separator)
+                    (format "%s" published-year)
+                    (propertize "] -- " 'face 'helm-ol-separator)
+                    (propertize (format "%s editions" (length editions))
+                                'face 'helm-ol-editions)
+                    )
+            doc)))
        docs)))
 #+END_SRC
 
@@ -1339,69 +1402,83 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
   search OpenLibrary against and generate an `org-mode' element from the resulting
     data."
     (let* ((result "")
-           (data (ic/openlibrary-find-book))
-           ;; (_ (message (format "data: %S" data)))
-           (title (assoc-default 'title data))
-           (authors (append (assoc-default 'author_name data) nil))
-           (ol-author-keys (append (assoc-default 'author_key data) nil))
-           (ol-work-key (assoc-default 'key data))
-           (description (assoc-default 'description data))
-           (publishers (append (assoc-default 'publisher data) nil))
-           (subjects (append (assoc-default 'subject data) nil))
-           (pages (assoc-default 'number_of_pages_median data))
-           (year (assoc-default 'first_publish_year data))
-           (editions (assoc-default 'edition_count data))
-           (publish-years (append (assoc-default 'publish_year data) nil))
-           (index (-elem-index year publish-years))
-           (isbns (append (assoc-default 'isbn data) nil))
-           (isbn10 (nth index isbns))
-           (isbn13 (nth (+ editions index) isbns))
-           (public-scan (eq (assoc-default 'public_scan data) :json-true))
-           (id-goodreads (nth 0 (append (assoc-default 'id_goodreads data) nil)))
-           (id-librarything (nth 0 (append (assoc-default 'id_librarything data) nil)))
-           (id-overdrive (nth 0 (append (assoc-default 'id_overdrive data) nil))))
-      (cl-flet ((maybe-insert (fmt &rest args)
-                              (when (-all? 'identity args)
-                                (setq result (concat result (apply 'format fmt args))))))
-        (maybe-insert "* TODO %s :: %s\n" title (string-join authors ",  "))
-        (maybe-insert ":PROPERTIES:\n")
-        (maybe-insert ":TITLE: %s\n" title)
-        (maybe-insert ":AUTHORS: %S\n" authors)
-        (maybe-insert ":PAGES: %s\n" pages)
-        (maybe-insert ":YEAR: %s\n" year)
-        ;; NOTE: publishers seems to have a ton of data in it and I'm not sure it
-        ;; will be all that useful to me
-        ;; (maybe-insert ":PUBLISHERS: %S\n" publishers)
-        (maybe-insert ":ISBN10: %s\n" isbn10)
-        (maybe-insert ":ISBN13: %s\n" isbn13)
-        (maybe-insert ":PUBLIC_SCAN: %s\n" public-scan)
-        (maybe-insert ":OL_AUTHOR_KEYS: %S\n" ol-author-keys)
-        (maybe-insert ":OL_WORK_KEY: %s\n" ol-work-key)
-        (maybe-insert ":ID_GOODREADS: %s\n" id-goodreads)
-        (maybe-insert ":ID_LIBRARYTHING: %s\n" id-librarything)
-        (maybe-insert ":ID_OVERDRIVE: %s\n" id-overdrive)
-        (maybe-insert ":SUBJECTS: %S\n" subjects)
-        (maybe-insert ":END:\n\n")
-        (maybe-insert "** Description\n")
-        (maybe-insert "#+BEGIN_QUOTE\n%s\n#+END_QUOTE\n\n" description)
-        (maybe-insert "** Links\n")
-        (maybe-insert "- [[http://openlibrary.org%s][OpenLibrary]]\n" ol-work-key)
-        (dolist (tuple (-zip authors ol-author-keys))
-          (maybe-insert "- [[http://openlibrary.org/authors/%s][OpenLibrary - %s]]\n"
-                        (cdr tuple) (car tuple)))
-        (maybe-insert "- [[https://goodreads.com/book/show/%s][Goodreads]]\n" id-goodreads)
-        (maybe-insert "- [[https://librarything.com/work/%s][LibraryThing]]\n" id-librarything)
-        (maybe-insert "- [[https://overdrive.com/media/%s][Overdrive]]\n" id-overdrive)
-        (maybe-insert "- [[https://amazon.com/s?k=%s][Amazon]]\n" isbn13)
-        (maybe-insert "\n")
-        (maybe-insert "** Notes\n\n"))
+           (data (ic/openlibrary-find-book)))
+      (cl-flet* ((maybe-insert (fmt &rest args)
+                               (when (-all? 'identity args)
+                                 (setq result (concat result (apply 'format fmt
+                                                                    args)))))
+                 (to-list (vec) (append vec nil))
+                 (get (attr &optional alist) (assoc-default attr (or alist data)))
+                 (get-list (attr &optional alist) (to-list (get attr alist)))
+                 (get-first (attr &optional alist) (nth 0 (get-list attr alist))))
+        (let* ((title (get 'title))
+               (authors (get-list 'author_name))
+               (ol-author-keys (get-list 'author_key))
+               (ol-work-key (get 'key))
+               (ol-edition-key (get 'edition))
+               (description (get 'description))
+               (publishers (get-list 'publishers))
+               (subjects (get-list 'subject))
+               (pages (get 'number_of_pages))
+               (first-year (get 'first_publish_year))
+               (isbn10 (get-first 'isbn_10))
+               (isbn13 (get-first 'isbn_13))
+               (public-scan (not (eq (get 'public_scan) :json-false)))
+               (ids (get 'identifiers))
+               (id-goodreads (get-first 'goodreads ids))
+               (id-librarything (get-first 'librarything ids))
+               (id-overdrive (get-first 'overdrive ids)))
+          (maybe-insert "* TODO %s :: %s\n" title (string-join authors ",  "))
+          (maybe-insert ":PROPERTIES:\n")
+          (maybe-insert ":TITLE: %s\n" title)
+          (maybe-insert ":AUTHORS: %S\n" authors)
+          (maybe-insert ":PAGES: %s\n" pages)
+          (maybe-insert ":FIRST_YEAR: %s\n" first-year)
+          (maybe-insert ":PUBLISHERS: %S\n" publishers)
+          (maybe-insert ":ISBN10: %s\n" isbn10)
+          (maybe-insert ":ISBN13: %s\n" isbn13)
+          (maybe-insert ":PUBLIC_SCAN: %s\n" public-scan)
+          (maybe-insert ":OL_AUTHOR_KEYS: %S\n" ol-author-keys)
+          (maybe-insert ":OL_WORK_KEY: %s\n" ol-work-key)
+          (maybe-insert ":OL_EDITION_KEY: %s\n" ol-edition-key)
+          (maybe-insert ":ID_GOODREADS: %s\n" id-goodreads)
+          (maybe-insert ":ID_LIBRARYTHING: %s\n" id-librarything)
+          (maybe-insert ":ID_OVERDRIVE: %s\n" id-overdrive)
+          (maybe-insert ":SUBJECTS: %S\n" subjects)
+          (maybe-insert ":END:\n\n")
+          (maybe-insert "** Description\n")
+          (maybe-insert "#+BEGIN_QUOTE\n%s\n#+END_QUOTE\n\n" description)
+          (maybe-insert "** Links\n")
+          (maybe-insert "- [[http://openlibrary.org%s][OpenLibrary]]\n" ol-work-key)
+          (dolist (tuple (-zip authors ol-author-keys))
+            (maybe-insert "- [[http://openlibrary.org/authors/%s][OpenLibrary - %s]]\n"
+                          (cdr tuple) (car tuple)))
+          (maybe-insert "- [[https://goodreads.com/book/show/%s][Goodreads]]\n" id-goodreads)
+          (maybe-insert "- [[https://librarything.com/work/%s][LibraryThing]]\n" id-librarything)
+          (maybe-insert "- [[https://overdrive.com/media/%s][Overdrive]]\n" id-overdrive)
+          (maybe-insert "- [[https://amazon.com/s?k=%s][Amazon - ISBN]]\n" isbn13)
+          (maybe-insert "- [[https://amazon.com/s?k=%s][Amazon - Title]]\n"
+                        (s-replace-regexp " " "+" title))
+          (maybe-insert "\n")
+          (maybe-insert "** Notes\n\n")))
         result))
 #+END_SRC
 
-****** TODO more data
-- [ ] series
-- [X] description
-- [X] pages
+****** Faces
+I like my =helm= searches to be pretty, so let's define some faces to use for that.
+#+BEGIN_SRC emacs-lisp
+  (defface helm-ol-title nil
+    "Face used for OpenLibrary titles in a helm buffer.")
+
+  (defface helm-ol-author nil
+    "Face used for OpenLibrary authors in a helm buffer.")
+
+  (defface helm-ol-editions nil
+    "Face used for OpenLibrary edition counts in a helm buffer.")
+
+  (defface helm-ol-seperator nil
+    "Face used for OpenLibrary seperators in a helm buffer.")
+#+END_SRC
 
 
 ***** Full Frame
