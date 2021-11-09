@@ -1300,13 +1300,12 @@ Because the =OpenLibrary= query only returns so much data about a work, we'll ne
             :success (cl-function
                       (lambda (&key data &allow-other-keys)
                         (setq values data))))
-          (let ((desc (assoc-default 'description values)))
-
-            (push `(description . ,(if (eq (type-of desc) 'cons)
-                                       (assoc-default 'value desc)
-                                     desc))
-                  data)
-            )
+          (let* ((desc-raw (assoc-default 'description values))
+                 (desc-value (if (eq (type-of desc-raw) 'cons)
+                                 (assoc-default 'value desc-raw)
+                               desc-raw))
+                 (desc-clean (replace-regexp-in-string "\u000d" "" desc-value)))
+            (push (cons 'description desc-clean) data))
           (when ic/openlibrary--use-cached-data
             (message "saving work cache")
             (setq ic/openlibrary--work-cache data))
