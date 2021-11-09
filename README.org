@@ -1356,7 +1356,9 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
         (maybe-insert ":AUTHORS: %S\n" authors)
         (maybe-insert ":PAGES: %s\n" pages)
         (maybe-insert ":YEAR: %s\n" year)
-        (maybe-insert ":PUBLISHERS: %S\n" publishers)
+        ;; NOTE: publishers seems to have a ton of data in it and I'm not sure it
+        ;; will be all that useful to me
+        ;; (maybe-insert ":PUBLISHERS: %S\n" publishers)
         (maybe-insert ":ISBN10: %s\n" isbn10)
         (maybe-insert ":ISBN13: %s\n" isbn13)
         (maybe-insert ":PUBLIC_SCAN: %s\n" public-scan)
