@@ -1201,13 +1201,29 @@ First, we need some variables defined:
     "Query string to search OpenLibrary for. Internal use only.")
 #+END_SRC
 
-Temp for clearing development cache:
+Functions for working with the development cache:
 #+BEGIN_SRC emacs-lisp
   (defun ic/openlibrary--clear-cache ()
     (interactive)
     (setq ic/openlibrary--query-string-cache nil)
     (setq ic/openlibrary--query-cache nil)
     (setq ic/openlibrary--work-cache nil))
+
+  (defun ic/openlibrary--disable-cache ()
+    (interactive)
+    (setq ic/openlibrary--use-cached-data nil))
+
+  (defun ic/openlibrary--enable-cache ()
+    (interactive)
+    (setq ic/openlibrary--use-cached-data t))
+
+  (defun ic/openlibrary--remove-cache ()
+    (interactive)
+    (setq ic/openlibrary--query-string nil)
+    (setq ic/openlibrary--use-cached-data nil)
+    (makunbound 'ic/openlibrary--query-string-cache)
+    (makunbound 'ic/openlibrary--query-cache)
+    (makunbound 'ic/openlibrary--work-cache))
 #+END_SRC
 
 We'll be using =helm= to narrow the results and provide fuzzy matching. Before we call =helm= though we need to prompt the user for a query string to send to =OpenLibrary=. Since =helm= takes over the minibuffer, we need to do this prior to calling =helm=. We also need to ensure the query string is available to the actual request function and =helm= expects it's =:candidates= function to accept zero parameters. So we'll set the global variable :( =ic/openlibrary--query-string= to the user's query and use that in the fetching function.
