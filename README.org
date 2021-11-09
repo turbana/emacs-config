@@ -2734,7 +2734,10 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
 =firefox=, duh.
 #+BEGIN_SRC emacs-lisp
   (setq browse-url-browser-function 'browse-url-generic)
-  (setq browse-url-generic-program "firefox")
+  (setq browse-url-generic-program
+        (if on-tablet
+            "c:/Program Files/Mozilla Firefox/firefox.exe"
+          "firefox"))
 #+END_SRC
 
 ** Minibuffer / completion testing (disabled)
