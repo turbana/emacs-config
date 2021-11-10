@@ -1164,7 +1164,7 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
            ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
            )
           ("B" "book" entry (file org-default-notes-file)
-           "%(ic/org-capture-book)"
+           (function ic/org-capture-book)
            :immediate-finish t)
           ("H" "habit" entry (file org-default-notes-file)
            "* TODO %?\n%u\nscheduled: %(format-time-string \"<%y-%m-%d %a .+1d/3d>\")\n:properties:\n:style: habit\n:repeat_to_state: next\n:end:\n")
