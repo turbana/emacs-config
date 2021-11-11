@@ -1383,8 +1383,12 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
                              (assoc-default 'ol-author-ids doc)))
           (add "- [[http://openlibrary.org/authors/%s][OpenLibrary - %s]]\n"
                         (cdr tuple) (car tuple)))
-        (add "- [[https://librarything.com/work/%s][LibraryThing]]\n"
-             (assoc-default 'librarything-id doc))
+        (add (concat "- [[https://librarything.com"
+                     (if-let (id (assoc-default 'librarything-id doc))
+                         (format "/work/%s" id)
+                       (format "/search.php?search=%s"
+                               (assoc-default 'query-title doc)))
+                     "][LibraryThing]]\n"))
         (add "- [[https://www.overdrive.com/search?q=%s][Overdrive]]\n"
              (assoc-default 'query-title doc))
         (add "- [[https://goodreads.com/book/show/%s][Goodreads]]\n"
