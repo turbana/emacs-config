@@ -1261,7 +1261,7 @@ Now we'll need a function to take the raw data returned from =OpenLibrary= and t
            (edition-count . ,(get 'edition_count))
            (first-year-published . ,(get 'first_publish_year))
            (pages-median . ,(get 'number_of_pages_median))
-           (public-scan . ,(get 'public_scan_b))
+           (public-scan . ,(not (eq (get 'public_scan_b) ':json-false)))
            (authors . ,(get-list 'author_name))
            (goodreads-id . ,(get-first 'id_goodreads))
            (librarything-id . ,(get-first 'id_librarything)))))
