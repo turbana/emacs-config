@@ -607,6 +607,7 @@ Main =magit= config.
            "~/org/home/mobileinbox.org")
          (directory-files "~/org" t "\\.org$")))
   (setq org-default-notes-file "~/org/inbox.org")
+  (setq org-home-file "~/org/home/home.org")
   (setq org-archive-location "%s_archive::")
 #+END_SRC
 
@@ -1163,9 +1164,31 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
            "* PHONE %? :phone:\n%u"
            ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
            )
-          ("B" "book" entry (file org-default-notes-file)
+          ("b" "books")
+          ("bp" "pleasure" entry (file+olp org-home-file "Books" "Pleasure")
            (function ic/org-capture-book)
-           :immediate-finish t)
+           :immediate-finish t
+           :empty-lines-after 1)
+          ("bP" "pleasure (already read)" entry (file+olp org-home-file "Books" "Pleasure")
+           (function ic/org-capture-book-read)
+           :immediate-finish t
+           :empty-lines-after 1)
+          ("be" "enrichment" entry (file+olp org-home-file "Books" "Enrichment")
+           (function ic/org-capture-book)
+           :immediate-finish t
+           :empty-lines-after 1)
+          ("bE" "enrichment (already read)" entry (file+olp org-home-file "Books" "Enrichment")
+           (function ic/org-capture-book-read)
+           :immediate-finish t
+           :empty-lines-after 1)
+          ("bt" "technical" entry (file+olp org-home-file "Books" "Technical")
+           (function ic/org-capture-book)
+           :immediate-finish t
+           :empty-lines-after 1)
+          ("bT" "technical (already read)" entry (file+olp org-home-file "Books" "Technical")
+           (function ic/org-capture-book-read)
+           :immediate-finish t
+           :empty-lines-after 1)
           ("H" "habit" entry (file org-default-notes-file)
            "* TODO %?\n%u\nscheduled: %(format-time-string \"<%y-%m-%d %a .+1d/3d>\")\n:properties:\n:style: habit\n:repeat_to_state: next\n:end:\n")
           ("R" "recipe" entry (file org-default-notes-file)
@@ -1325,7 +1348,7 @@ Finally, we need a function to take the data from =OpenLibrary= and return it in
 Now, we need a function that takes the data from =OpenLibrary= and generates an =org-mode= element for us to use.
 
 #+BEGIN_SRC emacs-lisp
-  (defun ic/org-capture-book ()
+  (defun ic/org-capture-book (&optional already-read)
     "`org-capture' task for a new book. Prompts the user for a query string to
   search OpenLibrary against and generate an `org-mode' element from the resulting
     data."
@@ -1335,7 +1358,9 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
                                (when (-all? 'identity args)
                                  (setq result (concat result
                                                       (apply 'format fmt args))))))
-        (add "* TODO %s :: %s [%s]\n" (assoc-default 'title doc)
+        (add "* %s %s :: %s [%s]\n"
+             (if already-read "DONE" "TODO")
+             (assoc-default 'title doc)
              (string-join (assoc-default 'authors doc) ", ")
              (assoc-default 'first-year-published doc))
         (add ":PROPERTIES:\n")
@@ -1348,8 +1373,8 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
         (add ":OL_WORK_ID: %s\n" (assoc-default 'ol-work-id doc))
         (add ":GOODREADS_ID: %s\n" (assoc-default 'goodreads-id doc))
         (add ":LIBRARYTHING_ID: %s\n" (assoc-default 'librarything-id doc))
-        (add ":END:\n\n")
-        (add "** Description\n")
+        (add ":END:\n")
+        (add "%%u\n\n")
         (add "#+BEGIN_QUOTE\n%s\n#+END_QUOTE\n\n" (assoc-default 'description doc))
         (add "** Links\n")
         (add "- [[http://openlibrary.org%s][OpenLibrary]]\n"
@@ -1369,6 +1394,11 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
         (add "\n")
         (add "** Notes\n\n"))
       result))
+
+
+  (defun ic/org-capture-book-read ()
+    "Same as `ic/org-capture-book', but mark entry as DONE instead."
+    (ic/org-capture-book t))
 #+END_SRC
 
 ****** Faces
