@@ -3214,8 +3214,10 @@ Profiler bindings.
   (leader-keys
    :infix "t"
    "" '(nil :which-key "toggle")
-   "w" 'whitespace-mode
+   "C" 'flycheck-mode
+   "S" 'flyspell-mode
    "T" 'load-theme
+   "w" 'whitespace-mode
    )
 #+END_SRC
 
