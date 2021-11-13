@@ -1346,7 +1346,6 @@ Finally, we need a function to take the data from =OpenLibrary= and return it in
 
 ****** Capture
 Now, we need a function that takes the data from =OpenLibrary= and generates an =org-mode= element for us to use.
-
 #+BEGIN_SRC emacs-lisp
   (defun ic/org-capture-book (&optional already-read)
     "`org-capture' task for a new book. Prompts the user for a query string to
@@ -2992,10 +2991,10 @@ Note: =f2b4= was chosen as the ending codepoint by inspecting =data-faicons.el= 
     (set-fontset-font "fontset-default" '(#xf000 . #xf2b4) "FontAwesome"))
 #+END_SRC
 
-Start the frame maximized.
+** Start maximized
+I want every frame to start maximized by default.
 #+BEGIN_SRC emacs-lisp
-  (when on-windows
-    (toggle-frame-maximized))
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
 #+END_SRC
 
 * Keybindings
