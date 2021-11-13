@@ -2114,7 +2114,11 @@ I want a pretty mode-line. Note: most of the configuration happens in the =space
 
       ;; change face based on evil state
       (setq spaceline-highlight-face-func #'spaceline-highlight-face-evil-state)
-      )
+
+      ;; ensure the mode-line is re-compiled when switching themes
+      (advice-add 'load-theme :after
+                  (lambda (&rest args)
+                    (spaceline-compile))))
 #+END_SRC
 
 ** spaceline-all-the-icons
