@@ -3010,6 +3010,14 @@ Note: =f2b4= was chosen as the ending codepoint by inspecting =data-faicons.el= 
     (set-fontset-font "fontset-default" '(#xf000 . #xf2b4) "FontAwesome"))
 #+END_SRC
 
+** Mac Fixes
+For some (stupid) reason =/usr/local/bin= isn't included in the =PATH= on mac. I've ensured it's loaded in =~/.bashrc=, =~/.bash_profile= and =~/.profile=. I've also added it under =/etc/paths.d/= as well as ensured it's part of =/etc/paths=. I've checked permissions (I can run programs from it) and since I know it's added correctly in a shell (with code I've been using for a decade now) let's just add it manually for emacs. Ugh
+#+BEGIN_SRC emacs-lisp
+  (when on-old-imac
+    (setenv "PATH" (concat "/usr/local/bin:" (getenv "PATH")))
+    (add-to-list 'exec-path "/usr/local/bin"))
+#+END_SRC
+
 ** Start maximized
 I want every frame to start maximized by default.
 #+BEGIN_SRC emacs-lisp
