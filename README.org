@@ -2511,7 +2511,7 @@ Try and keep the =user-emacs-directory= somewhat clean.
     (setq backup-directory-alist `((".*" . ,backup-dir)))
     (setq auto-save-file-name-transforms `((".*" ,autosave-dir t)))
     (setq auto-save-list-file-prefix (concat autosave-dir "saves-"))
-    (setq tramp-backup-directory-alist `((".*" ,backup-dir)))
+    (setq tramp-backup-directory-alist `((".*" . ,backup-dir)))
     (setq tramp-auto-save-directory autosave-dir))
 
   ;; data/ directory
