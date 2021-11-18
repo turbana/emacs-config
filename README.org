@@ -29,6 +29,11 @@ I want my config to be portable between machines. So I'll need some variables to
   (setq on-linux (string-equal system-type "gnu/linux"))
   (setq on-windows (string-equal system-type "windows-nt"))
   (setq on-mac (string-equal system-type "darwin"))
+
+  ;; at_home/at_work are bash functions defined in ~/.bashrc
+  (setq at-home (= 0 (shell-command "source ~/.bashrc && at_home")))
+  (setq at-work (= 0 (shell-command "source ~/.bashrc && at_work")))
+
   (setq on-tablet (string-equal (system-name) "DESKTOP-F6Q3GN2"))
   (setq on-old-imac (string-equal (system-name) "Michaels-iMac.local"))
 #+END_SRC
@@ -622,14 +627,21 @@ Main =magit= config.
 
 **** Basic Setup
 #+BEGIN_SRC emacs-lisp
+  (defvar org-home-file "~/org/home/home.org"
+    "Default org file for home related items.")
+  (defvar org-work-file "~/org/work.org"
+    "Default org file for work related items.")
+  (defvar org-default-file (if at-home org-home-file org-work-file)
+    "Default org file.")
+  (setq org-default-notes-file
+        (if at-home "~/org/home/inbox.org" "~/org/inbox.org"))
   (setq org-agenda-files
-        (append
-         '("~/org/home/home.org"
-           "~/org/home/jobs.org"
-           "~/org/home/mobileinbox.org")
-         (directory-files "~/org" t "\\.org$")))
-  (setq org-default-notes-file "~/org/inbox.org")
-  (setq org-home-file "~/org/home/home.org")
+        (append (list org-default-file
+                      org-default-notes-file)
+                (if at-home
+                    '("~/org/home/mobileinbox.org"
+                      "~/org/home/jobs.org"))
+                (directory-files "~/org" t "\\.org$")))
   (setq org-archive-location "%s_archive::")
 #+END_SRC
 
