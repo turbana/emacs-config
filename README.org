@@ -3025,6 +3025,12 @@ For some (stupid) reason =/usr/local/bin= isn't included in the =PATH= on mac. I
     (add-to-list 'exec-path "/usr/local/bin"))
 #+END_SRC
 
+Ensure =emacs= takes up as much of the screen as possible when maximizing.
+#+BEGIN_SRC emacs-lisp
+  (when on-mac
+    (setq frame-resize-pixelwise t))
+#+END_SRC
+
 ** Start maximized
 I want every frame to start maximized by default.
 #+BEGIN_SRC emacs-lisp
