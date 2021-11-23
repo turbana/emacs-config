@@ -3097,6 +3097,15 @@ XXX should these go in an override map?
 #+END_SRC
 
 ** a :: applications
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+   :infix "a"
+   "" '(nil :which-key "applications")
+   "d" 'dired
+   "s" 'ansi-term
+   "i" 'ielm
+   )
+#+END_SRC
 
 ** b :: buffers
 #+BEGIN_SRC emacs-lisp
