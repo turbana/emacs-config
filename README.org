@@ -3046,6 +3046,14 @@ Ensure =emacs= takes up as much of the screen as possible when maximizing.
     (setq frame-resize-pixelwise t))
 #+END_SRC
 
+When we're on a mac and we have GNU =ls= installed (=gls=): use that as our =dired= listing program. Both because it supports  the =--dired= flag, but we can also get some marginally better collating from the GNU version.
+#+BEGIN_SRC emacs-lisp
+  (when (and on-mac
+             (executable-find "gls"))
+    (setq insert-directory-program "gls")
+    (setq dired-listing-switches "-alU"))
+#+END_SRC
+
 ** Start maximized
 I want every frame to start maximized by default.
 #+BEGIN_SRC emacs-lisp
