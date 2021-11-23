@@ -310,10 +310,13 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
       (defun ic-dont-auto-dim-helm-windows (buffer)
         "Return `t' if inside a helm buffer, so `auto-dim-other-buffers' won't dim the current helm window."
         (string-match-p "^\*helm" (buffer-name buffer)))
-      (setq auto-dim-other-buffers-dim-on-focus-out t)
-      (setq auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
       (push #'ic-dont-auto-dim-helm-windows
             auto-dim-other-buffers-never-dim-buffer-functions)
+      (setq auto-dim-other-buffers-dim-on-focus-out t)
+      (setq auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+      ;; ensure org-indent face is properly hidden
+      (push '(org-indent . auto-dim-other-buffers-hide-face)
+            auto-dim-other-buffers-affected-faces)
       (auto-dim-other-buffers-mode t))
 #+END_SRC
 
