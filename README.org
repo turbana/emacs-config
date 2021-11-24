@@ -1073,6 +1073,17 @@ Allow us to execute various languages in =org-src= blocks.
 #+END_SRC
 
 ***** Functions
+****** Open agenda
+I want to open the correct agenda (home/work) automatically.
+#+BEGIN_SRC emacs-lisp
+  (defun ic-open-org-agenda ()
+    "Open the correct org agenda based on location (home/work)."
+    (interactive)
+    (cond (at-home (org-agenda nil "h"))
+          (at-work (org-agenda nil "w"))
+          (t (org-agenda))))
+#+END_SRC
+
 ****** Stuck Projects
 I have a somewhat loose definition of what constitutes a project. I consider any org heading a project if:
 - It has a todo state and none of it's ancestors do
@@ -1913,8 +1924,9 @@ TODO =,T= tables keybinds
 global keybinds:
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-   "<f12>" 'org-agenda
-   "M-<f12>" 'org-clock-goto)
+   "<f12>" 'ic-open-org-agenda
+   "M-<f12>" 'org-clock-goto
+   )
 #+END_SRC
 
 **** normal mode
