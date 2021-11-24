@@ -425,6 +425,9 @@ Some basic community =evil-mode= key bindings for =org-mode=.
       :demand t
       :after (evil org)
       :hook (org-mode . evil-org-mode)
+      :init
+      ;; don't make a new list item when using o/O
+      (setq evil-org-special-o/O '(table-row))
       :config
       (require 'evil-org-agenda)
       (evil-org-agenda-set-keys))
