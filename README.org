@@ -1614,6 +1614,24 @@ Based on [[https://emacs.stackexchange.com/questions/29758/yasnippets-and-org-mo
   (add-hook 'org-mode-hook 'ic/set-org-mode-tab-key)
 #+END_SRC
 
+**** Insert list item
+I want to hit =M-RET= from either insert or normal mode and insert a new list item at the same level as the current item. The new item should also have a checkbox when the current item does.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-insert-item-dwim ()
+    "Insert an org item, with optional checkbox, below current item."
+    (interactive)
+    (when-let (item-pos (org-in-item-p))
+      (goto-char item-pos)
+      (org-insert-item (org-at-item-checkbox-p))
+      (org-metadown)))
+
+  (defun ic/org-insert-item-dwim-go-insert-mode ()
+    "Call `ic/org-insert-item-dwim' and enter insert mode."
+    (interactive)
+    (when (ic/org-insert-item-dwim)
+      (evil-insert 0)))
+#+END_SRC
+
 **** Weekly Review
 #+BEGIN_SRC emacs-lisp
   (defvar ic/weekly-reviews-directory "~/org/home/weekly-reviews")
@@ -1918,6 +1936,8 @@ Here I have some custom normal mode navigation.
 
     "C-S-<left>"  'org-do-promote
     "C-S-<right>" 'org-do-demote
+
+    "M-<return>" 'ic/org-insert-item-dwim-go-insert-mode
     )
 #+END_SRC
 
@@ -1926,7 +1946,9 @@ Here I have some custom normal mode navigation.
   (general-define-key
       :states 'insert
       :keymaps 'org-mode-map
-      ">" 'ic/yas-expand->)
+      ">" 'ic/yas-expand->
+      "M-<return>" 'ic/org-insert-item-dwim
+      )
 #+END_SRC
 
 ** org-bullets
