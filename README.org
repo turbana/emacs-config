@@ -1,3 +1,4 @@
+# -*- lexical-binding: t; -*-
 #+TITLE: Emacs Config
 #+STARTUP: content
 
@@ -1905,9 +1906,11 @@ TODO =,T= tables keybinds
   (leader-keys
     :infix "o"
     "" '(nil :which-key "org-mode")
+    "a" 'org-agenda
     "c" 'org-capture
     "j" 'ic/org-jump-in-buffer
-    "J" 'ic/org-jump)
+    "J" 'ic/org-jump
+    )
 
   (leader-keys
     :infix "oC"
@@ -1917,7 +1920,8 @@ TODO =,T= tables keybinds
     "g" 'org-clock-goto
     "o" 'org-clock-out
     "l" 'org-clock-in-last
-    "r" 'org-clock-report)
+    "r" 'org-clock-report
+    )
 #+END_SRC
 
 **** global
@@ -1970,6 +1974,115 @@ Let's have some fancy heading bullets.
     :config
     (setq org-bullets-bullet-list '("•"))
     :hook (org-mode . org-bullets-mode))
+#+END_SRC
+
+** org-roam
+Let's see what this is all about.
+#+BEGIN_SRC emacs-lisp
+  (use-package org-roam
+    :demand t
+    :init
+    (setq org-roam-v2-ack t)
+    :custom
+    (org-roam-directory "~/org/home/roam")
+    (org-roam-db-location
+     (concat user-cache-directory "org-roam.db"))
+    (org-roam-completion-everywhere t)
+    :config
+    (org-roam-setup)
+    :general
+    (general-define-key
+     :states 'insert
+     :keymaps 'org-mode-map
+     "TAB" 'company-complete
+     )
+    (leader-keys
+      :infix "on"
+      "" '(nil :which-key "org-roam")
+      "b" 'org-roam-buffer-toggle
+      "c" 'org-roam-capture
+      "D" 'org-roam-db-diagnose-node
+      "f" 'org-roam-node-find
+      "i" 'org-roam-node-insert
+      "I" 'org-roam-node-insert-immediate
+      "p" 'my/org-roam-find-project
+      )
+    )
+#+END_SRC
+
+When I hit =TAB= and I'm in =org-roam-mode= I want to call =(company-expand)=, otherwise if I'm in =org-mode= I want to call the default =(org-cycle)=.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-roam-maybe-expand (&optional arg)
+    "Call `company-complete' when in `org-roam-mode' otherwise call `org-cycle'."
+    (interactive "P")
+    (if org-roam-mode
+        (company-complete)
+      (org-cycle arg)))
+#+END_SRC
+
+Much inspiration was taken from [[https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/][here]].
+#+BEGIN_SRC emacs-lisp :lexical yes
+  (defun org-roam-node-insert-immediate (arg &rest args)
+    (interactive "P")
+    (let ((args (push arg args))
+          (org-roam-capture-templates (list (append (car org-roam-capture-templates)
+                                                    '(:immediate-finish t)))))
+      (apply #'org-roam-node-insert args)))
+
+  (defun my/org-roam-filter-by-tag (tag-name)
+    (lambda (node)
+      (member tag-name (org-roam-node-tags node))))
+
+  (defun my/org-roam-list-notes-by-tag (tag-name)
+    (mapcar #'org-roam-node-file
+            (seq-filter
+             (my/org-roam-filter-by-tag tag-name)
+             (org-roam-node-list))))
+
+  (defun ic/org-roam-refresh-agenda-list ()
+    (interactive)
+    (mapc (lambda (file-name)
+            (add-to-list 'org-agenda-files file-name))
+          (my/org-roam-list-notes-by-tag "agenda")))
+  ;; update agenda files on load
+  (ic/org-roam-refresh-agenda-list)
+
+  (defun ic/org-roam-update-agenda-files-once-hook ()
+    "Calls `ic/org-roam-refresh-agenda-list' and removes itself from
+  `org-capture-after-finalize-hook'."
+    (ic/org-roam-refresh-agenda-list)
+    (remove-hook 'org-capture-after-finalize-hook
+                 #'ic/org-roam-update-agenda-files-once-hook))
+
+  (defun my/org-roam-find-project ()
+    (interactive)
+    (add-hook 'org-capture-after-finalize-hook
+              #'ic/org-roam-update-agenda-files-once-hook)
+    (org-roam-node-find
+     nil
+     nil
+     (my/org-roam-filter-by-tag "project")
+     :templates
+     `(("p" "project" plain "\n\n%?\n\n* Tasks\n"
+        :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                           ,(concat "#+title: ${title}\n"
+                                    "#+category: ${title}\n"
+                                    "#+filetags: :project:agenda:\n"
+                                    "#+startup: content\n"))
+        :unnarrowed t))))
+#+END_SRC
+
+** org-roam-ui
+#+BEGIN_SRC emacs-lisp
+  (use-package org-roam-ui
+    :straight
+      (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+      :after org-roam
+      :config
+      (setq org-roam-ui-sync-theme t
+            org-roam-ui-follow t
+            org-roam-ui-update-on-save t
+            org-roam-ui-open-on-start t))
 #+END_SRC
 
 ** org-ql
