@@ -470,7 +470,7 @@ Some basic community =evil-mode= key bindings for =org-mode=.
      ;; C-, should start actions
      "C-," 'helm-select-action
      ;; C-. to paste into buffer
-     "C-." 'helm-copy-to-buffer
+     "C-." 'helm-insert-or-copy
      ;; <left/right> should move the point
      "<left>" 'backward-char
      "<right>" 'forward-char
