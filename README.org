@@ -1994,7 +1994,7 @@ Let's see what this is all about.
     (general-define-key
      :states 'insert
      :keymaps 'org-mode-map
-     "TAB" 'company-complete
+     "TAB" 'ic/org-roam-maybe-expand
      )
     (leader-keys
       :infix "on"
@@ -2010,14 +2010,24 @@ Let's see what this is all about.
     )
 #+END_SRC
 
+I want a way to know if we're editing an =org-roam= buffer:
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-roam-filename-p (file-name)
+    "Return `t' if FILE-NAME refers to an `org-roam' file."
+    (string-prefix-p (expand-file-name org-roam-directory)
+                     (expand-file-name file-name)))
+#+END_SRC
+
 When I hit =TAB= and I'm in =org-roam-mode= I want to call =(company-expand)=, otherwise if I'm in =org-mode= I want to call the default =(org-cycle)=.
 #+BEGIN_SRC emacs-lisp
   (defun ic/org-roam-maybe-expand (&optional arg)
     "Call `company-complete' when in `org-roam-mode' otherwise call `org-cycle'."
     (interactive "P")
-    (if org-roam-mode
-        (company-complete)
-      (org-cycle arg)))
+    (if (not (ic/org-roam-filename-p (buffer-file-name (current-buffer))))
+        (org-cycle arg)
+      (unless company-mode
+        (company-mode))
+      (company-complete)))
 #+END_SRC
 
 Much inspiration was taken from [[https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/][here]].
