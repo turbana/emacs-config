@@ -1983,19 +1983,47 @@ Let's see what this is all about.
     :demand t
     :init
     (setq org-roam-v2-ack t)
+
     :custom
     (org-roam-directory "~/org/home/roam")
     (org-roam-db-location
      (concat user-cache-directory "org-roam.db"))
     (org-roam-completion-everywhere t)
+
     :config
     (org-roam-setup)
+    (setq org-roam-capture-templates
+          `(("p" "permanent zettel" plain "%U\n\n%?"
+             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                                "#+title: ${title}")
+             :unnarrowed t)
+
+            ("t" "task zettel" plain "%U\n\n* TODO ${title}\n%U\n\n%?"
+             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                                "#+title: ${title}\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:")
+             :unnarrowed t)
+
+            ("l" "literature zettel" plain
+             ,(concat "%U\n\n"
+                      "#+begin_quote\n%i#+end_quote\n"
+                      "/From %(ic/org-roam-node-string-immediate)/\n\n"
+                      "%?"
+                      )
+             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                                "#+title: ${title}")
+             :unnarrowed t)
+
+            ))
+
     :general
     (general-define-key
      :states 'insert
      :keymaps 'org-mode-map
      "TAB" 'ic/org-roam-maybe-expand
      )
+    (general-define-key
+     :keymaps 'global-map
+     "<f2>" 'org-roam-capture)
     (leader-keys
       :infix "on"
       "" '(nil :which-key "org-roam")
@@ -2038,6 +2066,12 @@ Much inspiration was taken from [[https://systemcrafters.net/build-a-second-brai
           (org-roam-capture-templates (list (append (car org-roam-capture-templates)
                                                     '(:immediate-finish t)))))
       (apply #'org-roam-node-insert args)))
+
+  (defun ic/org-roam-node-string-immediate (&optional arg)
+    (interactive "P")
+    (with-temp-buffer
+      (org-roam-node-insert-immediate arg)
+      (buffer-string)))
 
   (defun my/org-roam-filter-by-tag (tag-name)
     (lambda (node)
