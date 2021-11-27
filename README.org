@@ -2135,11 +2135,30 @@ Much inspiration was taken from [[https://systemcrafters.net/build-a-second-brai
                                                     '(:immediate-finish t)))))
       (apply #'org-roam-node-insert args)))
 
-  (defun ic/org-roam-node-string-immediate (&optional arg)
-    (interactive "P")
-    (with-temp-buffer
-      (org-roam-node-insert-immediate arg)
-      (buffer-string)))
+
+  (defun ic/org-roam-node-create (title &optional template-key)
+    "Return `org-roam' node for TITLE, creating it if necessary."
+    (if-let (node (org-roam-node-from-title-or-alias title))
+        node
+      (let ((template (append
+                       (if template-key
+                           (assoc template-key org-roam-capture-templates)
+                         (car org-roam-capture-templates))
+                       '(:immediate-finish t))))
+        (when (org-roam-capture-
+               :node (org-roam-node-create :title title)
+               :templates (list template))
+          (org-roam-node-from-title-or-alias title)))))
+
+
+  (defun ic/org-roam-node-link-immediate (title &optional template-key)
+    "Create (if necessary) and return an `org-mode' link to TITLE node. Use
+  TEMPLATE-KEY to choose a template from `org-roam-capture-templates' to use when creating."
+    (when-let (node (ic/org-roam-node-create title template-key))
+      (org-link-make-string
+       (concat "id:" (org-roam-node-id node))
+       (org-roam-node-formatted node))))
+
 
   (defun my/org-roam-filter-by-tag (tag-name)
     (lambda (node)
