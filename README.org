@@ -2009,6 +2009,16 @@ Let's see what this is all about.
                                 "#+title: ${title}\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:")
              :unnarrowed t)
 
+            ("b" "book" plain
+             (function ic/org-capture-book)
+             :target (file "%<%Y%m%d%H%M%S>-${slug}.org")
+             :unnarrowed t)
+
+            ("a" "author" plain "%U\n\n%?"
+             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                                "#+title: ${title}\n#+filetags: :author:")
+             :unnarrowed t)
+
             ("l" "literature zettel" plain
              ,(concat "%U\n\n"
                       "#+begin_quote\n%i#+end_quote\n"
@@ -2104,6 +2114,109 @@ I want a way to get the number of times I've made a =literature= zettel against 
      :ref-number (number-to-string (ic/org-roam-next-literature-number title)))
     ;; return empty string so we don't mess up a template
     "")
+#+END_SRC
+
+Let's migrate my book importing code to =org-roam=.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-roam-format-book-template-header (doc)
+    "Create a template header from DOC suitable for `org-roam-capture-templates'."
+    (with-temp-buffer
+      (unless (yas-minor-mode 1)
+        (error "failed to load yas-minor-mode"))
+      (let ((snippet-env
+             (mapcar (lambda (c)
+                       (list (car c)
+                             (if (listp (cdr c))
+                                 `(quote ,(cdr c))
+                               (cdr c))))
+                     book)))
+        (yas-expand-snippet
+         (concat
+          ":PROPERTIES:\n"
+          ":TITLE: `title`\n"
+          ":AUTHORS: `(mapcar (lambda (a) (format \"%S\" a)) authors)`\n"
+          ":PAGES_MEDIAN: `pages-median`\n"
+          ":END:\n"
+          "#+title: `title`\n"
+          "#+filetags: :book:HOME:agenda:")
+         nil
+         nil
+         snippet-env))
+      (buffer-string)))
+
+  (defun ic/org-roam-format-book-template-body (doc)
+    "Create a template body from DOC suitable for `org-roam-capture-templates'."
+    (with-temp-buffer
+      (unless (yas-minor-mode 1)
+        (error "failed to load yas-minor-mode"))
+      (let ((snippet-env
+             (append
+              (mapcar (lambda (c)
+                        (list (car c)
+                              (if (listp (cdr c))
+                                  `(quote ,(cdr c))
+                                (cdr c))))
+                      book)
+              `((authors-pretty
+                 ,(string-join (assoc-default 'authors doc)
+                               ", and "))
+                (authors-pretty-links
+                 ,(string-join (mapcar
+                                (lambda (author)
+                                  (ic/org-roam-node-link-immediate author "a"))
+                                (assoc-default 'authors doc))
+                               ", and "))
+
+                (author-ol-links
+                 ,(string-join
+                   (mapcar
+                    (lambda (tuple)
+                      (format "- [[https://openlibrary.org/authors/%s][OpenLibrary - %s]]"
+                              (cdr tuple)
+                              (car tuple)))
+                    (-zip (assoc-default 'authors doc)
+                          (assoc-default 'ol-author-ids doc)))
+                   "\n"))
+                (lt-uri
+                 ,(if-let (id (assoc-default 'librarything-id doc))
+                      (format "/work/%s" id)
+                    (format "/search.php?search=%s"
+                            (assoc-default 'query-title doc))))
+                (gr-uri
+                 ,(if-let (id (assoc-default 'goodreads-id doc))
+                      (format "/book/show/%s" id)
+                    (format "/search?q=%s&search_type=books")))))))
+        (yas-expand-snippet
+         (concat
+          "\%U\n\n"
+          "/`title`/ by `authors-pretty-links`.\n\n"
+          "#+begin_quote\n`description`\n#+end_quote\n\n"
+          "- [[https://librarything.com`lt-uri`][LibraryThing]]\n"
+          "- [[https://openlibrary.org`ol-work-id`][OpenLibrary - `title`]]\n"
+          "`author-ol-links`\n"
+          "- [[https://www.overdrive.com/search?q=`query-title`][Overdrive]]\n"
+          "- [[https://goodreads.com`gr-uri`][Goodreads]]\n"
+          "- [[https://amazon.com/s?k=`query-title`][Amazon]]\n\n"
+          "* TODO `title` :: `authors-pretty` [`first-year-published`]")
+         nil
+         nil
+         snippet-env))
+      (buffer-string)))
+
+  (defun ic/org-roam-capture-book ()
+    "`org-roam-capture' to import a new book from OpenLibrary."
+    (interactive)
+    (let* ((book (ic/openlibrary-helm-find-book))
+           (title (assoc-default 'title book))
+           (template `("X" "capture book template" plain
+                      ,(ic/org-roam-format-book-template-body book)
+                      :target (file+head
+                               "%<%Y%m%d%H%M%S>-${slug}.org"
+                               ,(ic/org-roam-format-book-template-header book)))))
+      (cl-letf ((org-roam-capture-templates
+                 (list template)))
+        (if-let ((node (ic/org-roam-node-create title)))
+            (find-file (org-roam-node-file node))))))
 #+END_SRC
 
 I want a way to know if we're editing an =org-roam= buffer:
