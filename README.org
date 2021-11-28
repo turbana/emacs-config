@@ -2125,38 +2125,50 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 #+BEGIN_SRC emacs-lisp
   (defun zetian-search (query)
     "Search through all of `zetian', return all nodes matching QUERY."
-    (let ((nodes
-           (mapcar (lambda (id)
-                     (org-roam-populate (org-roam-node-create :id (car id))))
-                   (org-roam-db-query
-                    (zetian--unroll-query query)))))
+    (let ((nodes (zetian--perform-query query)))
       ;; rebind (org-roam-node-list) to return our (filtered) nodes
       (cl-letf (((symbol-function 'org-roam-node-list)
                  (lambda () nodes)))
         (org-roam-node-read))))
 
+  (defun zetian--perform-query (query)
+    "Run QUERY against `org-roam' database."
+    (mapcar
+     (lambda (id)
+       (org-roam-populate (org-roam-node-create :id (car id))))
+     (org-roam-db-query
+      (zetian--unroll-query query))))
+
   (defun zetian--unroll-query (query)
     "Translate QUERY into a suitable `emacsql' query."
-    (let ((where-clause (zetian--unroll-query-impl query)))
     `[:select [nodes:id]
       :from nodes
-      :where ,@(append where-clause nil)]))
+      :where ,(zetian--unroll-query-impl query)])
 
   (defun zetian--unroll-query-impl (query)
-    (if (not (listp query))
-        _query
-      (pcase (car query)
-        ('and
-         (cl-reduce
-          (lambda (left right)
-            `[,left :and ,right])
-          (mapcar #'zetian--unroll-query-impl (cdr query))))
-        ('tag
-         `(in nodes:id [:select [tags:node-id]
-                        :from tags
-                        :where (= tags:node-id nodes:id)
-                        :and (= tags:tag ,(cadr query))])
-         ))))
+    (unless (and (listp query) query)
+      (error "QUERY must be an sexp, received: %S" query))
+    (pcase (car query)
+      ('and
+       (cons 'and (mapcar #'zetian--unroll-query-impl (cdr query))))
+      ('or
+       (cons 'or (mapcar #'zetian--unroll-query-impl (cdr query))))
+      ('not
+       (list 'not (zetian--unroll-query (cadr query))))
+      ('tag
+       `(in nodes:id [:select [tags:node-id]
+                      :from tags
+                      :where (= tags:node-id nodes:id)
+                      :and (= tags:tag ,(cadr query))]))
+      ('prop
+       `(like
+         nodes:properties
+         (quote ,(format "%%%S%%" (cons (cadr query) (caddr query))))
+         ))
+      ('category
+       (zetian--unroll-query-impl `(prop "CATEGORY" ,(cadr query))))
+      (t
+       (error "invalid search key: %S" (car query)))))
 #+END_SRC
 
 I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
