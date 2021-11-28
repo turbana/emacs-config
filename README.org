@@ -2141,12 +2141,32 @@ I want an easy way to define functions to search through =zetian= for specific c
 
 I want a way to search through =zetian= in a fast, easy, and general manor.
 #+BEGIN_SRC emacs-lisp
-  (defun zetian-search (query)
+  (defvar zetian--readline-histories nil
+    "An ALIST of histories to use with `completing-read'.")
+
+  (defun zetian-search (query &optional prompt)
     "Search through all of `zetian', return all nodes matching QUERY."
-    (let ((nodes (zetian--perform-query query)))
-      ;; rebind (org-roam-node-list) to return our (filtered) nodes
+    (let* ((nodes (zetian--perform-query query))
+           (query-s (prin1-to-string query))
+           (history-item (assoc query-s zetian--readline-histories))
+           (history (cdr history-item))
+           (real-completing-read (symbol-function 'completing-read)))
       (cl-letf (((symbol-function 'org-roam-node-list)
-                 (lambda () nodes)))
+                 (lambda () nodes))
+                ((symbol-function 'completing-read)
+                 (lambda (&rest args)
+                   ;; add our custom prompt
+                   (setf (nth 0 args) (or prompt
+                                        (format "Zetian %s: " query-s)))
+                   ;; add our custom history
+                   (setf (nth 5 args) 'history)
+                   (prog1
+                       (apply real-completing-read args)
+                     ;; save history
+                     (if history-item
+                         (setcdr history-item history)
+                       (push (cons query-s history)
+                             zetian--readline-histories))))))
         (org-roam-node-read))))
 
   (defun zetian--perform-query (query)
