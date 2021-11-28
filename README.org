@@ -2160,15 +2160,31 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                       :from tags
                       :where (= tags:node-id nodes:id)
                       :and (= tags:tag ,(cadr query))]))
+      ('title
+       `(like title ,(zetian--query-quote-like (cadr query) t)))
+      ('title-like
+       `(like title ,(zetian--query-quote-like (cadr query))))
       ('prop
        `(like
          nodes:properties
-         (quote ,(format "%%%S%%" (cons (cadr query) (caddr query))))
-         ))
+         ,(zetian--query-quote-like (cons (cadr query) (caddr query)))))
       ('category
        (zetian--unroll-query-impl `(prop "CATEGORY" ,(cadr query))))
-      (t
+      (_
        (error "invalid search key: %S" (car query)))))
+
+  (defun zetian--query-quote-like (obj &optional exact)
+    "Return quoted OBJ in a form for `emacsql' query: (like column
+  ,(zetian--query-quote-like (cons 'a 'b)))"
+    (let ((double-quote "\"")
+          (maybe-percent (unless exact "%")))
+      `(quote ,(if (stringp obj)
+                   (concat double-quote maybe-percent
+                           obj
+                           maybe-percent double-quote)
+                 (concat maybe-percent
+                         (prin1-to-string obj)
+                         maybe-percent)))))
 #+END_SRC
 
 I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
