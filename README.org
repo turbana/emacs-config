@@ -2099,11 +2099,21 @@ Let's see what this is all about.
       :infix "zf"
       "" '(nil :which-key "find")
       "f" 'org-roam-node-find
-      "b" (ic/org-roam-node-func-find-by-tag "book")
+      "b" #'zetian-find-book
       "a" (ic/org-roam-node-func-find-by-tag "author")
       "t" (ic/org-roam-node-func-find-by-property "CATEGORY" "task")
       )
     )
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-find-book ()
+    "Search zetian for book and navigate to buffer."
+    (interactive)
+    (when-let ((file-name (org-roam-node-file
+                           (zetian-search '(tag "book")
+                                          "Zetian book: "))))
+      (find-file file-name)))
 #+END_SRC
 
 I want an easy way to define functions to search through =zetian= for specific content. These should be usable directly in =(leader-keys)= calls.
