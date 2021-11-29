@@ -2122,6 +2122,7 @@ Let's see what this is all about.
       "D" 'org-roam-db-diagnose-node
       "i" 'org-roam-node-insert
       "I" 'org-roam-node-insert-immediate
+      "u" 'org-roam-ui-open
       "z" 'org-roam-node-find
       )
     (leader-keys
@@ -2134,21 +2135,54 @@ Let's see what this is all about.
       :infix "zf"
       "" '(nil :which-key "find")
       "f" 'org-roam-node-find
+
+      "a" #'zetian-find-author
       "b" #'zetian-find-book
-      "a" (ic/org-roam-node-func-find-by-tag "author")
-      "t" (ic/org-roam-node-func-find-by-property "CATEGORY" "task")
+      "t" #'zetian-find-task-open
       )
-    )
+    (leader-keys
+      :infix "zfT"
+      "" '(nil :which-key "tasks")
+      "a" #'zetian-find-task
+      "n" #'zetian-find-task-next
+      "o" #'zetian-find-task-open
+      "T" #'zetian-find-task
+      ))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
   (defun zetian-find-book ()
-    "Search zetian for book and navigate to buffer."
+    "Search zetian for a book and navigate to buffer."
     (interactive)
-    (when-let ((file-name (org-roam-node-file
-                           (zetian-search '(tag "book")
-                                          "Zetian book: "))))
-      (find-file file-name)))
+    (zetian-search-find '(and (tag "book")
+                              (not (tag "lit")))
+                        "Zetian book: "))
+
+  (defun zetian-find-author ()
+    "Search zetian for a book and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(tag "author")
+                        "Zetian author: "))
+
+  (defun zetian-find-task ()
+    "Search zetian for a task and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(category "task")
+                        "Zetian task: "))
+
+  (defun zetian-find-task-next ()
+    "Search zetian for a task and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(and (category "task")
+                              (todo "NEXT"))))
+
+  (defun zetian-find-task-open ()
+    "Search zetian for a book and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(and (category "task")
+                              (or (todo "TODO")
+                                  (todo "NEXT")))
+                        "Zetian open task: "))
 #+END_SRC
 
 I want an easy way to define functions to search through =zetian= for specific content. These should be usable directly in =(leader-keys)= calls.
@@ -2213,6 +2247,13 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                        (push (cons query-s history)
                              zetian--readline-histories))))))
         (org-roam-node-read))))
+
+  (defun zetian-search-find (query &optional prompt)
+    "Search zetian for QUERY and navigate to chosen buffer."
+    (interactive)
+    (when-let ((file-name (org-roam-node-file
+                           (zetian-search query prompt))))
+      (find-file file-name)))
 
   (defun zetian--perform-query (query)
     "Run QUERY against `org-roam' database."
