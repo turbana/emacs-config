@@ -1581,23 +1581,32 @@ Add some custom =<X= templates.
 
 It would be handy to have a function that would handle =org-mode= style time strings such as =+3d=, =-1w=, etc.
 #+BEGIN_SRC emacs-lisp
-  (defun ic-parse-org-date-string (date-str)
-    "Translate DATE-STR into an emacs encoded time based on `org-read-date-*'
-  syntax rules such as: +1d, -3w, etc. Returns NIL on invalid time string."
-    (let ((org-time (org-read-date-analyze
-                     date-str
-                     ;; encoded default time
-                     (list 0 0 0 0)
-                     ;; decoded default time
-                     (list 0 0 0 0 0 0 0 0 0)))
-          ;; `org-read-date-analyze' will return the default date if it failed to
-          ;; parse a valid time string. We check for year 2000 because of the
-          ;; following line in `org-read-date-analyze':
-          ;;     (when (< year 100) (setq year (+ 2000 year)))
-          (bad-time (list 0 0 0 0 0 2000)))
-      (if (equal org-time bad-time)
-          (error "invalid time string: %s" date-str)
-        (apply #'encode-time org-time))))
+  (defun ic-parse-org-date-string (time-str &optional next-day-when-no-time)
+    "Translate TIME-STR into an emacs encoded time based on `org-read-date-*'
+  syntax rules such as: +1d, -3w, etc. When NEXT-DAY-WHEN-NO-TIME is non-nil and
+    TIME-STR does not contain a time component then use the next day. Returns nil
+    on invalid time string."
+    (setq org-time-was-given nil)
+    (let* ((org-time (org-read-date-analyze
+                      time-str
+                      ;; encoded default time
+                      (list 0 0 0 0)
+                      ;; decoded default time
+                      (list 0 0 0 0 0 0 0 0 0)))
+           ;; `org-read-date-analyze' will return the default date if it failed to
+           ;; parse a valid time string. We check for year 2000 because of the
+           ;; following line in `org-read-date-analyze':
+           ;;     (when (< year 100) (setq year (+ 2000 year)))
+           (bad-time (list 0 0 0 0 0 2000))
+           (encoded-time (apply #'encode-time org-time)))
+      (cond ((equal org-time bad-time)
+             (error "invalid time string: %s" time-str))
+            ((or org-time-was-given (not next-day-when-no-time))
+             ;; we either specified a time or we don't want to use the following day
+             encoded-time)
+            (t
+             ;; we didn't specify a time and we want to use the *following* day
+             (time-add encoded-time (* 24 60 60))))))
 #+END_SRC
 
 **** Code Execution
@@ -2233,6 +2242,31 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
        `(like title ,(zetian--query-quote-like (cadr query) t)))
       ('title-like
        `(like title ,(zetian--query-quote-like (cadr query))))
+      ('todo
+       `(like todo ,(zetian--query-quote-like (cadr query))))
+      ('priority
+       `(= priority ,(string-to-char (upcase (cadr query)))))
+      ((or 'scheduled 'deadline)
+       (let ((col (make-symbol (format "nodes:%s" (car query)))))
+         (pcase (cadr query)
+           ('after
+            `(> ,col ,(zetian--query-parse-date (caddr query))))
+           ('before
+            `(< ,col ,(zetian--query-parse-date (caddr query))))
+           ;; ('on-or-after
+           ;;  `(>= ,col ,(zetian--query-parse-date (caddr query))))
+           ;; ('on-or-before
+           ;;  `(<= ,col ,(zetian--query-parse-date (caddr query))))
+           (' on
+              `(<= ,(zetian--query-parse-date (caddr query))
+                   ,col
+                   ,(zetian--query-parse-date (caddr query) t)))
+           ('between
+            `(<= ,(zetian--query-parse-date (caddr query))
+                 ,col
+                 ,(zetian--query-parse-date (cadddr query) t)))
+           (_
+            (error "invalid operation for %S: %S" (car query) (cadr query))))))
       ('prop
        `(like
          nodes:properties
@@ -2254,6 +2288,12 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                  (concat maybe-percent
                          (prin1-to-string obj)
                          maybe-percent)))))
+
+  (defun zetian--query-parse-date (date &optional next-day-when-no-time)
+    (format-time-string "%Y-%m-%dT%H:%M:%S%z"
+                        (ic-parse-org-date-string
+                         date
+                         next-day-when-no-time)))
 #+END_SRC
 
 I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
