@@ -1222,6 +1222,10 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
            "* TODO %?\n%u\n"
            ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
            )
+          ("T" "test org-protocol" entry (file org-default-notes-file)
+           "* TODO %:description\n%U\n\n#+begin_quote\n%:initial\n#+end_quote\n/From: [[%:link][here]]./\n\n%?"
+           :immediate-finish t
+           )
           ("r" "reply" entry (file org-default-notes-file)
            "* TODO Reply to %:from on %:subject\nSCHEDULED: %t\n%u\n%a\n"
            :immediate-finish t
