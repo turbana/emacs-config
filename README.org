@@ -1579,6 +1579,27 @@ Add some custom =<X= templates.
   (setq org-id-locations-file (concat user-cache-directory "org-id-locations"))
 #+END_SRC
 
+It would be handy to have a function that would handle =org-mode= style time strings such as =+3d=, =-1w=, etc.
+#+BEGIN_SRC emacs-lisp
+  (defun ic-parse-org-date-string (date-str)
+    "Translate DATE-STR into an emacs encoded time based on `org-read-date-*'
+  syntax rules such as: +1d, -3w, etc. Returns NIL on invalid time string."
+    (let ((org-time (org-read-date-analyze
+                     date-str
+                     ;; encoded default time
+                     (list 0 0 0 0)
+                     ;; decoded default time
+                     (list 0 0 0 0 0 0 0 0 0)))
+          ;; `org-read-date-analyze' will return the default date if it failed to
+          ;; parse a valid time string. We check for year 2000 because of the
+          ;; following line in `org-read-date-analyze':
+          ;;     (when (< year 100) (setq year (+ 2000 year)))
+          (bad-time (list 0 0 0 0 0 2000)))
+      (if (equal org-time bad-time)
+          (error "invalid time string: %s" date-str)
+        (apply #'encode-time org-time))))
+#+END_SRC
+
 **** Code Execution
 Don't prompt for code execution if we're in a file in certain locations.
 
