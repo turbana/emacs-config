@@ -2170,6 +2170,8 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
           (if (buffer-live-p buffer)
               (pop-to-buffer-same-window buffer)
             (setq buffer (make-indirect-buffer (current-buffer) buf-name t))
+            ;; hide parent buffer
+            (bury-buffer)
             (pop-to-buffer-same-window buffer)
             (widen)
             (org-narrow-to-subtree))))))
