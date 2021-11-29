@@ -2057,10 +2057,11 @@ Let's see what this is all about.
                                 "#+title: ${title}")
              :unnarrowed t)
 
-            ("t" "task zettel" plain "%U\n\n* TODO ${title}\n%U\n\n%?"
-             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                                "#+title: ${title}\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:")
-             :unnarrowed t)
+            ("t" "task zettel" entry "* TODO ${title}\n:PROPERTIES:\n:ID: %(org-id-new)\n:END:\n%U\n\n%?"
+             :target (file+head "zetian-tasks.org"
+                                "#+title: All My Tasks\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:\n#+startup: content")
+             :unnarrowed nil
+             :empty-lines-before 1)
 
             ("b" "book" plain
              (function ic/org-capture-book)
