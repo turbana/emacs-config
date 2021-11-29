@@ -51,6 +51,40 @@ I want to make use of the native compilation system introduced in emacs 28.
   (when have-native-compilation
     (setq comp-async-jobs-number 4))
 #+END_SRC
+** straight.el
+I use =straight.el= for package management so install this early.
+#+BEGIN_SRC emacs-lisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+#+END_SRC
+
+Integrate =straight.el= with =use-package=.
+#+BEGIN_SRC emacs-lisp
+  (setq straight-use-package-by-default t)
+  (straight-use-package 'use-package)
+#+END_SRC
+
+I want to check in my packages to git so store the version file under =user-data-directory=.
+#+BEGIN_SRC emacs-lisp
+  (setq straight-profiles `((nil . ,(concat user-data-directory "straight-default.el"))))
+#+END_SRC
+** async
+I use the =async= package in my =init.el= tangling function, so we need to load it early.
+#+BEGIN_SRC emacs-lisp
+  (use-package async
+    :ensure t)
+#+END_SRC
+
 ** init.el
 On checking out this repo =init.el= will have temporary code in it to tangle / load this org file (=README.org=), overwriting itself. On this initial run we will have loaded both core =org-mode= and melpa =org-mode= so emit a warning that a restart is needed.
 #+BEGIN_SRC emacs-lisp :tangle no
@@ -84,68 +118,39 @@ Let's also tell emacs where =init.el= lives so packages can find it. =straight.e
 
 This file (=README.org=) should be tangled into the startup config file (=init.el=) along with compiling (either native or byte). I want that to happen automatically and asynchronously.
 #+BEGIN_SRC emacs-lisp
-  (require 'async)
-
   (defvar ic--tangle-init-async-cookie nil
     "Used to keep track of the async org-tangle process for init.el")
 
   (defun ic-maybe-tangle-init-file ()
     "Tangle/compile my emacs configuration."
     (let ((org-files (list
-                      (expand-file-name "~/src/emacs/README.org")
-                      (concat user-emacs-directory "README.org"))))
+              (expand-file-name "~/src/emacs/README.org")
+              (concat user-emacs-directory "README.org"))))
       (when (member (buffer-file-name) org-files)
-        (when (process-live-p ic--tangle-init-async-cookie)
-          (kill-process ic--tangle-init-async-cookie))
-        (setq
-         ic--tangle-init-async-cookie
-         (async-start
-          `(lambda ()
-             (require 'ob-tangle)
-             (require 'subr-x)
-             (let ((start-time (current-time)))
-               (when-let (ret (org-babel-tangle-file ,(buffer-file-name)
-                                                     ,user-init-file))
-                 ;; (byte-compile-file ,user-init-file)
-                 ;; (when ,have-native-compilation
-                 ;;   (native-compile ,user-init-file))
-                 (cons ret (float-time (time-since start-time))))))
-          `(lambda (ret)
-             (unless ret
-               (error "error in org-babel-tangle for %S"
-                      ,(buffer-file-name)))
-             (message "Tangled %s in %.2f seconds"
-                      (caar ret) (cdr ret))))))))
+    (when (process-live-p ic--tangle-init-async-cookie)
+      (kill-process ic--tangle-init-async-cookie))
+    (message "Async tangling %s..." (buffer-file-name))
+    (setq
+     ic--tangle-init-async-cookie
+     (async-start
+      `(lambda ()
+         (require 'ob-tangle)
+         (require 'subr-x)
+         (let ((start-time (current-time)))
+           (when-let (ret (org-babel-tangle-file ,(buffer-file-name)
+                             ,user-init-file))
+         ;; (byte-compile-file ,user-init-file)
+         ;; (when ,have-native-compilation
+         ;;   (native-compile ,user-init-file))
+         (cons ret (float-time (time-since start-time))))))
+      `(lambda (ret)
+         (unless ret
+           (error "error in org-babel-tangle for %S"
+              ,(buffer-file-name)))
+         (message "Tangled %s in %.2f seconds"
+              (caar ret) (cdr ret))))))))
 
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
-#+END_SRC
-
-** straight.el
-I use =straight.el= for package management so install this early.
-#+BEGIN_SRC emacs-lisp
-  (defvar bootstrap-version)
-  (let ((bootstrap-file
-         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-        (bootstrap-version 5))
-    (unless (file-exists-p bootstrap-file)
-      (with-current-buffer
-          (url-retrieve-synchronously
-           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
-           'silent 'inhibit-cookies)
-        (goto-char (point-max))
-        (eval-print-last-sexp)))
-    (load bootstrap-file nil 'nomessage))
-#+END_SRC
-
-Integrate =straight.el= with =use-package=.
-#+BEGIN_SRC emacs-lisp
-  (setq straight-use-package-by-default t)
-  (straight-use-package 'use-package)
-#+END_SRC
-
-I want to check in my packages to git so store the version file under =user-data-directory=.
-#+BEGIN_SRC emacs-lisp
-  (setq straight-profiles `((nil . ,(concat user-data-directory "straight-default.el"))))
 #+END_SRC
 
 ** Theme
