@@ -2134,8 +2134,7 @@ Let's see what this is all about.
     (leader-keys
       :infix "zf"
       "" '(nil :which-key "find")
-      "f" 'org-roam-node-find
-
+      "f" #'zetian-node-find
       "a" #'zetian-find-author
       "b" #'zetian-find-book
       "t" #'zetian-find-task-open
@@ -2148,6 +2147,27 @@ Let's see what this is all about.
       "o" #'zetian-find-task-open
       "T" #'zetian-find-task
       ))
+#+END_SRC
+
+When I call =org-roam-node-find= and the node is an =org-mode= element rather than a file. I want my view narrowed to that specific element.
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-node-find (&optional node)
+    "Act like `org-roam-node-find', but create a narrowed indirect buffer when
+    visiting an element (as opposed to a file)."
+    (interactive)
+    (if node
+        (org-roam-node-visit node nil t)
+      (org-roam-node-find))
+    (let ((elem (org-element-at-point)))
+      (when (equal 'headline (org-element-type elem))
+        (let* ((buf-name (format "zetian: %s" (org-element-property :title elem)))
+               (buffer (get-buffer buf-name)))
+          (if (buffer-live-p buffer)
+              (pop-to-buffer-same-window buffer)
+            (setq buffer (make-indirect-buffer (current-buffer) buf-name t))
+            (pop-to-buffer-same-window buffer)
+            (widen)
+            (org-narrow-to-subtree))))))
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
@@ -2251,9 +2271,8 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (defun zetian-search-find (query &optional prompt)
     "Search zetian for QUERY and navigate to chosen buffer."
     (interactive)
-    (when-let ((file-name (org-roam-node-file
-                           (zetian-search query prompt))))
-      (find-file file-name)))
+    (when-let ((node (zetian-search query prompt)))
+      (zetian-node-find node)))
 
   (defun zetian--perform-query (query)
     "Run QUERY against `org-roam' database."
