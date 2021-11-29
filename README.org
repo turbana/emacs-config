@@ -2343,6 +2343,17 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
          ,(zetian--query-quote-like (cons (cadr query) (caddr query)))))
       ('category
        (zetian--unroll-query-impl `(prop "CATEGORY" ,(cadr query))))
+      ((or 'links-to 'links-from)
+       (let ((col1 (if (eq 'links-to (car query)) 'links:source 'links:dest))
+             (col2 (if (eq 'links-to (car query)) 'links:dest 'links:source)))
+         `(in nodes:id [:select [,col1]
+                        :from links
+                        :where (= ,col1 nodes:id)
+                        :and (= links:type "id")
+                        :and (= ,col2
+                                ,(org-roam-node-id
+                                  (org-roam-node-from-title-or-alias
+                                   (cadr query))))])))
       (_
        (error "invalid search key: %S" (car query)))))
 
