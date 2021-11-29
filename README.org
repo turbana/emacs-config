@@ -2237,7 +2237,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
       ('or
        (cons 'or (mapcar #'zetian--unroll-query-impl (cdr query))))
       ('not
-       (list 'not (zetian--unroll-query (cadr query))))
+       (list 'not (zetian--unroll-query-impl (cadr query))))
       ('tag
        `(in nodes:id [:select [tags:node-id]
                       :from tags
