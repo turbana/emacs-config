@@ -2153,6 +2153,7 @@ Let's see what this is all about.
       :infix "zfT"
       "" '(nil :which-key "tasks")
       "a" #'zetian-find-task
+      "l" #'zetian-find-task-open-link
       "n" #'zetian-find-task-next
       "o" #'zetian-find-task-open
       "p" #'zetian-find-task-open-project
@@ -2231,6 +2232,18 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
                                 (links-to ,project))
                           (format "Zetian open tasks that link to %S: " project))))
 
+  (defun zetian-find-task-open-link (&optional node-name)
+    "Find all open tasks that link to NODE-NAME. Prompt user if NIL."
+    (interactive)
+    (let ((node (or node-name
+                    (org-roam-node-title
+                     (org-roam-node-read)))))
+      (zetian-search-find `(and (category "task")
+                                (or (todo "TODO")
+                                    (todo "NEXT"))
+                                (links-to ,node))
+                          (format "Zetian open tasks that link to %S: " node))))
+
   (defun zetian-find-link-to (&optional node-name)
     "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
     (interactive)
@@ -2301,7 +2314,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                    (setf (nth 0 args) (or prompt
                                         (format "Zetian %s: " query-s)))
                    ;; add our custom history
-                   (setf (nth 5 args) 'history)
+                   (setf (nth 5 args) history)
                    (prog1
                        (apply real-completing-read args)
                      ;; save history
