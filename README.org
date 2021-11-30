@@ -2142,6 +2142,8 @@ Let's see what this is all about.
       "f" #'zetian-node-find
       "a" #'zetian-find-author
       "b" #'zetian-find-book
+      "l" #'zetian-find-link-to
+      "L" #'zetian-find-link-from
       "t" #'zetian-find-task-open
       )
     (leader-keys
@@ -2220,11 +2222,27 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
                         (zetian-search
                          '(tag "project")
                          "Zetian project: ")))))
-      (zetian-search `(and (category "task")
-                           (or (todo "TODO")
-                               (todo "NEXT"))
-                           (links-to ,project))
-                     (format "Zetian open tasks that link to %S: " project))))
+      (zetian-search-find `(and (category "task")
+                                (or (todo "TODO")
+                                    (todo "NEXT"))
+                                (links-to ,project))
+                          (format "Zetian open tasks that link to %S: " project))))
+
+  (defun zetian-find-link-to (&optional node-name)
+    "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
+    (interactive)
+    (let ((node (or node-name
+                    (org-roam-node-title (org-roam-node-read)))))
+      (zetian-search-find `(links-to ,node)
+                          (format "Zetian nodes that link to %S: " node))))
+
+  (defun zetian-find-link-from (&optional node-name)
+    "Search zetian for nodes that NODE-NAME links to, prompt for name if NIL."
+    (interactive)
+    (let ((node (or node-name
+                    (org-roam-node-title (org-roam-node-read)))))
+      (zetian-search-find `(links-from ,node)
+                          (format "Zetian nodes that %S links to: " node))))
 #+END_SRC
 
 I want an easy way to define functions to search through =zetian= for specific content. These should be usable directly in =(leader-keys)= calls.
@@ -2367,6 +2385,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                         :from links
                         :where (= ,col1 nodes:id)
                         :and (= links:type "id")
+                        ;; TODO this could be a sql sub-query
                         :and (= ,col2
                                 ,(org-roam-node-id
                                   (org-roam-node-from-title-or-alias
