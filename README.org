@@ -931,6 +931,9 @@ Allow us to execute various languages in =org-src= blocks.
 
   ;; show agenda icons
   (setq org-agenda-prefix-format "  %i %?-2 t%s")
+
+  ;; highlight the current line
+  (add-hook 'org-agenda-mode-hook 'hl-line-mode)
 #+END_SRC
 
 ***** Test icons (disabled)
