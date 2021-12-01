@@ -2343,6 +2343,18 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   is a function taking an org-roam node and returning non-NIL on valid nodes"
     (seq-filter filter-func (zetian--perform-query query)))
 
+  (defun ic/org-roam-node-body (node)
+    "Return the text contents of NODE"
+    (save-excursion
+      (with-temp-buffer
+        (insert-file-contents-literally (org-roam-node-file node))
+        (when (< 0 (org-roam-node-level node))
+          (org-mode)
+          (widen)
+          (goto-char (org-roam-node-point node))
+          (org-narrow-to-subtree))
+        (buffer-string))))
+
   (defun zetian--perform-query (query)
     "Run QUERY against `org-roam' database."
     (mapcar
