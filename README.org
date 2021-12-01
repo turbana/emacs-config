@@ -2773,6 +2773,16 @@ Much inspiration was taken from [[https://systemcrafters.net/build-a-second-brai
           (org-roam-node-from-title-or-alias title)))))
 
 
+  (defun ic/org-roam-node-read-create ()
+    "Prompt user for a zetian node, return it, creating it if necessary."
+    (interactive)
+    (when-let ((node (org-roam-node-read)))
+      ;; assume the node is valid if it has a file.
+      (if (org-roam-node-file node)
+          node
+        (ic/org-roam-node-create (org-roam-node-title node)))))
+
+
   (defun ic/org-roam-node-link-immediate (title &optional template-key)
     "Create (if necessary) and return an `org-mode' link to TITLE node. Use
   TEMPLATE-KEY to choose a template from `org-roam-capture-templates' to use when creating."
