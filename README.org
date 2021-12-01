@@ -2223,12 +2223,16 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     (zetian-search-find '(and (category "task")
                               (todo "NEXT"))))
 
+  (defconst zetian--open-tasks
+    '(and (category "task")
+          (not (tag "event"))
+          (or (todo "TODO")
+              (todo "NEXT"))))
+
   (defun zetian-find-task-open ()
     "Search zetian for a book and navigate to buffer."
     (interactive)
-    (zetian-search-find '(and (category "task")
-                              (or (todo "TODO")
-                                  (todo "NEXT")))
+    (zetian-search-find zetian--open-tasks
                         "Zetian open task: "))
 
   (defun zetian-find-task-open-project (&optional project-name)
@@ -2239,11 +2243,10 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
                         (zetian-search
                          '(tag "project")
                          "Zetian project: ")))))
-      (zetian-search-find `(and (category "task")
-                                (or (todo "TODO")
-                                    (todo "NEXT"))
-                                (links-to ,project))
-                          (format "Zetian open tasks that link to %S: " project))))
+      (zetian-search-find
+       `(and ,zetian--open-tasks
+             (links-to ,project))
+       (format "Zetian open tasks that link to %S: " project))))
 
   (defun zetian-find-task-open-link (&optional node-name)
     "Find all open tasks that link to NODE-NAME. Prompt user if NIL."
@@ -2251,11 +2254,10 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     (let ((node (or node-name
                     (org-roam-node-title
                      (org-roam-node-read)))))
-      (zetian-search-find `(and (category "task")
-                                (or (todo "TODO")
-                                    (todo "NEXT"))
-                                (links-to ,node))
-                          (format "Zetian open tasks that link to %S: " node))))
+      (zetian-search-find
+       `(and ,zetian--open-tasks
+             (links-to ,node))
+       (format "Zetian open tasks that link to %S: " node))))
 
   (defun zetian-find-link-to (&optional node-name)
     "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
