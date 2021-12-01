@@ -2076,16 +2076,6 @@ Let's see what this is all about.
              :unnarrowed nil
              :empty-lines-before 1)
 
-            ("b" "book" plain
-             (function ic/org-capture-book)
-             :target (file "%<%Y%m%d%H%M%S>-${slug}.org")
-             :unnarrowed t)
-
-            ("a" "author" plain "%U\n\n%?"
-             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                                "#+title: ${title}\n#+filetags: :author:")
-             :unnarrowed t)
-
             ("l" "literature zettel" plain
              ,(concat "%U\n\n"
                       "#+begin_quote\n%i#+end_quote\n"
