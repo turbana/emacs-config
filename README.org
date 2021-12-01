@@ -124,31 +124,34 @@ This file (=README.org=) should be tangled into the startup config file (=init.e
   (defun ic-maybe-tangle-init-file ()
     "Tangle/compile my emacs configuration."
     (let ((org-files (list
-              (expand-file-name "~/src/emacs/README.org")
-              (concat user-emacs-directory "README.org"))))
+                      (expand-file-name "~/src/emacs/README.org")
+                      (concat user-emacs-directory "README.org"))))
       (when (member (buffer-file-name) org-files)
-    (when (process-live-p ic--tangle-init-async-cookie)
-      (kill-process ic--tangle-init-async-cookie))
-    (message "Async tangling %s..." (buffer-file-name))
-    (setq
-     ic--tangle-init-async-cookie
-     (async-start
-      `(lambda ()
-         (require 'ob-tangle)
-         (require 'subr-x)
-         (let ((start-time (current-time)))
-           (when-let (ret (org-babel-tangle-file ,(buffer-file-name)
-                             ,user-init-file))
-         ;; (byte-compile-file ,user-init-file)
-         ;; (when ,have-native-compilation
-         ;;   (native-compile ,user-init-file))
-         (cons ret (float-time (time-since start-time))))))
-      `(lambda (ret)
-         (unless ret
-           (error "error in org-babel-tangle for %S"
-              ,(buffer-file-name)))
-         (message "Tangled %s in %.2f seconds"
-              (caar ret) (cdr ret))))))))
+        (when (process-live-p ic--tangle-init-async-cookie)
+          (kill-process ic--tangle-init-async-cookie))
+        (message "Async tangling %s..." (buffer-file-name))
+        (setq
+         ic--tangle-init-async-cookie
+         (async-start
+          `(lambda ()
+             (require 'ob-tangle)
+             (require 'subr-x)
+             (let ((start-time (current-time))
+                   ;; set to silence messages from `org-babel-tangle-file'.
+                   ;; this screws up the async return value on windows :(
+                   (inhibit-message t))
+               (when-let (ret (org-babel-tangle-file ,(buffer-file-name)
+                                                     ,user-init-file))
+                 ;; (byte-compile-file ,user-init-file)
+                 ;; (when ,have-native-compilation
+                 ;;   (native-compile ,user-init-file))
+                 (cons ret (float-time (time-since start-time))))))
+          `(lambda (ret)
+             (unless (consp ret)
+               (error "error in org-babel-tangle for %S"
+                      ,(buffer-file-name)))
+             (message "Tangled %s in %.2f seconds"
+                      (caar ret) (cdr ret))))))))
 
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
