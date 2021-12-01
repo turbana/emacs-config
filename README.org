@@ -2158,7 +2158,14 @@ Let's see what this is all about.
       "o" #'zetian-find-task-open
       "p" #'zetian-find-task-open-project
       "T" #'zetian-find-task
-      ))
+      )
+    (local-leader-keys 'org-mode-map
+      :infix "z"
+      "" '(nil :which-key "zetian")
+      "t" #'zetian-add-tag
+      "r" #'zetian-remove-tag
+      )
+    )
 #+END_SRC
 
 When I call =org-roam-node-find= and the node is an =org-mode= element rather than a file. I want my view narrowed to that specific element.
@@ -2427,6 +2434,136 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                         (ic-parse-org-date-string
                          date
                          next-day-when-no-time)))
+#+END_SRC
+
+I want an easy way to add/update tags and other links on a given zettel. To start I'm probably just going to use /Tags/, but I could see myself using other forms as well, (maybe /Depends/ for moving my emacs config into zettels?). So I'll call them =header-links=.
+#+BEGIN_SRC emacs-lisp
+  (defvar zetian-header-formats '((tag . "/tags/ - ")))
+  (defvar zetian-header-seperator ", ")
+
+  (defun zetian-add-header-link (type node)
+    "Add a link to NODE within the header line for TYPE."
+    (interactive)
+    (save-excursion
+      (zetian--header-write
+       type
+       (zetian--header-modify
+        node
+        'add
+        (zetian--header-read type)))))
+
+  (defun zetian-remove-header-link (type node)
+    "Add a link to NODE within the header line for TYPE."
+    (interactive)
+    (save-excursion
+      (zetian--header-write
+       type
+       (zetian--header-modify
+        node
+        'remove
+        (zetian--header-read type)))))
+
+  (defun zetian--header-read (type)
+    "Parse the contents of the header of type TYPE. Return a list of links found
+    or NIL if not found."
+    (zetian--move-to-header type)
+    (let ((start (point))
+          links
+          done)
+      (while (not done)
+        ;; is the point on an org link?
+        (if-let ((elem (org-element-link-parser)))
+            (let* ((link (cadr elem))
+                   (tgt (plist-get link :raw-link))
+                   (desc (buffer-substring-no-properties
+                          (plist-get link :contents-begin)
+                          (plist-get link :contents-end)))
+                   (end (plist-get link :end)))
+              ;; add the found org link
+              (setq links (append links (list (cons tgt desc))))
+              ;; move to the end of the link
+              (goto-char end)
+              ;; try and move over `zetian-header-seperator'
+              (re-search-forward
+               (regexp-quote zetian-header-seperator)
+               (+ (point) (length zetian-header-seperator))
+               t)
+              ;; keep going if we're looking at another org link
+              (setq done (not (looking-at (regexp-quote "[[")))))
+          ;; point was not on an org link, so we're done
+          (setq done t)))
+      ;; move to the start of the links and return
+      (goto-char start)
+      links))
+
+  (defun zetian--move-to-header (type)
+    "Moves point to and returns the position of the header of TYPE, creating it if
+  necessary."
+    (goto-char (point-min))
+    (let ((re (concat "^" (regexp-quote
+                           (assoc-default type zetian-header-formats)))))
+      (unless (re-search-forward re nil t)
+        ;; create header
+        (re-search-forward "^$" nil 0)
+        ;; TODO what if we have other headers, do we want so many newlines?
+        (insert (format "\n%s\n" (assoc-default type zetian-header-formats)))
+        ;; move back over the newline
+        (backward-char 1))))
+
+  (defun zetian--header-modify (node way links)
+    "When WAY is 'add: add the NODE to LINKS. When WAY is 'remove: remove the NODE
+  from LINKS."
+    (let ((link (cons (concat "id:" (org-roam-node-id node))
+                      (org-roam-node-title node))))
+      (pcase way
+        ('add
+         (setq links (if links
+                         (add-to-list 'links link)
+                       (list link))))
+        ('remove
+         (when links
+           (setq links (delete link links))))
+        (_
+         (error "invalid WAY: %S" way))))
+    ;; return the (sorted) links
+    (sort links (lambda (left right)
+                  (string-collate-lessp (cdr left) (cdr right)))))
+
+  (defun zetian--header-write (type links)
+    "Write the header of type TYPE with LINKS. Overwrite current header if it
+  exists or create it if necessary."
+    ;; delete the current links
+    (delete-region (point) (line-end-position))
+    ;; insert the current links
+    (insert (cl-reduce
+             (lambda (s link)
+               (concat s
+                       (when (not (equal s "")) zetian-header-seperator)
+                       (format "[[%s][%s]]" (car link) (cdr link))))
+             links
+             :initial-value "")))
+
+  (defun zetian-add-tag ()
+    "Prompt for a node to add as a tag to the current zettel."
+    (interactive)
+    (zetian-add-header-link 'tag (org-roam-node-read)))
+
+  (defun zetian-remove-tag ()
+    "Prompt for a tag of the current note and remove the selected tag."
+    (interactive)
+    (save-excursion
+      (when-let ((links (zetian--header-read 'tag)))
+        (when-let ((link (helm
+                          :sources
+                          (helm-build-sync-source "Remove tag: "
+                            :candidates
+                            (mapcar (lambda (link)
+                                      (cons (cdr link) link))
+                                    links)
+                            :fuzzy-match 1))))
+          (zetian-remove-header-link
+           'tag
+           (org-roam-node-from-title-or-alias (cdr link)))))))
 #+END_SRC
 
 I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
