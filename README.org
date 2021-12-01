@@ -2070,6 +2070,12 @@ Let's see what this is all about.
              :unnarrowed nil
              :empty-lines-before 1)
 
+            ("e" "event" entry "* TODO ${title} :event:\n:PROPERTIES:\n:ID: %(org-id-new)\n:END:\n%U\n\n%?"
+             :target (file+head "zetian-tasks.org"
+                                "#+title: All My Tasks\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:\n#+startup: content")
+             :unnarrowed nil
+             :empty-lines-before 1)
+
             ("b" "book" plain
              (function ic/org-capture-book)
              :target (file "%<%Y%m%d%H%M%S>-${slug}.org")
