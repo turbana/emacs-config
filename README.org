@@ -2338,6 +2338,11 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     (when-let ((node (zetian-search query prompt)))
       (zetian-node-find node)))
 
+  (defun zetian-search-filter (query filter-func)
+    "Search zetian with QUERY, then filter results with FILTER-FUNC. FILTER-FUNC
+  is a function taking an org-roam node and returning non-NIL on valid nodes"
+    (seq-filter filter-func (zetian--perform-query query)))
+
   (defun zetian--perform-query (query)
     "Run QUERY against `org-roam' database."
     (mapcar
