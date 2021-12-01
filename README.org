@@ -2169,7 +2169,7 @@ Let's see what this is all about.
       :infix "z"
       "" '(nil :which-key "zetian")
       "t" #'zetian-add-tag
-      "r" #'zetian-remove-tag
+      "T" #'zetian-remove-tag
       )
     )
 #+END_SRC
@@ -2554,7 +2554,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
   (defun zetian-add-tag ()
     "Prompt for a node to add as a tag to the current zettel."
     (interactive)
-    (zetian-add-header-link 'tag (org-roam-node-read)))
+    (zetian-add-header-link 'tag (ic/org-roam-node-read-create)))
 
   (defun zetian-remove-tag ()
     "Prompt for a tag of the current note and remove the selected tag."
