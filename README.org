@@ -2144,6 +2144,7 @@ Let's see what this is all about.
       "f" #'zetian-node-find
       "a" #'zetian-find-author
       "b" #'zetian-find-book
+      "e" #'zetian-find-open-event
       "l" #'zetian-find-link-to
       "L" #'zetian-find-link-from
       "t" #'zetian-find-task-open
@@ -2267,6 +2268,15 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
                     (org-roam-node-title (org-roam-node-read)))))
       (zetian-search-find `(links-from ,node)
                           (format "Zetian nodes that %S links to: " node))))
+
+  (defun zetian-find-open-event ()
+    "Search zetian for open events"
+    (interactive)
+    (zetian-search-find '(and (category "task")
+                              (or (todo "TODO")
+                                  (todo "NEXT"))
+                              (tag "event"))
+                        "Zetian open events: "))
 #+END_SRC
 
 I want an easy way to define functions to search through =zetian= for specific content. These should be usable directly in =(leader-keys)= calls.
