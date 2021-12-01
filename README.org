@@ -2627,8 +2627,8 @@ I want a way to get the number of times I've made a =literature= zettel against 
 
 Let's migrate my book importing code to =org-roam=.
 #+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-format-book-template-header (doc)
-    "Create a template header from DOC suitable for `org-roam-capture-templates'."
+  (defun ic/org-roam-format-book-template-header (book)
+    "Create a template header from BOOK suitable for `org-roam-capture-templates'."
     (with-temp-buffer
       (unless (yas-minor-mode 1)
         (error "failed to load yas-minor-mode"))
@@ -2647,14 +2647,14 @@ Let's migrate my book importing code to =org-roam=.
           ":PAGES_MEDIAN: `pages-median`\n"
           ":END:\n"
           "#+title: `title`\n"
-          "#+filetags: :book:HOME:agenda:")
+          "#+filetags: :book:")
          nil
          nil
          snippet-env))
       (buffer-string)))
 
-  (defun ic/org-roam-format-book-template-body (doc)
-    "Create a template body from DOC suitable for `org-roam-capture-templates'."
+  (defun ic/org-roam-format-book-template-body (book)
+    "Create a template body from BOOK suitable for `org-roam-capture-templates'."
     (with-temp-buffer
       (unless (yas-minor-mode 1)
         (error "failed to load yas-minor-mode"))
@@ -2667,13 +2667,13 @@ Let's migrate my book importing code to =org-roam=.
                                 (cdr c))))
                       book)
               `((authors-pretty
-                 ,(string-join (assoc-default 'authors doc)
+                 ,(string-join (assoc-default 'authors book)
                                ", and "))
                 (authors-pretty-links
                  ,(string-join (mapcar
                                 (lambda (author)
                                   (ic/org-roam-node-link-immediate author "a"))
-                                (assoc-default 'authors doc))
+                                (assoc-default 'authors book))
                                ", and "))
 
                 (author-ol-links
@@ -2683,16 +2683,16 @@ Let's migrate my book importing code to =org-roam=.
                       (format "- [[https://openlibrary.org/authors/%s][OpenLibrary - %s]]"
                               (cdr tuple)
                               (car tuple)))
-                    (-zip (assoc-default 'authors doc)
-                          (assoc-default 'ol-author-ids doc)))
+                    (-zip (assoc-default 'authors book)
+                          (assoc-default 'ol-author-ids book)))
                    "\n"))
                 (lt-uri
-                 ,(if-let (id (assoc-default 'librarything-id doc))
+                 ,(if-let (id (assoc-default 'librarything-id book))
                       (format "/work/%s" id)
                     (format "/search.php?search=%s"
-                            (assoc-default 'query-title doc))))
+                            (assoc-default 'query-title book))))
                 (gr-uri
-                 ,(if-let (id (assoc-default 'goodreads-id doc))
+                 ,(if-let (id (assoc-default 'goodreads-id book))
                       (format "/book/show/%s" id)
                     (format "/search?q=%s&search_type=books")))))))
         (yas-expand-snippet
