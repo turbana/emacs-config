@@ -2164,6 +2164,8 @@ Let's see what this is all about.
       "" '(nil :which-key "zetian")
       "t" #'zetian-add-tag
       "T" #'zetian-remove-tag
+      "p" #'zetian-add-project
+      "P" #'zetian-remove-project
       )
     )
 #+END_SRC
@@ -2466,30 +2468,46 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
 I want an easy way to add/update tags and other links on a given zettel. To start I'm probably just going to use /Tags/, but I could see myself using other forms as well, (maybe /Depends/ for moving my emacs config into zettels?). So I'll call them =header-links=.
 #+BEGIN_SRC emacs-lisp
-  (defvar zetian-header-formats '((tag . "/tags/ - ")))
+  (defvar zetian-header-formats '((tag . "/tags/ - ")
+                                  (project . "/project/ - ")))
   (defvar zetian-header-seperator ", ")
 
-  (defun zetian-add-header-link (type node)
+  (defun zetian-add-header-link (type &optional node)
     "Add a link to NODE within the header line for TYPE."
     (interactive)
     (save-excursion
       (zetian--header-write
        type
        (zetian--header-modify
-        node
+        (or node (ic/org-roam-node-read-create))
         'add
         (zetian--header-read type)))))
 
-  (defun zetian-remove-header-link (type node)
+  (defun zetian-remove-header-link (type &optional node)
     "Add a link to NODE within the header line for TYPE."
     (interactive)
     (save-excursion
       (zetian--header-write
        type
        (zetian--header-modify
-        node
+        (or node (zetian-header-link-read type (format "Remove %s: " type)))
         'remove
         (zetian--header-read type)))))
+
+  (defun zetian-header-link-read (type &optional prompt)
+    "Show a list of header links of TYPE and return the user selected node."
+    (interactive)
+    (when-let ((links (zetian--header-read type)))
+      (when-let ((link (helm
+                        :sources
+                        (helm-build-sync-source
+                            (or prompt (format "%s: " type))
+                          :candidates
+                          (mapcar (lambda (link)
+                                    (cons (cdr link) link))
+                                  links)
+                          :fuzzy-match 1))))
+        (org-roam-node-from-title-or-alias (cdr link)))))
 
   (defun zetian--header-read (type)
     "Parse the contents of the header of type TYPE. Return a list of links found
@@ -2574,24 +2592,24 @@ I want an easy way to add/update tags and other links on a given zettel. To star
   (defun zetian-add-tag ()
     "Prompt for a node to add as a tag to the current zettel."
     (interactive)
-    (zetian-add-header-link 'tag (ic/org-roam-node-read-create)))
+    (zetian-add-header-link 'tag))
 
   (defun zetian-remove-tag ()
     "Prompt for a tag of the current note and remove the selected tag."
     (interactive)
-    (save-excursion
-      (when-let ((links (zetian--header-read 'tag)))
-        (when-let ((link (helm
-                          :sources
-                          (helm-build-sync-source "Remove tag: "
-                            :candidates
-                            (mapcar (lambda (link)
-                                      (cons (cdr link) link))
-                                    links)
-                            :fuzzy-match 1))))
-          (zetian-remove-header-link
-           'tag
-           (org-roam-node-from-title-or-alias (cdr link)))))))
+    (zetian-remove-header-link 'tag))
+
+  (defun zetian-add-project ()
+    "Prompt for a node to add as a project to the current zettel."
+    (interactive)
+    (zetian-add-header-link 'project
+                            (zetian-search '(tag "project")
+                                           "Add Zetian project: ")))
+
+  (defun zetian-remove-project ()
+    "Prompt for a project of the current note and remove the selected project."
+    (interactive)
+    (zetian-remove-header-link 'project))
 #+END_SRC
 
 I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
