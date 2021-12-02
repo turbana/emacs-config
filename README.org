@@ -3650,7 +3650,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
   (defun zetian-search (&optional query prompt)
     "Search through all of `zetian', return node matching QUERY."
-    (let* ((nodes (zetian--perform-query query))
+    (let* ((nodes (zetian-query query))
            (query-s (prin1-to-string query))
            (history-item (assoc query-s zetian--readline-histories))
            (history (cdr history-item))
@@ -3679,11 +3679,6 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     (when-let ((node (zetian-search query prompt)))
       (zetian-node-find node)))
 
-  (defun zetian-search-filter (query filter-func)
-    "Search zetian with QUERY, then filter results with FILTER-FUNC. FILTER-FUNC
-  is a function taking an org-roam node and returning non-NIL on valid nodes"
-    (seq-filter filter-func (zetian--perform-query query)))
-
   (defun ic/org-roam-node-body (node)
     "Return the text contents of NODE"
     (save-excursion
@@ -3696,7 +3691,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
           (org-narrow-to-subtree))
         (buffer-string))))
 
-  (defun zetian--perform-query (&optional query)
+  (defun zetian-query (&optional query)
     "Run QUERY against `org-roam' database."
     (if (eq query nil)
         ;; when query is nil don't call into the db
