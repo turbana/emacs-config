@@ -2063,11 +2063,6 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (require 'org-roam-protocol)
     :general
     (general-define-key
-     :states 'insert
-     :keymaps 'org-mode-map
-     "TAB" 'ic/org-roam-maybe-expand
-     )
-    (general-define-key
      :keymaps 'global-map
      "<f2>" 'org-roam-capture)
     (leader-keys
@@ -3302,8 +3297,8 @@ These templates are used from =org-capture-protocol=.
                     "#+begin_quote\n%:initial\n#+end_quote\n"
                     "/From the webpage [[%:link][${title}]]/\n\n%?"
                     )
-           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org%(ic/org-roam-set-link-props \"${title}\")"
-                              ":PROPERTIES:\n:REF_NUMBER: %:ref-number\n\:END:\n#+title: ${title} [%:ref-number]\n#+filetags: :lit:web:")
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org)"
+                              ":PROPERTIES:\n\n#+title: ${title}\n#+filetags: :lit:web:")
            :unnarrowed t
            :immediate-finish t)))
 
@@ -3495,85 +3490,6 @@ Ensure that =org-agenda= can find the relevant notes.
           (zetian-query '(tag "agenda"))))
   ;; update agenda files on load
   (ic/org-roam-refresh-agenda-list)
-#+END_SRC
-
-*** Review
-Do I still need any of these?
-
-**** Company complete
-When I hit =TAB= and I'm in =org-roam-mode= I want to call =(company-expand)=, otherwise if I'm in =org-mode= I want to call the default =(org-cycle)=.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-maybe-expand (&optional arg)
-    "Call `company-complete' when in `org-roam-mode' otherwise call `org-cycle'."
-    (interactive "P")
-    (if (not (ic/org-roam-filename-p (buffer-file-name (current-buffer))))
-        (org-cycle arg)
-      (unless company-mode
-        (company-mode))
-      (company-complete)))
-#+END_SRC
-
-**** Inside roam file
-=Isn't this a built in?=
-
-I want a way to know if we're editing an =org-roam= buffer:
-#+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-filename-p (file-name)
-    "Return `t' if FILE-NAME refers to an `org-roam' file."
-    (string-prefix-p (expand-file-name org-roam-directory)
-                     (expand-file-name file-name)))
-#+END_SRC
-
-**** Filtering / Ref Number
-I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-filter-by-title (title)
-    "Create a filter for `ic/org-roam-filter' that will only list nodes with exact
-  title TITLE."
-    (lambda (node)
-      (equal title (org-roam-node-title node))))
-
-  (defun ic/org-roam-filter-by-title-prefix (prefix &optional case-sensitive)
-    "Create a filter for `ic/org-roam-filter' that returns nodes whose title
-  starts with PREFIX."
-    (lambda (node)
-      (string-prefix-p prefix
-                       (org-roam-node-title node)
-                       (not case-sensitive))))
-
-  (defun ic/org-roam-filter (filter)
-    "Returns all nodes that satisfy predicate FILTER."
-    (seq-filter
-     filter
-     (org-roam-node-list)))
-
-  (defun ic//org-roam-get-node-ref-number (node)
-    "Return the org property 'REF_NUMBER' for NODE."
-    (save-window-excursion
-      (with-temp-buffer
-        (insert-file-contents (org-roam-node-file node))
-        (if-let (values (org-property-values "REF_NUMBER"))
-            (string-to-number (car values))
-          0))))
-
-  (defun ic/org-roam-next-literature-number (title)
-    "Return the next title number for capturing a literature zettel against
-  TITLE."
-    (if-let (refs (mapcar #'ic//org-roam-get-node-ref-number
-                          (ic/org-roam-filter
-                           (ic/org-roam-filter-by-title-prefix title))))
-        (+ 1 (-max refs))
-      1))
-
-  (defun ic/org-roam-set-link-props (title)
-    "Set any relevant org-link properties for TITLE, currently only `:ref-number'."
-    (message (format "SETTING %S on %S"
-                     (ic/org-roam-next-literature-number title)
-                     title))
-    (org-link-add-props
-     :ref-number (number-to-string (ic/org-roam-next-literature-number title)))
-    ;; return empty string so we don't mess up a template
-    "")
 #+END_SRC
 
 **** Searching
