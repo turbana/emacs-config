@@ -2045,7 +2045,7 @@ Let's have some fancy heading bullets.
 #+END_SRC
 
 ** org-roam
-Let's see what this is all about.
+Most of this config is located under [[*Zetian][Zetian]], but I'll do the initial =use-package= and define the keybinds in here.
 #+BEGIN_SRC emacs-lisp
   (use-package org-roam
     :demand t
@@ -2061,47 +2061,6 @@ Let's see what this is all about.
     :config
     (org-roam-setup)
     (require 'org-roam-protocol)
-    (setq org-roam-capture-templates
-          `(("p" "permanent zettel" plain "%U\n\n%?"
-             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                                "#+title: ${title}")
-             :unnarrowed t)
-
-            ("t" "task zettel" entry "* TODO ${title}\n:PROPERTIES:\n:ID: %(org-id-new)\n:END:\n%U\n\n%?"
-             :target (file+head "zetian-tasks.org"
-                                "#+title: All My Tasks\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:\n#+startup: content")
-             :unnarrowed nil
-             :empty-lines-before 1)
-
-            ("e" "event" entry "* TODO ${title} :event:\n:PROPERTIES:\n:ID: %(org-id-new)\n:END:\n%U\n\n%?"
-             :target (file+head "zetian-tasks.org"
-                                "#+title: All My Tasks\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:\n#+startup: content")
-             :unnarrowed nil
-             :empty-lines-before 1)
-
-            ("l" "literature zettel" plain
-             ,(concat "%U\n\n"
-                      "#+begin_quote\n%i#+end_quote\n"
-                      "/From %(ic/org-roam-node-string-immediate)/\n\n"
-                      "%?"
-                      )
-             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                                "#+title: ${title}\n#+filetags: :lit:")
-             :unnarrowed t)
-
-            ))
-
-    (setq org-roam-capture-ref-templates
-          `(("W" "web zettel (org-capture)" plain
-             ,(concat "%U\n\n"
-                      "#+begin_quote\n%:initial\n#+end_quote\n"
-                      "/From the webpage [[%:link][${title}]]/\n\n%?"
-                      )
-             :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org%(ic/org-roam-set-link-props \"${title}\")"
-                                ":PROPERTIES:\n:REF_NUMBER: %:ref-number\n\:END:\n#+title: ${title} [%:ref-number]\n#+filetags: :lit:web:")
-             :unnarrowed t
-             :immediate-finish t)))
-
     :general
     (general-define-key
      :states 'insert
@@ -2169,715 +2128,6 @@ Let's see what this is all about.
       "P" #'zetian-remove-project
       )
     )
-#+END_SRC
-
-When I call =org-roam-node-find= and the node is an =org-mode= element rather than a file. I want my view narrowed to that specific element.
-#+BEGIN_SRC emacs-lisp
-  (defun zetian-node-find (&optional node)
-    "Act like `org-roam-node-find', but create a narrowed indirect buffer when
-    visiting an element (as opposed to a file)."
-    (interactive)
-    (if node
-        (org-roam-node-visit node nil t)
-      (org-roam-node-find))
-    (let ((elem (org-element-at-point)))
-      (when (equal 'headline (org-element-type elem))
-        (let* ((buf-name (format "zetian: %s" (org-element-property :title elem)))
-               (buffer (get-buffer buf-name)))
-          (if (buffer-live-p buffer)
-              (pop-to-buffer-same-window buffer)
-            (setq buffer (make-indirect-buffer (current-buffer) buf-name t))
-            ;; hide parent buffer
-            (bury-buffer)
-            (pop-to-buffer-same-window buffer)
-            (widen)
-            (org-narrow-to-subtree))))))
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-  (defun zetian-find-book ()
-    "Search zetian for a book and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(and (tag "book")
-                              (not (tag "lit")))
-                        "Zetian book: "))
-
-  (defun zetian-find-author ()
-    "Search zetian for a book and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(tag "author")
-                        "Zetian author: "))
-
-  (defun zetian-find-task ()
-    "Search zetian for a task and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(category "task")
-                        "Zetian task: "))
-
-  (defun zetian-find-task-next ()
-    "Search zetian for a task and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(and (category "task")
-                              (todo "NEXT"))))
-
-  (defconst zetian--open-tasks
-    '(and (category "task")
-          (not (tag "event"))
-          (or (todo "TODO")
-              (todo "NEXT"))))
-
-  (defun zetian-find-task-open ()
-    "Search zetian for a book and navigate to buffer."
-    (interactive)
-    (zetian-search-find zetian--open-tasks
-                        "Zetian open task: "))
-
-  (defun zetian-find-task-open-project (&optional project-name)
-    "Find all open tasks that link to PROJECT-NAME. Prompt user if NIL."
-    (interactive)
-    (let ((project (or project-name
-                       (org-roam-node-title
-                        (zetian-search
-                         '(tag "project")
-                         "Zetian project: ")))))
-      (zetian-search-find
-       `(and ,zetian--open-tasks
-             (links-to ,project))
-       (format "Zetian open tasks that link to %S: " project))))
-
-  (defun zetian-find-task-open-link (&optional node-name)
-    "Find all open tasks that link to NODE-NAME. Prompt user if NIL."
-    (interactive)
-    (let ((node (or node-name
-                    (org-roam-node-title
-                     (org-roam-node-read)))))
-      (zetian-search-find
-       `(and ,zetian--open-tasks
-             (links-to ,node))
-       (format "Zetian open tasks that link to %S: " node))))
-
-  (defun zetian-find-link-to (&optional node-name)
-    "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
-    (interactive)
-    (let ((node (or node-name
-                    (org-roam-node-title (org-roam-node-read)))))
-      (zetian-search-find `(links-to ,node)
-                          (format "Zetian nodes that link to %S: " node))))
-
-  (defun zetian-find-link-from (&optional node-name)
-    "Search zetian for nodes that NODE-NAME links to, prompt for name if NIL."
-    (interactive)
-    (let ((node (or node-name
-                    (org-roam-node-title (org-roam-node-read)))))
-      (zetian-search-find `(links-from ,node)
-                          (format "Zetian nodes that %S links to: " node))))
-
-  (defun zetian-find-open-event ()
-    "Search zetian for open events"
-    (interactive)
-    (zetian-search-find '(and (category "task")
-                              (or (todo "TODO")
-                                  (todo "NEXT"))
-                              (tag "event"))
-                        "Zetian open events: "))
-
-  (defun zetian-find-project ()
-    "Search zetian for projects"
-    (interactive)
-    (zetian-search-find '(tag "project")
-                        "Zetian project: "))
-#+END_SRC
-
-I want an easy way to define functions to search through =zetian= for specific content. These should be usable directly in =(leader-keys)= calls.
-#+BEGIN_SRC emacs-lisp
-  (defmacro ic/org-roam-node-func-find-by-tag (tag)
-    "Return a function that will search `zetian' for nodes with tag TAG."
-    (let ((func-name (format "zettel-tag-%s" tag))
-          (func-doc (format "Search for all `zetian' nodes matching tag %S" tag)))
-      `(defun ,(intern func-name) ()
-         ,func-doc
-         (interactive)
-         (org-roam-node-find
-          nil
-          nil
-          #'(lambda (node) (member ,tag (org-roam-node-tags node)))))))
-
-  (defmacro ic/org-roam-node-func-find-by-property (prop value)
-    "Return a function that will search `zetian' for nodes with property PROP
-    matching VALUE."
-    (let ((func-name (format "zettel-%s-%s" (downcase prop) (downcase value)))
-          (func-doc (format "Search for all `zetian' nodes with property %S
-    matching %S" prop value)))
-      `(defun ,(intern func-name) ()
-         ,func-doc
-         (interactive)
-         (org-roam-node-find
-          nil
-          nil
-          #'(lambda (node)
-              (equal ,value
-                     (assoc-default
-                      ,prop
-                      (org-roam-node-properties node))))))))
-#+END_SRC
-
-I want a way to search through =zetian= in a fast, easy, and general manor.
-#+BEGIN_SRC emacs-lisp
-  (defvar zetian--readline-histories nil
-    "An ALIST of histories to use with `completing-read'.")
-
-  (defun zetian-search (query &optional prompt)
-    "Search through all of `zetian', return node matching QUERY."
-    (let* ((nodes (zetian--perform-query query))
-           (query-s (prin1-to-string query))
-           (history-item (assoc query-s zetian--readline-histories))
-           (history (cdr history-item))
-           (real-completing-read (symbol-function 'completing-read)))
-      (cl-letf (((symbol-function 'org-roam-node-list)
-                 (lambda () nodes))
-                ((symbol-function 'completing-read)
-                 (lambda (&rest args)
-                   ;; add our custom prompt
-                   (setf (nth 0 args) (or prompt
-                                        (format "Zetian %s: " query-s)))
-                   ;; add our custom history
-                   (setf (nth 5 args) history)
-                   (prog1
-                       (apply real-completing-read args)
-                     ;; save history
-                     (if history-item
-                         (setcdr history-item history)
-                       (push (cons query-s history)
-                             zetian--readline-histories))))))
-        (org-roam-node-read))))
-
-  (defun zetian-search-find (query &optional prompt)
-    "Search zetian for QUERY and navigate to chosen buffer."
-    (interactive)
-    (when-let ((node (zetian-search query prompt)))
-      (zetian-node-find node)))
-
-  (defun zetian-search-filter (query filter-func)
-    "Search zetian with QUERY, then filter results with FILTER-FUNC. FILTER-FUNC
-  is a function taking an org-roam node and returning non-NIL on valid nodes"
-    (seq-filter filter-func (zetian--perform-query query)))
-
-  (defun ic/org-roam-node-body (node)
-    "Return the text contents of NODE"
-    (save-excursion
-      (with-temp-buffer
-        (insert-file-contents-literally (org-roam-node-file node))
-        (when (< 0 (org-roam-node-level node))
-          (org-mode)
-          (widen)
-          (goto-char (org-roam-node-point node))
-          (org-narrow-to-subtree))
-        (buffer-string))))
-
-  (defun zetian--perform-query (query)
-    "Run QUERY against `org-roam' database."
-    (mapcar
-     (lambda (id)
-       (org-roam-populate (org-roam-node-create :id (car id))))
-     (org-roam-db-query
-      (zetian--unroll-query query))))
-
-  (defun zetian--unroll-query (query)
-    "Translate QUERY into a suitable `emacsql' query."
-    `[:select [nodes:id]
-      :from nodes
-      :where ,(zetian--unroll-query-impl query)])
-
-  (defun zetian--unroll-query-impl (query)
-    (unless (and (listp query) query)
-      (error "QUERY must be an sexp, received: %S" query))
-    (pcase (car query)
-      ('and
-       (cons 'and (mapcar #'zetian--unroll-query-impl (cdr query))))
-      ('or
-       (cons 'or (mapcar #'zetian--unroll-query-impl (cdr query))))
-      ('not
-       (list 'not (zetian--unroll-query-impl (cadr query))))
-      ('tag
-       `(in nodes:id [:select [tags:node-id]
-                      :from tags
-                      :where (= tags:node-id nodes:id)
-                      :and (= tags:tag ,(cadr query))]))
-      ('title
-       `(like title ,(zetian--query-quote-like (cadr query) t)))
-      ('title-like
-       `(like title ,(zetian--query-quote-like (cadr query))))
-      ('todo
-       `(like todo ,(zetian--query-quote-like (cadr query))))
-      ('priority
-       `(= priority ,(string-to-char (upcase (cadr query)))))
-      ((or 'scheduled 'deadline)
-       (let ((col (make-symbol (format "nodes:%s" (car query)))))
-         (pcase (cadr query)
-           ('after
-            `(> ,col ,(zetian--query-parse-date (caddr query))))
-           ('before
-            `(< ,col ,(zetian--query-parse-date (caddr query))))
-           ;; ('on-or-after
-           ;;  `(>= ,col ,(zetian--query-parse-date (caddr query))))
-           ;; ('on-or-before
-           ;;  `(<= ,col ,(zetian--query-parse-date (caddr query))))
-           (' on
-              `(<= ,(zetian--query-parse-date (caddr query))
-                   ,col
-                   ,(zetian--query-parse-date (caddr query) t)))
-           ('between
-            `(<= ,(zetian--query-parse-date (caddr query))
-                 ,col
-                 ,(zetian--query-parse-date (cadddr query) t)))
-           (_
-            (error "invalid operation for %S: %S" (car query) (cadr query))))))
-      ('prop
-       `(like
-         nodes:properties
-         ,(zetian--query-quote-like (cons (cadr query) (caddr query)))))
-      ('category
-       (zetian--unroll-query-impl `(prop "CATEGORY" ,(cadr query))))
-      ((or 'links-to 'links-from)
-       (let ((col1 (if (eq 'links-to (car query)) 'links:source 'links:dest))
-             (col2 (if (eq 'links-to (car query)) 'links:dest 'links:source)))
-         `(in nodes:id [:select [,col1]
-                        :from links
-                        :where (= ,col1 nodes:id)
-                        :and (= links:type "id")
-                        ;; TODO this could be a sql sub-query
-                        :and (= ,col2
-                                ,(org-roam-node-id
-                                  (org-roam-node-from-title-or-alias
-                                   (cadr query))))])))
-      (_
-       (error "invalid search key: %S" (car query)))))
-
-  (defun zetian--query-quote-like (obj &optional exact)
-    "Return quoted OBJ in a form for `emacsql' query: (like column
-  ,(zetian--query-quote-like (cons 'a 'b)))"
-    (let ((double-quote "\"")
-          (maybe-percent (unless exact "%")))
-      `(quote ,(if (stringp obj)
-                   (concat double-quote maybe-percent
-                           obj
-                           maybe-percent double-quote)
-                 (concat maybe-percent
-                         (prin1-to-string obj)
-                         maybe-percent)))))
-
-  (defun zetian--query-parse-date (date &optional next-day-when-no-time)
-    (format-time-string "%Y-%m-%dT%H:%M:%S%z"
-                        (ic-parse-org-date-string
-                         date
-                         next-day-when-no-time)))
-#+END_SRC
-
-I want an easy way to add/update tags and other links on a given zettel. To start I'm probably just going to use /Tags/, but I could see myself using other forms as well, (maybe /Depends/ for moving my emacs config into zettels?). So I'll call them =header-links=.
-#+BEGIN_SRC emacs-lisp
-  (defvar zetian-header-formats '((tag . "/tags/ - ")
-                                  (project . "/project/ - ")))
-  (defvar zetian-header-seperator ", ")
-
-  (defun zetian-add-header-link (type &optional node)
-    "Add a link to NODE within the header line for TYPE."
-    (interactive)
-    (save-excursion
-      (zetian--header-write
-       type
-       (zetian--header-modify
-        (or node (ic/org-roam-node-read-create))
-        'add
-        (zetian--header-read type)))))
-
-  (defun zetian-remove-header-link (type &optional node)
-    "Add a link to NODE within the header line for TYPE."
-    (interactive)
-    (save-excursion
-      (zetian--header-write
-       type
-       (zetian--header-modify
-        (or node (zetian-header-link-read type (format "Remove %s: " type)))
-        'remove
-        (zetian--header-read type)))))
-
-  (defun zetian-header-link-read (type &optional prompt)
-    "Show a list of header links of TYPE and return the user selected node."
-    (interactive)
-    (when-let ((links (zetian--header-read type)))
-      (when-let ((link (helm
-                        :sources
-                        (helm-build-sync-source
-                            (or prompt (format "%s: " type))
-                          :candidates
-                          (mapcar (lambda (link)
-                                    (cons (cdr link) link))
-                                  links)
-                          :fuzzy-match 1))))
-        (org-roam-node-from-title-or-alias (cdr link)))))
-
-  (defun zetian--header-read (type)
-    "Parse the contents of the header of type TYPE. Return a list of links found
-    or NIL if not found."
-    (zetian--move-to-header type)
-    (let ((start (point))
-          links
-          done)
-      (while (not done)
-        ;; is the point on an org link?
-        (if-let ((elem (org-element-link-parser)))
-            (let* ((link (cadr elem))
-                   (tgt (plist-get link :raw-link))
-                   (desc (buffer-substring-no-properties
-                          (plist-get link :contents-begin)
-                          (plist-get link :contents-end)))
-                   (end (plist-get link :end)))
-              ;; add the found org link
-              (setq links (append links (list (cons tgt desc))))
-              ;; move to the end of the link
-              (goto-char end)
-              ;; try and move over `zetian-header-seperator'
-              (re-search-forward
-               (regexp-quote zetian-header-seperator)
-               (+ (point) (length zetian-header-seperator))
-               t)
-              ;; keep going if we're looking at another org link
-              (setq done (not (looking-at (regexp-quote "[[")))))
-          ;; point was not on an org link, so we're done
-          (setq done t)))
-      ;; move to the start of the links and return
-      (goto-char start)
-      links))
-
-  (defun zetian--move-to-header (type)
-    "Moves point to and returns the position of the header of TYPE, creating it if
-  necessary."
-    (goto-char (point-min))
-    (let ((re (concat "^" (regexp-quote
-                           (assoc-default type zetian-header-formats)))))
-      (unless (re-search-forward re nil t)
-        ;; create header
-        (re-search-forward "^$" nil 0)
-        ;; TODO what if we have other headers, do we want so many newlines?
-        (insert (format "\n%s\n" (assoc-default type zetian-header-formats)))
-        ;; move back over the newline
-        (backward-char 1))))
-
-  (defun zetian--header-modify (node way links)
-    "When WAY is 'add: add the NODE to LINKS. When WAY is 'remove: remove the NODE
-  from LINKS."
-    (let ((link (cons (concat "id:" (org-roam-node-id node))
-                      (org-roam-node-title node))))
-      (pcase way
-        ('add
-         (setq links (if links
-                         (add-to-list 'links link)
-                       (list link))))
-        ('remove
-         (when links
-           (setq links (delete link links))))
-        (_
-         (error "invalid WAY: %S" way))))
-    ;; return the (sorted) links
-    (sort links (lambda (left right)
-                  (string-collate-lessp (cdr left) (cdr right)))))
-
-  (defun zetian--header-write (type links)
-    "Write the header of type TYPE with LINKS. Overwrite current header if it
-  exists or create it if necessary."
-    ;; delete the current links
-    (delete-region (point) (line-end-position))
-    ;; insert the current links
-    (insert (cl-reduce
-             (lambda (s link)
-               (concat s
-                       (when (not (equal s "")) zetian-header-seperator)
-                       (format "[[%s][%s]]" (car link) (cdr link))))
-             links
-             :initial-value "")))
-
-  (defun zetian-add-tag ()
-    "Prompt for a node to add as a tag to the current zettel."
-    (interactive)
-    (zetian-add-header-link 'tag))
-
-  (defun zetian-remove-tag ()
-    "Prompt for a tag of the current note and remove the selected tag."
-    (interactive)
-    (zetian-remove-header-link 'tag))
-
-  (defun zetian-add-project ()
-    "Prompt for a node to add as a project to the current zettel."
-    (interactive)
-    (zetian-add-header-link 'project
-                            (zetian-search '(tag "project")
-                                           "Add Zetian project: ")))
-
-  (defun zetian-remove-project ()
-    "Prompt for a project of the current note and remove the selected project."
-    (interactive)
-    (zetian-remove-header-link 'project))
-#+END_SRC
-
-I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-filter-by-title (title)
-    "Create a filter for `ic/org-roam-filter' that will only list nodes with exact
-  title TITLE."
-    (lambda (node)
-      (equal title (org-roam-node-title node))))
-
-  (defun ic/org-roam-filter-by-title-prefix (prefix &optional case-sensitive)
-    "Create a filter for `ic/org-roam-filter' that returns nodes whose title
-  starts with PREFIX."
-    (lambda (node)
-      (string-prefix-p prefix
-                       (org-roam-node-title node)
-                       (not case-sensitive))))
-
-  (defun ic/org-roam-filter (filter)
-    "Returns all nodes that satisfy predicate FILTER."
-    (seq-filter
-     filter
-     (org-roam-node-list)))
-
-  (defun ic//org-roam-get-node-ref-number (node)
-    "Return the org property 'REF_NUMBER' for NODE."
-    (save-window-excursion
-      (with-temp-buffer
-        (insert-file-contents (org-roam-node-file node))
-        (if-let (values (org-property-values "REF_NUMBER"))
-            (string-to-number (car values))
-          0))))
-
-  (defun ic/org-roam-next-literature-number (title)
-    "Return the next title number for capturing a literature zettel against
-  TITLE."
-    (if-let (refs (mapcar #'ic//org-roam-get-node-ref-number
-                          (ic/org-roam-filter
-                           (ic/org-roam-filter-by-title-prefix title))))
-        (+ 1 (-max refs))
-      1))
-
-  (defun ic/org-roam-set-link-props (title)
-    "Set any relevant org-link properties for TITLE, currently only `:ref-number'."
-    (message (format "SETTING %S on %S"
-                     (ic/org-roam-next-literature-number title)
-                     title))
-    (org-link-add-props
-     :ref-number (number-to-string (ic/org-roam-next-literature-number title)))
-    ;; return empty string so we don't mess up a template
-    "")
-#+END_SRC
-
-Let's migrate my book importing code to =org-roam=.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-format-book-template-header (book)
-    "Create a template header from BOOK suitable for `org-roam-capture-templates'."
-    (with-temp-buffer
-      (unless (yas-minor-mode 1)
-        (error "failed to load yas-minor-mode"))
-      (let ((snippet-env
-             (mapcar (lambda (c)
-                       (list (car c)
-                             (if (listp (cdr c))
-                                 `(quote ,(cdr c))
-                               (cdr c))))
-                     book)))
-        (yas-expand-snippet
-         (concat
-          ":PROPERTIES:\n"
-          ":TITLE: `title`\n"
-          ":AUTHORS: `(mapcar (lambda (a) (format \"%S\" a)) authors)`\n"
-          ":PAGES_MEDIAN: `pages-median`\n"
-          ":END:\n"
-          "#+title: `title`\n"
-          "#+filetags: :book:")
-         nil
-         nil
-         snippet-env))
-      (buffer-string)))
-
-  (defun ic/org-roam-format-book-template-body (book)
-    "Create a template body from BOOK suitable for `org-roam-capture-templates'."
-    (with-temp-buffer
-      (unless (yas-minor-mode 1)
-        (error "failed to load yas-minor-mode"))
-      (let ((snippet-env
-             (append
-              (mapcar (lambda (c)
-                        (list (car c)
-                              (if (listp (cdr c))
-                                  `(quote ,(cdr c))
-                                (cdr c))))
-                      book)
-              `((authors-pretty
-                 ,(string-join (assoc-default 'authors book)
-                               ", and "))
-                (authors-pretty-links
-                 ,(string-join (mapcar
-                                (lambda (author)
-                                  (ic/org-roam-node-link-immediate author "a"))
-                                (assoc-default 'authors book))
-                               ", and "))
-
-                (author-ol-links
-                 ,(string-join
-                   (mapcar
-                    (lambda (tuple)
-                      (format "- [[https://openlibrary.org/authors/%s][OpenLibrary - %s]]"
-                              (cdr tuple)
-                              (car tuple)))
-                    (-zip (assoc-default 'authors book)
-                          (assoc-default 'ol-author-ids book)))
-                   "\n"))
-                (lt-uri
-                 ,(if-let (id (assoc-default 'librarything-id book))
-                      (format "/work/%s" id)
-                    (format "/search.php?search=%s"
-                            (assoc-default 'query-title book))))
-                (gr-uri
-                 ,(if-let (id (assoc-default 'goodreads-id book))
-                      (format "/book/show/%s" id)
-                    (format "/search?q=%s&search_type=books")))))))
-        (yas-expand-snippet
-         (concat
-          "\%U\n\n"
-          "/`title`/ by `authors-pretty-links`.\n\n"
-          "#+begin_quote\n`description`\n#+end_quote\n\n"
-          "- [[https://librarything.com`lt-uri`][LibraryThing]]\n"
-          "- [[https://openlibrary.org`ol-work-id`][OpenLibrary - `title`]]\n"
-          "`author-ol-links`\n"
-          "- [[https://www.overdrive.com/search?q=`query-title`][Overdrive]]\n"
-          "- [[https://goodreads.com`gr-uri`][Goodreads]]\n"
-          "- [[https://amazon.com/s?k=`query-title`][Amazon]]\n\n"
-          "* TODO `title` :: `authors-pretty` [`first-year-published`]")
-         nil
-         nil
-         snippet-env))
-      (buffer-string)))
-
-  (defun ic/org-roam-capture-book ()
-    "`org-roam-capture' to import a new book from OpenLibrary."
-    (interactive)
-    (let* ((book (ic/openlibrary-helm-find-book))
-           (title (assoc-default 'title book))
-           (template `("X" "capture book template" plain
-                      ,(ic/org-roam-format-book-template-body book)
-                      :target (file+head
-                               "%<%Y%m%d%H%M%S>-${slug}.org"
-                               ,(ic/org-roam-format-book-template-header book)))))
-      (cl-letf ((org-roam-capture-templates
-                 (list template)))
-        (if-let ((node (ic/org-roam-node-create title)))
-            (find-file (org-roam-node-file node))))))
-#+END_SRC
-
-I want a way to know if we're editing an =org-roam= buffer:
-#+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-filename-p (file-name)
-    "Return `t' if FILE-NAME refers to an `org-roam' file."
-    (string-prefix-p (expand-file-name org-roam-directory)
-                     (expand-file-name file-name)))
-#+END_SRC
-
-When I hit =TAB= and I'm in =org-roam-mode= I want to call =(company-expand)=, otherwise if I'm in =org-mode= I want to call the default =(org-cycle)=.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-maybe-expand (&optional arg)
-    "Call `company-complete' when in `org-roam-mode' otherwise call `org-cycle'."
-    (interactive "P")
-    (if (not (ic/org-roam-filename-p (buffer-file-name (current-buffer))))
-        (org-cycle arg)
-      (unless company-mode
-        (company-mode))
-      (company-complete)))
-#+END_SRC
-
-Much inspiration was taken from [[https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/][here]].
-#+BEGIN_SRC emacs-lisp :lexical yes
-  (defun org-roam-node-insert-immediate (arg &rest args)
-    (interactive "P")
-    (let ((args (push arg args))
-          (org-roam-capture-templates (list (append (car org-roam-capture-templates)
-                                                    '(:immediate-finish t)))))
-      (apply #'org-roam-node-insert args)))
-
-
-  (defun ic/org-roam-node-create (title &optional template-key)
-    "Return `org-roam' node for TITLE, creating it if necessary."
-    (if-let (node (org-roam-node-from-title-or-alias title))
-        node
-      (let ((template (append
-                       (if template-key
-                           (assoc template-key org-roam-capture-templates)
-                         (car org-roam-capture-templates))
-                       '(:immediate-finish t))))
-        (when (org-roam-capture-
-               :node (org-roam-node-create :title title)
-               :templates (list template))
-          (org-roam-node-from-title-or-alias title)))))
-
-
-  (defun ic/org-roam-node-read-create ()
-    "Prompt user for a zetian node, return it, creating it if necessary."
-    (interactive)
-    (when-let ((node (org-roam-node-read)))
-      ;; assume the node is valid if it has a file.
-      (if (org-roam-node-file node)
-          node
-        (ic/org-roam-node-create (org-roam-node-title node)))))
-
-
-  (defun ic/org-roam-node-link-immediate (title &optional template-key)
-    "Create (if necessary) and return an `org-mode' link to TITLE node. Use
-  TEMPLATE-KEY to choose a template from `org-roam-capture-templates' to use when creating."
-    (when-let (node (ic/org-roam-node-create title template-key))
-      (org-link-make-string
-       (concat "id:" (org-roam-node-id node))
-       (org-roam-node-formatted node))))
-
-
-  (defun my/org-roam-filter-by-tag (tag-name)
-    (lambda (node)
-      (member tag-name (org-roam-node-tags node))))
-
-  (defun my/org-roam-list-notes-by-tag (tag-name)
-    (mapcar #'org-roam-node-file
-            (seq-filter
-             (my/org-roam-filter-by-tag tag-name)
-             (org-roam-node-list))))
-
-  (defun ic/org-roam-refresh-agenda-list ()
-    (interactive)
-    (mapc (lambda (file-name)
-            (add-to-list 'org-agenda-files file-name))
-          (my/org-roam-list-notes-by-tag "agenda")))
-  ;; update agenda files on load
-  (ic/org-roam-refresh-agenda-list)
-
-  (defun ic/org-roam-update-agenda-files-once-hook ()
-    "Calls `ic/org-roam-refresh-agenda-list' and removes itself from
-  `org-capture-after-finalize-hook'."
-    (ic/org-roam-refresh-agenda-list)
-    (remove-hook 'org-capture-after-finalize-hook
-                 #'ic/org-roam-update-agenda-files-once-hook))
-
-  (defun my/org-roam-find-project ()
-    (interactive)
-    (add-hook 'org-capture-after-finalize-hook
-              #'ic/org-roam-update-agenda-files-once-hook)
-    (org-roam-node-find
-     nil
-     nil
-     (my/org-roam-filter-by-tag "project")
-     :templates
-     `(("p" "project" plain "\n\n%?\n\n* Tasks\n"
-        :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                           ,(concat "#+title: ${title}\n"
-                                    "#+category: ${title}\n"
-                                    "#+filetags: :project:agenda:\n"
-                                    "#+startup: content\n"))
-        :unnarrowed t))))
 #+END_SRC
 
 ** org-roam-ui
@@ -4016,6 +3266,784 @@ When we're on a mac and we have GNU =ls= installed (=gls=): use that as our =dir
 I want every frame to start maximized by default.
 #+BEGIN_SRC emacs-lisp
   (add-to-list 'default-frame-alist '(fullscreen . maximized))
+#+END_SRC
+
+** Zetian
+My personal 2nd brain implemented in =org-roam=.
+
+*** Capture Templates
+=org-roam= defines its own syntax for capture templates separate from =org-mode= so we'll define them here.
+#+BEGIN_SRC emacs-lisp
+  (setq org-roam-capture-templates
+        `(("p" "permanent zettel" plain "%U\n\n%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}")
+           :unnarrowed t)
+
+          ("t" "task zettel" entry "* TODO ${title}\n:PROPERTIES:\n:ID: %(org-id-new)\n:END:\n%U\n\n%?"
+           :target (file+head "zetian-tasks.org"
+                              "#+title: All My Tasks\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:\n#+startup: content")
+           :unnarrowed nil
+           :empty-lines-before 1)
+
+          ("e" "event" entry "* TODO ${title} :event:\n:PROPERTIES:\n:ID: %(org-id-new)\n:END:\n%U\n\n%?"
+           :target (file+head "zetian-tasks.org"
+                              "#+title: All My Tasks\n#+category: task\n#+filetags: :%(if at-home \"HOME\" \"WORK\"):agenda:\n#+startup: content")
+           :unnarrowed nil
+           :empty-lines-before 1)
+
+          ("l" "literature zettel" plain
+           ,(concat "%U\n\n"
+                    "#+begin_quote\n%i#+end_quote\n"
+                    "/From %(ic/org-roam-node-string-immediate)/\n\n"
+                    "%?"
+                    )
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n#+filetags: :lit:")
+           :unnarrowed t)
+
+          ))
+#+END_SRC
+
+These templates are used from =org-capture-protocol=.
+#+BEGIN_SRC emacs-lisp
+  (setq org-roam-capture-ref-templates
+        `(("W" "web zettel (org-capture)" plain
+           ,(concat "%U\n\n"
+                    "#+begin_quote\n%:initial\n#+end_quote\n"
+                    "/From the webpage [[%:link][${title}]]/\n\n%?"
+                    )
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org%(ic/org-roam-set-link-props \"${title}\")"
+                              ":PROPERTIES:\n:REF_NUMBER: %:ref-number\n\:END:\n#+title: ${title} [%:ref-number]\n#+filetags: :lit:web:")
+           :unnarrowed t
+           :immediate-finish t)))
+
+#+END_SRC
+
+*** Opening notes
+When I call =org-roam-node-find= and the node is an =org-mode= element rather than a file. I want my view narrowed to that specific element.
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-node-find (&optional node)
+    "Act like `org-roam-node-find', but create a narrowed indirect buffer when
+    visiting an element (as opposed to a file)."
+    (interactive)
+    (if node
+        (org-roam-node-visit node nil t)
+      (org-roam-node-find))
+    (let ((elem (org-element-at-point)))
+      (when (equal 'headline (org-element-type elem))
+        (let* ((buf-name (format "zetian: %s" (org-element-property :title elem)))
+               (buffer (get-buffer buf-name)))
+          (if (buffer-live-p buffer)
+              (pop-to-buffer-same-window buffer)
+            (setq buffer (make-indirect-buffer (current-buffer) buf-name t))
+            ;; hide parent buffer
+            (bury-buffer)
+            (pop-to-buffer-same-window buffer)
+            (widen)
+            (org-narrow-to-subtree))))))
+#+END_SRC
+
+*** Saved searches
+I do some common queries against =Zetian= so save them here.
+#+BEGIN_SRC emacs-lisp
+  (defconst zetian--open-tasks
+    '(and (category "task")
+          (not (tag "event"))
+          (or (todo "TODO")
+              (todo "NEXT")))
+    "Zetian query for all open tasks.")
+
+  (defun zetian-find-book ()
+    "Search zetian for a book and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(and (tag "book")
+                              (not (tag "lit")))
+                        "Zetian book: "))
+
+  (defun zetian-find-author ()
+    "Search zetian for a book and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(tag "author")
+                        "Zetian author: "))
+
+  (defun zetian-find-task ()
+    "Search zetian for a task and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(category "task")
+                        "Zetian task: "))
+
+  (defun zetian-find-task-next ()
+    "Search zetian for a task and navigate to buffer."
+    (interactive)
+    (zetian-search-find '(and (category "task")
+                              (todo "NEXT"))))
+
+  (defun zetian-find-task-open ()
+    "Search zetian for a book and navigate to buffer."
+    (interactive)
+    (zetian-search-find zetian--open-tasks
+                        "Zetian open task: "))
+
+  (defun zetian-find-task-open-project (&optional project-name)
+    "Find all open tasks that link to PROJECT-NAME. Prompt user if NIL."
+    (interactive)
+    (let ((project (or project-name
+                       (org-roam-node-title
+                        (zetian-search
+                         '(tag "project")
+                         "Zetian project: ")))))
+      (zetian-search-find
+       `(and ,zetian--open-tasks
+             (links-to ,project))
+       (format "Zetian open tasks that link to %S: " project))))
+
+  (defun zetian-find-task-open-link (&optional node-name)
+    "Find all open tasks that link to NODE-NAME. Prompt user if NIL."
+    (interactive)
+    (let ((node (or node-name
+                    (org-roam-node-title
+                     (org-roam-node-read)))))
+      (zetian-search-find
+       `(and ,zetian--open-tasks
+             (links-to ,node))
+       (format "Zetian open tasks that link to %S: " node))))
+
+  (defun zetian-find-link-to (&optional node-name)
+    "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
+    (interactive)
+    (let ((node (or node-name
+                    (org-roam-node-title (org-roam-node-read)))))
+      (zetian-search-find `(links-to ,node)
+                          (format "Zetian nodes that link to %S: " node))))
+
+  (defun zetian-find-link-from (&optional node-name)
+    "Search zetian for nodes that NODE-NAME links to, prompt for name if NIL."
+    (interactive)
+    (let ((node (or node-name
+                    (org-roam-node-title (org-roam-node-read)))))
+      (zetian-search-find `(links-from ,node)
+                          (format "Zetian nodes that %S links to: " node))))
+
+  (defun zetian-find-open-event ()
+    "Search zetian for open events"
+    (interactive)
+    (zetian-search-find '(and (category "task")
+                              (or (todo "TODO")
+                                  (todo "NEXT"))
+                              (tag "event"))
+                        "Zetian open events: "))
+
+  (defun zetian-find-project ()
+    "Search zetian for projects"
+    (interactive)
+    (zetian-search-find '(tag "project")
+                        "Zetian project: "))
+#+END_SRC
+
+*** Review
+Do I still need any of these?
+
+**** Inserting / Filtering
+Much inspiration was taken from [[https://systemcrafters.net/build-a-second-brain-in-emacs/5-org-roam-hacks/][here]].
+#+BEGIN_SRC emacs-lisp :lexical yes
+  (defun org-roam-node-insert-immediate (arg &rest args)
+    (interactive "P")
+    (let ((args (push arg args))
+          (org-roam-capture-templates (list (append (car org-roam-capture-templates)
+                                                    '(:immediate-finish t)))))
+      (apply #'org-roam-node-insert args)))
+
+
+  (defun ic/org-roam-node-create (title &optional template-key)
+    "Return `org-roam' node for TITLE, creating it if necessary."
+    (if-let (node (org-roam-node-from-title-or-alias title))
+        node
+      (let ((template (append
+                       (if template-key
+                           (assoc template-key org-roam-capture-templates)
+                         (car org-roam-capture-templates))
+                       '(:immediate-finish t))))
+        (when (org-roam-capture-
+               :node (org-roam-node-create :title title)
+               :templates (list template))
+          (org-roam-node-from-title-or-alias title)))))
+
+
+  (defun ic/org-roam-node-read-create ()
+    "Prompt user for a zetian node, return it, creating it if necessary."
+    (interactive)
+    (when-let ((node (org-roam-node-read)))
+      ;; assume the node is valid if it has a file.
+      (if (org-roam-node-file node)
+          node
+        (ic/org-roam-node-create (org-roam-node-title node)))))
+
+
+  (defun ic/org-roam-node-link-immediate (title &optional template-key)
+    "Create (if necessary) and return an `org-mode' link to TITLE node. Use
+  TEMPLATE-KEY to choose a template from `org-roam-capture-templates' to use when creating."
+    (when-let (node (ic/org-roam-node-create title template-key))
+      (org-link-make-string
+       (concat "id:" (org-roam-node-id node))
+       (org-roam-node-formatted node))))
+
+
+  (defun my/org-roam-filter-by-tag (tag-name)
+    (lambda (node)
+      (member tag-name (org-roam-node-tags node))))
+
+  (defun my/org-roam-list-notes-by-tag (tag-name)
+    (mapcar #'org-roam-node-file
+            (seq-filter
+             (my/org-roam-filter-by-tag tag-name)
+             (org-roam-node-list))))
+
+  (defun ic/org-roam-refresh-agenda-list ()
+    (interactive)
+    (mapc (lambda (file-name)
+            (add-to-list 'org-agenda-files file-name))
+          (my/org-roam-list-notes-by-tag "agenda")))
+  ;; update agenda files on load
+  (ic/org-roam-refresh-agenda-list)
+
+  (defun ic/org-roam-update-agenda-files-once-hook ()
+    "Calls `ic/org-roam-refresh-agenda-list' and removes itself from
+  `org-capture-after-finalize-hook'."
+    (ic/org-roam-refresh-agenda-list)
+    (remove-hook 'org-capture-after-finalize-hook
+                 #'ic/org-roam-update-agenda-files-once-hook))
+
+  (defun my/org-roam-find-project ()
+    (interactive)
+    (add-hook 'org-capture-after-finalize-hook
+              #'ic/org-roam-update-agenda-files-once-hook)
+    (org-roam-node-find
+     nil
+     nil
+     (my/org-roam-filter-by-tag "project")
+     :templates
+     `(("p" "project" plain "\n\n%?\n\n* Tasks\n"
+        :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                           ,(concat "#+title: ${title}\n"
+                                    "#+category: ${title}\n"
+                                    "#+filetags: :project:agenda:\n"
+                                    "#+startup: content\n"))
+        :unnarrowed t))))
+#+END_SRC
+
+**** Company complete
+When I hit =TAB= and I'm in =org-roam-mode= I want to call =(company-expand)=, otherwise if I'm in =org-mode= I want to call the default =(org-cycle)=.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-roam-maybe-expand (&optional arg)
+    "Call `company-complete' when in `org-roam-mode' otherwise call `org-cycle'."
+    (interactive "P")
+    (if (not (ic/org-roam-filename-p (buffer-file-name (current-buffer))))
+        (org-cycle arg)
+      (unless company-mode
+        (company-mode))
+      (company-complete)))
+#+END_SRC
+
+**** Inside roam file
+=Isn't this a built in?=
+
+I want a way to know if we're editing an =org-roam= buffer:
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-roam-filename-p (file-name)
+    "Return `t' if FILE-NAME refers to an `org-roam' file."
+    (string-prefix-p (expand-file-name org-roam-directory)
+                     (expand-file-name file-name)))
+#+END_SRC
+
+**** Filtering / Ref Number
+I want a way to get the number of times I've made a =literature= zettel against a specific work. This will let me add a count to the title of each zettel. Hopefully that will make them easier to reference.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-roam-filter-by-title (title)
+    "Create a filter for `ic/org-roam-filter' that will only list nodes with exact
+  title TITLE."
+    (lambda (node)
+      (equal title (org-roam-node-title node))))
+
+  (defun ic/org-roam-filter-by-title-prefix (prefix &optional case-sensitive)
+    "Create a filter for `ic/org-roam-filter' that returns nodes whose title
+  starts with PREFIX."
+    (lambda (node)
+      (string-prefix-p prefix
+                       (org-roam-node-title node)
+                       (not case-sensitive))))
+
+  (defun ic/org-roam-filter (filter)
+    "Returns all nodes that satisfy predicate FILTER."
+    (seq-filter
+     filter
+     (org-roam-node-list)))
+
+  (defun ic//org-roam-get-node-ref-number (node)
+    "Return the org property 'REF_NUMBER' for NODE."
+    (save-window-excursion
+      (with-temp-buffer
+        (insert-file-contents (org-roam-node-file node))
+        (if-let (values (org-property-values "REF_NUMBER"))
+            (string-to-number (car values))
+          0))))
+
+  (defun ic/org-roam-next-literature-number (title)
+    "Return the next title number for capturing a literature zettel against
+  TITLE."
+    (if-let (refs (mapcar #'ic//org-roam-get-node-ref-number
+                          (ic/org-roam-filter
+                           (ic/org-roam-filter-by-title-prefix title))))
+        (+ 1 (-max refs))
+      1))
+
+  (defun ic/org-roam-set-link-props (title)
+    "Set any relevant org-link properties for TITLE, currently only `:ref-number'."
+    (message (format "SETTING %S on %S"
+                     (ic/org-roam-next-literature-number title)
+                     title))
+    (org-link-add-props
+     :ref-number (number-to-string (ic/org-roam-next-literature-number title)))
+    ;; return empty string so we don't mess up a template
+    "")
+#+END_SRC
+
+**** Searching
+I want an easy way to define functions to search through =zetian= for specific content. These should be usable directly in =(leader-keys)= calls.
+#+BEGIN_SRC emacs-lisp
+  (defmacro ic/org-roam-node-func-find-by-tag (tag)
+    "Return a function that will search `zetian' for nodes with tag TAG."
+    (let ((func-name (format "zettel-tag-%s" tag))
+          (func-doc (format "Search for all `zetian' nodes matching tag %S" tag)))
+      `(defun ,(intern func-name) ()
+         ,func-doc
+         (interactive)
+         (org-roam-node-find
+          nil
+          nil
+          #'(lambda (node) (member ,tag (org-roam-node-tags node)))))))
+
+  (defmacro ic/org-roam-node-func-find-by-property (prop value)
+    "Return a function that will search `zetian' for nodes with property PROP
+    matching VALUE."
+    (let ((func-name (format "zettel-%s-%s" (downcase prop) (downcase value)))
+          (func-doc (format "Search for all `zetian' nodes with property %S
+    matching %S" prop value)))
+      `(defun ,(intern func-name) ()
+         ,func-doc
+         (interactive)
+         (org-roam-node-find
+          nil
+          nil
+          #'(lambda (node)
+              (equal ,value
+                     (assoc-default
+                      ,prop
+                      (org-roam-node-properties node))))))))
+#+END_SRC
+
+*** Searching
+I want a way to search through =zetian= in a fast, easy, and general manor.
+#+BEGIN_SRC emacs-lisp
+  (defvar zetian--readline-histories nil
+    "An ALIST of histories to use with `completing-read'.")
+
+  (defun zetian-search (query &optional prompt)
+    "Search through all of `zetian', return node matching QUERY."
+    (let* ((nodes (zetian--perform-query query))
+           (query-s (prin1-to-string query))
+           (history-item (assoc query-s zetian--readline-histories))
+           (history (cdr history-item))
+           (real-completing-read (symbol-function 'completing-read)))
+      (cl-letf (((symbol-function 'org-roam-node-list)
+                 (lambda () nodes))
+                ((symbol-function 'completing-read)
+                 (lambda (&rest args)
+                   ;; add our custom prompt
+                   (setf (nth 0 args) (or prompt
+                                        (format "Zetian %s: " query-s)))
+                   ;; add our custom history
+                   (setf (nth 5 args) history)
+                   (prog1
+                       (apply real-completing-read args)
+                     ;; save history
+                     (if history-item
+                         (setcdr history-item history)
+                       (push (cons query-s history)
+                             zetian--readline-histories))))))
+        (org-roam-node-read))))
+
+  (defun zetian-search-find (query &optional prompt)
+    "Search zetian for QUERY and navigate to chosen buffer."
+    (interactive)
+    (when-let ((node (zetian-search query prompt)))
+      (zetian-node-find node)))
+
+  (defun zetian-search-filter (query filter-func)
+    "Search zetian with QUERY, then filter results with FILTER-FUNC. FILTER-FUNC
+  is a function taking an org-roam node and returning non-NIL on valid nodes"
+    (seq-filter filter-func (zetian--perform-query query)))
+
+  (defun ic/org-roam-node-body (node)
+    "Return the text contents of NODE"
+    (save-excursion
+      (with-temp-buffer
+        (insert-file-contents-literally (org-roam-node-file node))
+        (when (< 0 (org-roam-node-level node))
+          (org-mode)
+          (widen)
+          (goto-char (org-roam-node-point node))
+          (org-narrow-to-subtree))
+        (buffer-string))))
+
+  (defun zetian--perform-query (query)
+    "Run QUERY against `org-roam' database."
+    (mapcar
+     (lambda (id)
+       (org-roam-populate (org-roam-node-create :id (car id))))
+     (org-roam-db-query
+      (zetian--unroll-query query))))
+
+  (defun zetian--unroll-query (query)
+    "Translate QUERY into a suitable `emacsql' query."
+    `[:select [nodes:id]
+      :from nodes
+      :where ,(zetian--unroll-query-impl query)])
+
+  (defun zetian--unroll-query-impl (query)
+    (unless (and (listp query) query)
+      (error "QUERY must be an sexp, received: %S" query))
+    (pcase (car query)
+      ('and
+       (cons 'and (mapcar #'zetian--unroll-query-impl (cdr query))))
+      ('or
+       (cons 'or (mapcar #'zetian--unroll-query-impl (cdr query))))
+      ('not
+       (list 'not (zetian--unroll-query-impl (cadr query))))
+      ('tag
+       `(in nodes:id [:select [tags:node-id]
+                      :from tags
+                      :where (= tags:node-id nodes:id)
+                      :and (= tags:tag ,(cadr query))]))
+      ('title
+       `(like title ,(zetian--query-quote-like (cadr query) t)))
+      ('title-like
+       `(like title ,(zetian--query-quote-like (cadr query))))
+      ('todo
+       `(like todo ,(zetian--query-quote-like (cadr query))))
+      ('priority
+       `(= priority ,(string-to-char (upcase (cadr query)))))
+      ((or 'scheduled 'deadline)
+       (let ((col (make-symbol (format "nodes:%s" (car query)))))
+         (pcase (cadr query)
+           ('after
+            `(> ,col ,(zetian--query-parse-date (caddr query))))
+           ('before
+            `(< ,col ,(zetian--query-parse-date (caddr query))))
+           ;; ('on-or-after
+           ;;  `(>= ,col ,(zetian--query-parse-date (caddr query))))
+           ;; ('on-or-before
+           ;;  `(<= ,col ,(zetian--query-parse-date (caddr query))))
+           (' on
+              `(<= ,(zetian--query-parse-date (caddr query))
+                   ,col
+                   ,(zetian--query-parse-date (caddr query) t)))
+           ('between
+            `(<= ,(zetian--query-parse-date (caddr query))
+                 ,col
+                 ,(zetian--query-parse-date (cadddr query) t)))
+           (_
+            (error "invalid operation for %S: %S" (car query) (cadr query))))))
+      ('prop
+       `(like
+         nodes:properties
+         ,(zetian--query-quote-like (cons (cadr query) (caddr query)))))
+      ('category
+       (zetian--unroll-query-impl `(prop "CATEGORY" ,(cadr query))))
+      ((or 'links-to 'links-from)
+       (let ((col1 (if (eq 'links-to (car query)) 'links:source 'links:dest))
+             (col2 (if (eq 'links-to (car query)) 'links:dest 'links:source)))
+         `(in nodes:id [:select [,col1]
+                        :from links
+                        :where (= ,col1 nodes:id)
+                        :and (= links:type "id")
+                        ;; TODO this could be a sql sub-query
+                        :and (= ,col2
+                                ,(org-roam-node-id
+                                  (org-roam-node-from-title-or-alias
+                                   (cadr query))))])))
+      (_
+       (error "invalid search key: %S" (car query)))))
+
+  (defun zetian--query-quote-like (obj &optional exact)
+    "Return quoted OBJ in a form for `emacsql' query: (like column
+  ,(zetian--query-quote-like (cons 'a 'b)))"
+    (let ((double-quote "\"")
+          (maybe-percent (unless exact "%")))
+      `(quote ,(if (stringp obj)
+                   (concat double-quote maybe-percent
+                           obj
+                           maybe-percent double-quote)
+                 (concat maybe-percent
+                         (prin1-to-string obj)
+                         maybe-percent)))))
+
+  (defun zetian--query-parse-date (date &optional next-day-when-no-time)
+    (format-time-string "%Y-%m-%dT%H:%M:%S%z"
+                        (ic-parse-org-date-string
+                         date
+                         next-day-when-no-time)))
+#+END_SRC
+
+*** Modifying Header Links
+I want an easy way to add/update tags and other links on a given zettel. To start I'm probably just going to use /Tags/, but I could see myself using other forms as well, (maybe /Depends/ for moving my emacs config into zettels?). So I'll call them =header-links=.
+#+BEGIN_SRC emacs-lisp
+  (defvar zetian-header-formats '((tag . "/tags/ - ")
+                                  (project . "/project/ - ")))
+  (defvar zetian-header-seperator ", ")
+
+  (defun zetian-add-header-link (type &optional node)
+    "Add a link to NODE within the header line for TYPE."
+    (interactive)
+    (save-excursion
+      (zetian--header-write
+       type
+       (zetian--header-modify
+        (or node (ic/org-roam-node-read-create))
+        'add
+        (zetian--header-read type)))))
+
+  (defun zetian-remove-header-link (type &optional node)
+    "Add a link to NODE within the header line for TYPE."
+    (interactive)
+    (save-excursion
+      (zetian--header-write
+       type
+       (zetian--header-modify
+        (or node (zetian-header-link-read type (format "Remove %s: " type)))
+        'remove
+        (zetian--header-read type)))))
+
+  (defun zetian-header-link-read (type &optional prompt)
+    "Show a list of header links of TYPE and return the user selected node."
+    (interactive)
+    (when-let ((links (zetian--header-read type)))
+      (when-let ((link (helm
+                        :sources
+                        (helm-build-sync-source
+                            (or prompt (format "%s: " type))
+                          :candidates
+                          (mapcar (lambda (link)
+                                    (cons (cdr link) link))
+                                  links)
+                          :fuzzy-match 1))))
+        (org-roam-node-from-title-or-alias (cdr link)))))
+
+  (defun zetian--header-read (type)
+    "Parse the contents of the header of type TYPE. Return a list of links found
+    or NIL if not found."
+    (zetian--move-to-header type)
+    (let ((start (point))
+          links
+          done)
+      (while (not done)
+        ;; is the point on an org link?
+        (if-let ((elem (org-element-link-parser)))
+            (let* ((link (cadr elem))
+                   (tgt (plist-get link :raw-link))
+                   (desc (buffer-substring-no-properties
+                          (plist-get link :contents-begin)
+                          (plist-get link :contents-end)))
+                   (end (plist-get link :end)))
+              ;; add the found org link
+              (setq links (append links (list (cons tgt desc))))
+              ;; move to the end of the link
+              (goto-char end)
+              ;; try and move over `zetian-header-seperator'
+              (re-search-forward
+               (regexp-quote zetian-header-seperator)
+               (+ (point) (length zetian-header-seperator))
+               t)
+              ;; keep going if we're looking at another org link
+              (setq done (not (looking-at (regexp-quote "[[")))))
+          ;; point was not on an org link, so we're done
+          (setq done t)))
+      ;; move to the start of the links and return
+      (goto-char start)
+      links))
+
+  (defun zetian--move-to-header (type)
+    "Moves point to and returns the position of the header of TYPE, creating it if
+  necessary."
+    (goto-char (point-min))
+    (let ((re (concat "^" (regexp-quote
+                           (assoc-default type zetian-header-formats)))))
+      (unless (re-search-forward re nil t)
+        ;; create header
+        (re-search-forward "^$" nil 0)
+        ;; TODO what if we have other headers, do we want so many newlines?
+        (insert (format "\n%s\n" (assoc-default type zetian-header-formats)))
+        ;; move back over the newline
+        (backward-char 1))))
+
+  (defun zetian--header-modify (node way links)
+    "When WAY is 'add: add the NODE to LINKS. When WAY is 'remove: remove the NODE
+  from LINKS."
+    (let ((link (cons (concat "id:" (org-roam-node-id node))
+                      (org-roam-node-title node))))
+      (pcase way
+        ('add
+         (setq links (if links
+                         (add-to-list 'links link)
+                       (list link))))
+        ('remove
+         (when links
+           (setq links (delete link links))))
+        (_
+         (error "invalid WAY: %S" way))))
+    ;; return the (sorted) links
+    (sort links (lambda (left right)
+                  (string-collate-lessp (cdr left) (cdr right)))))
+
+  (defun zetian--header-write (type links)
+    "Write the header of type TYPE with LINKS. Overwrite current header if it
+  exists or create it if necessary."
+    ;; delete the current links
+    (delete-region (point) (line-end-position))
+    ;; insert the current links
+    (insert (cl-reduce
+             (lambda (s link)
+               (concat s
+                       (when (not (equal s "")) zetian-header-seperator)
+                       (format "[[%s][%s]]" (car link) (cdr link))))
+             links
+             :initial-value "")))
+
+  (defun zetian-add-tag ()
+    "Prompt for a node to add as a tag to the current zettel."
+    (interactive)
+    (zetian-add-header-link 'tag))
+
+  (defun zetian-remove-tag ()
+    "Prompt for a tag of the current note and remove the selected tag."
+    (interactive)
+    (zetian-remove-header-link 'tag))
+
+  (defun zetian-add-project ()
+    "Prompt for a node to add as a project to the current zettel."
+    (interactive)
+    (zetian-add-header-link 'project
+                            (zetian-search '(tag "project")
+                                           "Add Zetian project: ")))
+
+  (defun zetian-remove-project ()
+    "Prompt for a project of the current note and remove the selected project."
+    (interactive)
+    (zetian-remove-header-link 'project))
+#+END_SRC
+
+*** OpenLibrary Book Import
+Let's migrate my book importing code to =org-roam=.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-roam-format-book-template-header (book)
+    "Create a template header from BOOK suitable for `org-roam-capture-templates'."
+    (with-temp-buffer
+      (unless (yas-minor-mode 1)
+        (error "failed to load yas-minor-mode"))
+      (let ((snippet-env
+             (mapcar (lambda (c)
+                       (list (car c)
+                             (if (listp (cdr c))
+                                 `(quote ,(cdr c))
+                               (cdr c))))
+                     book)))
+        (yas-expand-snippet
+         (concat
+          ":PROPERTIES:\n"
+          ":TITLE: `title`\n"
+          ":AUTHORS: `(mapcar (lambda (a) (format \"%S\" a)) authors)`\n"
+          ":PAGES_MEDIAN: `pages-median`\n"
+          ":END:\n"
+          "#+title: `title`\n"
+          "#+filetags: :book:")
+         nil
+         nil
+         snippet-env))
+      (buffer-string)))
+
+  (defun ic/org-roam-format-book-template-body (book)
+    "Create a template body from BOOK suitable for `org-roam-capture-templates'."
+    (with-temp-buffer
+      (unless (yas-minor-mode 1)
+        (error "failed to load yas-minor-mode"))
+      (let ((snippet-env
+             (append
+              (mapcar (lambda (c)
+                        (list (car c)
+                              (if (listp (cdr c))
+                                  `(quote ,(cdr c))
+                                (cdr c))))
+                      book)
+              `((authors-pretty
+                 ,(string-join (assoc-default 'authors book)
+                               ", and "))
+                (authors-pretty-links
+                 ,(string-join (mapcar
+                                (lambda (author)
+                                  (ic/org-roam-node-link-immediate author "a"))
+                                (assoc-default 'authors book))
+                               ", and "))
+
+                (author-ol-links
+                 ,(string-join
+                   (mapcar
+                    (lambda (tuple)
+                      (format "- [[https://openlibrary.org/authors/%s][OpenLibrary - %s]]"
+                              (cdr tuple)
+                              (car tuple)))
+                    (-zip (assoc-default 'authors book)
+                          (assoc-default 'ol-author-ids book)))
+                   "\n"))
+                (lt-uri
+                 ,(if-let (id (assoc-default 'librarything-id book))
+                      (format "/work/%s" id)
+                    (format "/search.php?search=%s"
+                            (assoc-default 'query-title book))))
+                (gr-uri
+                 ,(if-let (id (assoc-default 'goodreads-id book))
+                      (format "/book/show/%s" id)
+                    (format "/search?q=%s&search_type=books")))))))
+        (yas-expand-snippet
+         (concat
+          "\%U\n\n"
+          "/`title`/ by `authors-pretty-links`.\n\n"
+          "#+begin_quote\n`description`\n#+end_quote\n\n"
+          "- [[https://librarything.com`lt-uri`][LibraryThing]]\n"
+          "- [[https://openlibrary.org`ol-work-id`][OpenLibrary - `title`]]\n"
+          "`author-ol-links`\n"
+          "- [[https://www.overdrive.com/search?q=`query-title`][Overdrive]]\n"
+          "- [[https://goodreads.com`gr-uri`][Goodreads]]\n"
+          "- [[https://amazon.com/s?k=`query-title`][Amazon]]\n\n"
+          "* TODO `title` :: `authors-pretty` [`first-year-published`]")
+         nil
+         nil
+         snippet-env))
+      (buffer-string)))
+
+  (defun ic/org-roam-capture-book ()
+    "`org-roam-capture' to import a new book from OpenLibrary."
+    (interactive)
+    (let* ((book (ic/openlibrary-helm-find-book))
+           (title (assoc-default 'title book))
+           (template `("X" "capture book template" plain
+                      ,(ic/org-roam-format-book-template-body book)
+                      :target (file+head
+                               "%<%Y%m%d%H%M%S>-${slug}.org"
+                               ,(ic/org-roam-format-book-template-header book)))))
+      (cl-letf ((org-roam-capture-templates
+                 (list template)))
+        (if-let ((node (ic/org-roam-node-create title)))
+            (find-file (org-roam-node-file node))))))
 #+END_SRC
 
 * Keybindings
