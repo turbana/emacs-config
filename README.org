@@ -3648,7 +3648,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (defvar zetian--readline-histories nil
     "An ALIST of histories to use with `completing-read'.")
 
-  (defun zetian-search (query &optional prompt)
+  (defun zetian-search (&optional query prompt)
     "Search through all of `zetian', return node matching QUERY."
     (let* ((nodes (zetian--perform-query query))
            (query-s (prin1-to-string query))
@@ -3696,13 +3696,17 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
           (org-narrow-to-subtree))
         (buffer-string))))
 
-  (defun zetian--perform-query (query)
+  (defun zetian--perform-query (&optional query)
     "Run QUERY against `org-roam' database."
-    (mapcar
-     (lambda (id)
-       (org-roam-populate (org-roam-node-create :id (car id))))
-     (org-roam-db-query
-      (zetian--unroll-query query))))
+    (if (eq query nil)
+        ;; when query is nil don't call into the db
+        (org-roam-node-list)
+      (mapcar
+       (lambda (id)
+         ;; XXX should this be a bulk operation?
+         (org-roam-populate (org-roam-node-create :id (car id))))
+       (org-roam-db-query
+        (zetian--unroll-query query)))))
 
   (defun zetian--unroll-query (query)
     "Translate QUERY into a suitable `emacsql' query."
