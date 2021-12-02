@@ -2320,7 +2320,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     "An ALIST of histories to use with `completing-read'.")
 
   (defun zetian-search (query &optional prompt)
-    "Search through all of `zetian', return all nodes matching QUERY."
+    "Search through all of `zetian', return node matching QUERY."
     (let* ((nodes (zetian--perform-query query))
            (query-s (prin1-to-string query))
            (history-item (assoc query-s zetian--readline-histories))
