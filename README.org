@@ -3488,48 +3488,18 @@ I do some common queries against =Zetian= so save them here.
 *** Update Agenda Files
 Ensure that =org-agenda= can find the relevant notes.
 #+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-refresh-agenda-list ()
+  (defun zetian-refresh-agenda-list ()
     (interactive)
     (mapc (lambda (node)
             (add-to-list 'org-agenda-files
                          (org-roam-node-file node)))
           (zetian-query '(tag "agenda"))))
-  ;; update agenda files on load
-  (ic/org-roam-refresh-agenda-list)
-#+END_SRC
 
-**** Searching
-I want an easy way to define functions to search through =zetian= for specific content. These should be usable directly in =(leader-keys)= calls.
-#+BEGIN_SRC emacs-lisp
-  (defmacro ic/org-roam-node-func-find-by-tag (tag)
-    "Return a function that will search `zetian' for nodes with tag TAG."
-    (let ((func-name (format "zettel-tag-%s" tag))
-          (func-doc (format "Search for all `zetian' nodes matching tag %S" tag)))
-      `(defun ,(intern func-name) ()
-         ,func-doc
-         (interactive)
-         (org-roam-node-find
-          nil
-          nil
-          #'(lambda (node) (member ,tag (org-roam-node-tags node)))))))
-
-  (defmacro ic/org-roam-node-func-find-by-property (prop value)
-    "Return a function that will search `zetian' for nodes with property PROP
-    matching VALUE."
-    (let ((func-name (format "zettel-%s-%s" (downcase prop) (downcase value)))
-          (func-doc (format "Search for all `zetian' nodes with property %S
-    matching %S" prop value)))
-      `(defun ,(intern func-name) ()
-         ,func-doc
-         (interactive)
-         (org-roam-node-find
-          nil
-          nil
-          #'(lambda (node)
-              (equal ,value
-                     (assoc-default
-                      ,prop
-                      (org-roam-node-properties node))))))))
+  (defun zetian--update-agenda-files-on-load ()
+    "Call `zetian-refresh-agenda-list' from `after-init-hook'."
+    (remove-hook 'after-init-hook #'zetian--update-agenda-files-on-load)
+    (zetian-refresh-agenda-list))
+  (add-hook 'after-init-hook #'zetian--update-agenda-files-on-load)
 #+END_SRC
 
 *** Searching
