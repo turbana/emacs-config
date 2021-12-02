@@ -2089,6 +2089,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
       "e" #'zetian-find-open-event
       "l" #'zetian-find-link-to
       "L" #'zetian-find-link-from
+      "o" #'zetian-find-task-open-orphaned
       "p" #'zetian-find-project
       "t" #'zetian-find-task-open
       )
@@ -3391,6 +3392,18 @@ I do some common queries against =Zetian= so save them here.
        `(and ,zetian--open-tasks
              (links-to ,node))
        (format "Zetian open tasks that link to %S: " node))))
+
+  (defun zetian-find-task-open-orphaned ()
+    "Find all open tasks that are not linked to any project."
+    (interactive)
+    (let ((no-project
+           `(not ,(append '(or)
+                          (mapcar
+                           (lambda (node)
+                             `(links-to ,(org-roam-node-title node)))
+                           (zetian-query '(tag "project")))))))
+      (zetian-search-find `(and ,zetian--open-tasks ,no-project)
+                          "Orphaned task: ")))
 
   (defun zetian-find-link-to (&optional node-name)
     "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
