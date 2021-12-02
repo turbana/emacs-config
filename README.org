@@ -2073,7 +2073,6 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
       "i" #'zetian-link-insert
       "I" #'zetian-link-insert-immediate
       "u" 'org-roam-ui-open
-      "z" 'org-roam-node-find
       )
     (leader-keys
       :infix "zc"
@@ -3463,20 +3462,27 @@ I do some common queries against =Zetian= so save them here.
     (interactive)
     (insert (zetian-link-immediate)))
 
-  (defun zetian-node-create (title &optional template-key)
+  (defun zetian-node-create (&optional title template-key)
     "Return zetian node for TITLE, creating it if necessary. Uses TEMPLATE-KEY to
-  lookup template from `org-roam-capture-templates'."
-    (if-let (node (org-roam-node-from-title-or-alias title))
-        node
-      (let ((template (append
-                       (if template-key
-                           (assoc template-key org-roam-capture-templates)
-                         (car org-roam-capture-templates))
-                       '(:immediate-finish t))))
-        (when (org-roam-capture-
-               :node (org-roam-node-create :title title)
-               :templates (list template))
-          (org-roam-node-from-title-or-alias title)))))
+  lookup template from `org-roam-capture-templates', when NIL use
+    `zetian-new-note-template-key'."
+    (if title
+        (if-let (node (org-roam-node-from-title-or-alias title))
+            ;; we have a title and an existing node
+            node
+          ;; we have a title, but the node needs to be created
+          (let ((template (append
+                           (assoc (or template-key zetian-new-note-template-key)
+                                  org-roam-capture-templates)
+                           '(:immediate-finish t))))
+            (when (org-roam-capture-
+                   :node (org-roam-node-create :title title)
+                   :templates (list template))
+              (org-roam-node-from-title-or-alias title))))
+      ;; we don't have a title, so prompt for one and retry
+      (zetian-node-create (org-roam-node-title
+                           (zetian-search nil "Zetian note: "))
+                          template-key)))
 #+END_SRC
 
 *** Update Agenda Files
@@ -3692,7 +3698,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
       (zetian--header-write
        type
        (zetian--header-modify
-        (or node (ic/org-roam-node-read-create))
+        (or node (zetian-node-create))
         'add
         (zetian--header-read type)))))
 
