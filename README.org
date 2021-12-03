@@ -3311,22 +3311,20 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     "Act like `org-roam-node-find', but create a narrowed indirect buffer when
     visiting an element (as opposed to a file)."
     (interactive)
-    (org-roam-node-visit
-     (or node
-         (zetian-search nil t "Find or create note"))
-     nil t)
-    (let ((elem (org-element-at-point)))
-      (when (equal 'headline (org-element-type elem))
-        (let* ((buf-name (format "zetian: %s" (org-element-property :title elem)))
-               (buffer (get-buffer buf-name)))
-          (if (buffer-live-p buffer)
+    (when-let (node (or node (zetian-search nil t "Find or create note")))
+      (org-roam-node-visit node nil t)
+      (let ((elem (org-element-at-point)))
+        (when (equal 'headline (org-element-type elem))
+          (let* ((buf-name (format "zetian: %s" (org-element-property :title elem)))
+                 (buffer (get-buffer buf-name)))
+            (if (buffer-live-p buffer)
+                (pop-to-buffer-same-window buffer)
+              (setq buffer (make-indirect-buffer (current-buffer) buf-name t))
+              ;; hide parent buffer
+              (bury-buffer)
               (pop-to-buffer-same-window buffer)
-            (setq buffer (make-indirect-buffer (current-buffer) buf-name t))
-            ;; hide parent buffer
-            (bury-buffer)
-            (pop-to-buffer-same-window buffer)
-            (widen)
-            (org-narrow-to-subtree))))))
+              (widen)
+              (org-narrow-to-subtree)))))))
 #+END_SRC
 
 *** Saved searches
