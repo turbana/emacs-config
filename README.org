@@ -3576,6 +3576,16 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
        (org-roam-db-query
         (zetian--unroll-query query)))))
 
+  (defun zetian-query-1 (query)
+    "Run QUERY against zetian and return the first result. Signal an error when
+    receiving zero or more than one result."
+    (let* ((results (zetian-query query))
+           (count (length results)))
+      (if (not (= count 1))
+          (error "zetian-query-1 received %s results from: %S"
+                 count query)
+        (car results))))
+
   (defun zetian--unroll-query (query)
     "Translate QUERY into a suitable `emacsql' query."
     `[:select [nodes:id]
