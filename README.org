@@ -3311,9 +3311,10 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     "Act like `org-roam-node-find', but create a narrowed indirect buffer when
     visiting an element (as opposed to a file)."
     (interactive)
-    (if node
-        (org-roam-node-visit node nil t)
-      (org-roam-node-find))
+    (org-roam-node-visit
+     (or node
+         (zetian-search nil t "Find or create note"))
+     nil t)
     (let ((elem (org-element-at-point)))
       (when (equal 'headline (org-element-type elem))
         (let* ((buf-name (format "zetian: %s" (org-element-property :title elem)))
@@ -3521,35 +3522,11 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (defvar zetian--readline-histories nil
     "An ALIST of histories to use with `completing-read'.")
 
-  (defun zetian-search (&optional query prompt)
-    "Search through all of `zetian', return node matching QUERY."
-    (let* ((nodes (zetian-query query))
-           (query-s (prin1-to-string query))
-           (history-item (assoc query-s zetian--readline-histories))
-           (history (cdr history-item))
-           (real-completing-read (symbol-function 'completing-read)))
-      (cl-letf (((symbol-function 'org-roam-node-list)
-                 (lambda () nodes))
-                ((symbol-function 'completing-read)
-                 (lambda (&rest args)
-                   ;; add our custom prompt
-                   (setf (nth 0 args) (or prompt
-                                        (format "Zetian %s: " query-s)))
-                   ;; add our custom history
-                   (setf (nth 5 args) history)
-                   (prog1
-                       (apply real-completing-read args)
-                     ;; save history
-                     (if history-item
-                         (setcdr history-item history)
-                       (push (cons query-s history)
-                             zetian--readline-histories))))))
-        (org-roam-node-read))))
-
-  (defun zetian-search-find (query &optional prompt)
-    "Search zetian for QUERY and navigate to chosen buffer."
+  (defun zetian-search-find (&optional query prompt create)
+    "Search zetian for QUERY and navigate to chosen buffer. When CREATE is
+  non-nil allow user to create a new node."
     (interactive)
-    (when-let ((node (zetian-search query prompt)))
+    (when-let ((node (zetian-search query create prompt)))
       (zetian-node-find node)))
 
   (defun ic/org-roam-node-body (node)
@@ -3926,6 +3903,88 @@ Let's migrate my book importing code to =org-roam=.
                  (list template)))
         (if-let ((node (ic/org-roam-node-create title)))
             (find-file (org-roam-node-file node))))))
+#+END_SRC
+
+*** Integrate with Helm
+Since I do a lot of searching withing =Zetian= it needs to be fast and easy to use, that means =Helm=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-search (&optional query create query-name)
+    (interactive)
+    (let ((node
+           (helm :sources
+                 (helm-build-sync-source
+                     (format "Zetian: %s"
+                             (or query-name
+                                 (and query
+                                      (prin1-to-string query))
+                                 "Everything"))
+                   :candidates (zetian--helm-candidates query)
+                   :filtered-candidate-transformer
+                   (append '(zetian--helm-sort)
+                           (when create '(zetian--helm-add-input)))
+                   :before-init-hook
+                   (lambda ()
+                     (add-hook 'helm-after-update-hook
+                               #'zetian--helm-move-to-first))
+                   :cleanup
+                   (lambda ()
+                     (remove-hook 'helm-after-update-hook
+                                  #'zetian--helm-move-to-first)))
+                 :buffer "*helm-zetian*"
+                 :prompt "Node: ")))
+      (if (and (stringp node) create)
+          ;; should make CREATE a template key
+          (zetian-node-create node)
+        node)))
+
+  (defun zetian--helm-add-input (candidates _source)
+    "Added the initial '[?]' line."
+    (let ((first-line
+           (cons (helm-ff-prefix-filename helm-pattern nil t)
+                 helm-pattern)))
+      (cons first-line candidates)))
+
+  (defun zetian--helm-sort (candidates _source)
+    "Sort function for zetian helm functions."
+    (let* ((cache (make-hash-table :test 'equal))
+           (score (lambda (title)
+                    (helm-score-candidate-for-pattern
+                     title helm-pattern)))
+           (all
+            (sort
+             candidates
+             (lambda (s1 s2)
+               (let* ((r1 (cdr s1))
+                      (r2 (cdr s2))
+                      (t1 (if (stringp r1) r1 (org-roam-node-title r1)))
+                      (t2 (if (stringp r2) r2 (org-roam-node-title r2)))
+                      (sc1 (or (gethash t1 cache)
+                               (puthash t1 (funcall score t1) cache)))
+                      (sc2 (or (gethash t2 cache)
+                               (puthash t2 (funcall score t2) cache)))
+                      )
+                 (cond ((= sc1 sc2)
+                        (< (string-width t1)
+                           (string-width t2)))
+                       ((> sc1 sc2))))))))
+      all))
+
+  (defun zetian--helm-candidates (query)
+    "Run QUERY and build a list of `helm' candidates in the form (DISPLAY
+  . REAL)."
+    (mapcar (lambda (node)
+              (cons (org-roam-node-title node)
+                    node))
+            (zetian-query query)))
+
+  (defun zetian--helm-move-to-first ()
+    "Move to the first actual node in the helm list."
+    (let ((sel (helm-get-selection nil nil (helm-get-current-source))))
+      ;; initial input is nil, "new node" selection is a string so skip both of them
+      (when (or (eq nil sel)
+                (stringp sel))
+        (helm-next-line))))
 #+END_SRC
 
 * Keybindings
