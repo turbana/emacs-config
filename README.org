@@ -3911,16 +3911,17 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
     (interactive)
     (let ((node
            (helm :sources
-                 (helm-build-sync-source
+                 (helm-build-in-buffer-source
                      (format "Zetian: %s"
                              (or query-name
                                  (and query
                                       (prin1-to-string query))
                                  "Everything"))
-                   :candidates (zetian--helm-candidates query)
+                   :data (zetian--helm-candidates query)
                    :filtered-candidate-transformer
                    (append '(zetian--helm-sort)
                            (when create '(zetian--helm-add-input)))
+                   :get-line #'zetian--helm-get-candidate-for-display
                    :before-init-hook
                    (lambda ()
                      (add-hook 'helm-after-update-hook
@@ -3938,9 +3939,10 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
 
   (defun zetian--helm-add-input (candidates _source)
     "Added the initial '[?]' line."
-    (let ((first-line
-           (cons (helm-ff-prefix-filename helm-pattern nil t)
-                 helm-pattern)))
+    (let* ((display-string (helm-ff-prefix-filename helm-pattern nil t))
+           (empty-node (org-roam-node-create))
+           (first-line (cons (propertize display-string 'node empty-node)
+                             helm-pattern)))
       (cons first-line candidates)))
 
   (defun zetian--helm-sort (candidates _source)
@@ -3953,15 +3955,12 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
             (sort
              candidates
              (lambda (s1 s2)
-               (let* ((r1 (cdr s1))
-                      (r2 (cdr s2))
-                      (t1 (if (stringp r1) r1 (org-roam-node-title r1)))
-                      (t2 (if (stringp r2) r2 (org-roam-node-title r2)))
+               (let* ((t1 (org-roam-node-title (get-text-property 0 'node s1)))
+                      (t2 (org-roam-node-title (get-text-property 0 'node s2)))
                       (sc1 (or (gethash t1 cache)
                                (puthash t1 (funcall score t1) cache)))
                       (sc2 (or (gethash t2 cache)
-                               (puthash t2 (funcall score t2) cache)))
-                      )
+                               (puthash t2 (funcall score t2) cache))))
                  (cond ((= sc1 sc2)
                         (< (string-width t1)
                            (string-width t2)))
@@ -3971,17 +3970,70 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
   (defun zetian--helm-candidates (query)
     "Run QUERY and build a list of `helm' candidates in the form (DISPLAY
   . REAL)."
-    (mapcar (lambda (node)
-              (cons (org-roam-node-title node)
-                    node))
-            (zetian-query query)))
+    (mapcar
+     (lambda (node)
+       ;; save the org-roam-node in the 'node text property
+       (propertize (org-roam-node-title node)
+                   'node node))
+     (zetian-query query)))
+
+  (defun zetian--helm-get-candidate-for-display (beg end)
+    "Given a substring into `helm-buffer' (with BEG END): return a string that
+  helm will use to display matches."
+    (let ((text (buffer-substring beg end)))
+      (zetian--helm-format-node (get-text-property 0 'node text))))
+
+  (defun zetian--helm-format-node (node)
+    "Format NODE for display in a helm buffer."
+    (let* ((pretty
+            (lambda (s face width)
+              (let* ((count (max 0 (- width (length s))))
+                     (padding (make-string count ? )))
+                (propertize
+                 " "
+                 'display (propertize (substring (concat s padding)
+                                                 0 width)
+                                      'face face)))))
+           (width-total (window-text-width))
+           (width-tags 30)
+           (width-cat 20)
+           (width-todo 8)
+           (width-title (- width-total width-tags width-cat width-todo 3))
+           (props (org-roam-node-properties node))
+           (title (org-roam-node-title node))
+           (tag-list (org-roam-node-tags node))
+           (tags (funcall pretty
+                          (concat ":" (s-join ":" tag-list) ":")
+                          'helm-separator
+                          width-tags))
+           (category (funcall pretty
+                              (assoc-default "CATEGORY" props)
+                              'font-lock-builtin-face
+                              width-cat))
+           (todo (funcall pretty
+                          (assoc-default "TODO" props)
+                          'org-todo
+                          width-todo))
+           (pretty-text (format (format "%%-%ds %%s %%s %%s" width-title)
+                                title todo category (if tag-list tags ""))))
+      ;; helm will save this string in the match buffer, so we need to ensure that
+      ;; we pass along the 'node text property
+      (propertize pretty-text 'node node)))
 
   (defun zetian--helm-move-to-first ()
     "Move to the first actual node in the helm list."
-    (let ((sel (helm-get-selection nil nil (helm-get-current-source))))
-      ;; initial input is nil, "new node" selection is a string so skip both of them
-      (when (or (eq nil sel)
-                (stringp sel))
+    (let ((total-candidates
+           (save-excursion
+             (with-current-buffer helm-buffer
+               (1- (count-lines (point-min) (point-max)))))))
+      (while
+          (let* ((sel (helm-get-selection helm-buffer 'withprop))
+                 (real (get-text-property 0 'helm-realvalue sel))
+                 (cand-num (get-text-property 0 'helm-cand-num sel))
+                 (node (and sel (get-text-property 0 'node sel)))
+                 (title (and node (org-roam-node-title node))))
+            (and (not title)
+                 (< cand-num total-candidates)))
         (helm-next-line))))
 #+END_SRC
 
