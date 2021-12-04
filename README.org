@@ -4044,11 +4044,17 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
                (with-current-buffer helm-buffer
                  (1- (count-lines (point-min) (point-max)))))))
         (while
-            (let* ((sel (helm-get-selection helm-buffer 'withprop))
+            (let* ((sel (helm-get-selection nil 'withprop))
                    (cand-num (and sel (get-text-property 0 'helm-cand-num sel))))
-              (and sel
-                   (string-prefix-p "  " sel)
-                   (< cand-num total-candidates)))
+              ;; move to the next line while...
+              (and
+               ;; we have a actual selection...
+               sel
+               ;; it's not a valid zetian node (i.e. it's user input)...
+               (not (org-roam-node-file
+                     (get-text-property 0 'node sel)))
+               ;; and we have a line to move to
+               (< cand-num total-candidates)))
           (helm-next-line)))))
 #+END_SRC
 
