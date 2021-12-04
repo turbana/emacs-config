@@ -3342,55 +3342,62 @@ I do some common queries against =Zetian= so save them here.
     (interactive)
     (zetian-search-find '(and (tag "book")
                               (not (tag "lit")))
-                        "Zetian book: "))
+                        "books"))
 
   (defun zetian-find-author ()
     "Search zetian for a book and navigate to buffer."
     (interactive)
     (zetian-search-find '(tag "author")
-                        "Zetian author: "))
+                        "authors"))
 
   (defun zetian-find-task ()
     "Search zetian for a task and navigate to buffer."
     (interactive)
     (zetian-search-find '(category "task")
-                        "Zetian task: "))
+                        "tasks"))
 
   (defun zetian-find-task-next ()
     "Search zetian for a task and navigate to buffer."
     (interactive)
     (zetian-search-find '(and (category "task")
-                              (todo "NEXT"))))
+                              (todo "NEXT"))
+                        "next tasks"))
 
   (defun zetian-find-task-open ()
     "Search zetian for a book and navigate to buffer."
     (interactive)
     (zetian-search-find zetian--open-tasks
-                        "Zetian open task: "))
+                        "open tasks"))
+
+  (defun zetian--sub-search (name query query-name)
+    "Return NAME if non-nil, otherwise call `(zetian-search QUERY nil NAME)' and
+  if non-nil return the title."
+    (if name
+        name
+      (if-let ((node (zetian-search query nil query-name)))
+          (org-roam-node-title node))))
 
   (defun zetian-find-task-open-project (&optional project-name)
     "Find all open tasks that link to PROJECT-NAME. Prompt user if NIL."
     (interactive)
-    (let ((project (or project-name
-                       (org-roam-node-title
-                        (zetian-search
-                         '(tag "project")
-                         "Zetian project: ")))))
-      (zetian-search-find
-       `(and ,zetian--open-tasks
-             (links-to ,project))
-       (format "Zetian open tasks that link to %S: " project))))
+    (if-let ((project (zetian--sub-search project-name
+                                          '(tag "project")
+                                          "projects")))
+        (zetian-search-find
+         `(and ,zetian--open-tasks
+               (links-to ,project))
+         (format "open tasks that link to %S" project))))
 
   (defun zetian-find-task-open-link (&optional node-name)
     "Find all open tasks that link to NODE-NAME. Prompt user if NIL."
     (interactive)
-    (let ((node (or node-name
-                    (org-roam-node-title
-                     (org-roam-node-read)))))
-      (zetian-search-find
-       `(and ,zetian--open-tasks
-             (links-to ,node))
-       (format "Zetian open tasks that link to %S: " node))))
+    (if-let ((title (zetian--sub-search node-name
+                                        nil
+                                        "linked note")))
+        (zetian-search-find
+         `(and ,zetian--open-tasks
+               (links-to ,title))
+         (format "open tasks that link to %S" title))))
 
   (defun zetian-find-task-open-orphaned ()
     "Find all open tasks that are not linked to any project."
@@ -3402,23 +3409,21 @@ I do some common queries against =Zetian= so save them here.
                              `(links-to ,(org-roam-node-title node)))
                            (zetian-query '(tag "project")))))))
       (zetian-search-find `(and ,zetian--open-tasks ,no-project)
-                          "Orphaned task: ")))
+                          "orphaned tasks")))
 
   (defun zetian-find-link-to (&optional node-name)
     "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
     (interactive)
-    (let ((node (or node-name
-                    (org-roam-node-title (org-roam-node-read)))))
-      (zetian-search-find `(links-to ,node)
-                          (format "Zetian nodes that link to %S: " node))))
+    (if-let ((title (zetian--sub-search node-name nil "linked note")))
+        (zetian-search-find `(links-to ,title)
+                            (format "nodes that link to %S" title))))
 
   (defun zetian-find-link-from (&optional node-name)
     "Search zetian for nodes that NODE-NAME links to, prompt for name if NIL."
     (interactive)
-    (let ((node (or node-name
-                    (org-roam-node-title (org-roam-node-read)))))
-      (zetian-search-find `(links-from ,node)
-                          (format "Zetian nodes that %S links to: " node))))
+    (if-let ((node (zetian--sub-search node-name nil "linked note")))
+        (zetian-search-find `(links-from ,node)
+                            (format "nodes that %S links to" node))))
 
   (defun zetian-find-open-event ()
     "Search zetian for open events"
@@ -3427,13 +3432,13 @@ I do some common queries against =Zetian= so save them here.
                               (or (todo "TODO")
                                   (todo "NEXT"))
                               (tag "event"))
-                        "Zetian open events: "))
+                        "open events"))
 
   (defun zetian-find-project ()
     "Search zetian for projects"
     (interactive)
     (zetian-search-find '(tag "project")
-                        "Zetian project: "))
+                        "project"))
 #+END_SRC
 
 *** Inserting Links
