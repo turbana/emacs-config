@@ -2091,7 +2091,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
       "L" #'zetian-find-link-from
       "o" #'zetian-find-task-open-orphaned
       "p" #'zetian-find-project
-      "t" #'zetian-find-task-open
+      "t" #'zetian-find-task-next
       )
     (leader-keys
       :infix "zfT"
