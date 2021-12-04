@@ -3909,38 +3909,46 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
 #+BEGIN_SRC emacs-lisp
   (defun zetian-search (&optional query create query-name)
     (interactive)
-    (let ((node
-           (helm :sources
-                 (helm-build-in-buffer-source
-                     (format "Zetian: %s"
-                             (or query-name
-                                 (and query
-                                      (prin1-to-string query))
-                                 "Everything"))
-                   :data (zetian--helm-candidates query)
-                   :filtered-candidate-transformer
-                   (append '(zetian--helm-sort)
-                           (when create '(zetian--helm-add-input)))
-                   :get-line #'zetian--helm-get-candidate-for-display
-                   :before-init-hook
-                   (lambda ()
-                     (add-hook 'helm-after-update-hook
-                               #'zetian--helm-move-to-first))
-                   :cleanup
-                   (lambda ()
-                     (remove-hook 'helm-after-update-hook
-                                  #'zetian--helm-move-to-first)))
-                 :buffer "*helm-zetian*"
-                 :prompt "Node: ")))
-      (if (and (stringp node) create)
-          ;; should make CREATE a template key
-          (zetian-node-create node)
-        node)))
+    (let* ((node
+            (helm :sources
+                  (helm-build-in-buffer-source
+                      (format "Zetian: %s"
+                              (or query-name
+                                  (and query
+                                       (prin1-to-string query))
+                                  "Everything"))
+                    :data (zetian--helm-candidates query)
+                    :filtered-candidate-transformer
+                    (append '(zetian--helm-sort)
+                            (when create '(zetian--helm-add-input)))
+                    :get-line #'zetian--helm-get-candidate-for-display
+                    :coerce
+                    (lambda (_sel)
+                      ;; XXX whhhhyyyy?
+                      ;; helm doesn't seem to want to return a selection
+                      ;; *with* text properties. so cheat a little
+                      (get-text-property 0 'node (helm-get-selection nil 'withprop)))
+                    :before-init-hook
+                    (lambda ()
+                      (add-hook 'helm-after-update-hook
+                                #'zetian--helm-move-to-first))
+                    :cleanup
+                    (lambda ()
+                      (remove-hook 'helm-after-update-hook
+                                   #'zetian--helm-move-to-first)))
+                  :buffer "*helm-zetian*"
+                  :prompt "Node: ")))
+      (cond ((not node)
+             nil)
+            ((org-roam-node-file node)
+             node)
+            (create
+             (zetian-node-create (org-roam-node-title node))))))
 
   (defun zetian--helm-add-input (candidates _source)
     "Added the initial '[?]' line."
     (let* ((display-string (helm-ff-prefix-filename helm-pattern nil t))
-           (empty-node (org-roam-node-create))
+           (empty-node (org-roam-node-create :title helm-pattern))
            (first-line (cons (propertize display-string 'node empty-node)
                              helm-pattern)))
       (cons first-line candidates)))
@@ -4022,19 +4030,21 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
 
   (defun zetian--helm-move-to-first ()
     "Move to the first actual node in the helm list."
-    (let ((total-candidates
-           (save-excursion
-             (with-current-buffer helm-buffer
-               (1- (count-lines (point-min) (point-max)))))))
-      (while
-          (let* ((sel (helm-get-selection helm-buffer 'withprop))
-                 (real (get-text-property 0 'helm-realvalue sel))
-                 (cand-num (get-text-property 0 'helm-cand-num sel))
-                 (node (and sel (get-text-property 0 'node sel)))
-                 (title (and node (org-roam-node-title node))))
-            (and (not title)
-                 (< cand-num total-candidates)))
-        (helm-next-line))))
+    ;; in case this remains in `helm-after-update-hook', check that we're in the
+    ;; correct buffer
+    (when (string= (buffer-name (current-buffer))
+                   "*helm-zetian*")
+      (let ((total-candidates
+             (save-excursion
+               (with-current-buffer helm-buffer
+                 (1- (count-lines (point-min) (point-max)))))))
+        (while
+            (let* ((sel (helm-get-selection helm-buffer 'withprop))
+                   (cand-num (and sel (get-text-property 0 'helm-cand-num sel))))
+              (and sel
+                   (string-prefix-p "  " sel)
+                   (< cand-num total-candidates)))
+          (helm-next-line)))))
 #+END_SRC
 
 * Keybindings
