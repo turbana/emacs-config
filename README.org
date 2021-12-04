@@ -3912,6 +3912,9 @@ Let's migrate my book importing code to =org-roam=.
 Since I do a lot of searching withing =Zetian= it needs to be fast and easy to use, that means =Helm=.
 
 #+BEGIN_SRC emacs-lisp
+  (defvar zetian--org-done-keywords nil
+    "Saved `org-done-keywords' so we can properly style todo items.")
+
   (defun zetian-search (&optional query create query-name)
     (interactive)
     (let* ((node
@@ -3937,6 +3940,12 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
                     (lambda ()
                       (add-hook 'helm-after-update-hook
                                 #'zetian--helm-move-to-first))
+                    :after-init-hook
+                    (lambda ()
+                      (setq zetian--org-done-keywords
+                            (with-temp-buffer
+                              (org-mode)
+                              org-done-keywords)))
                     :cleanup
                     (lambda ()
                       (remove-hook 'helm-after-update-hook
@@ -4010,8 +4019,12 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
            (width-total (window-text-width))
            (width-tags 30)
            (width-cat 20)
-           (width-todo 8)
-           (width-title (- width-total width-tags width-cat width-todo 3))
+           (width-todo 4)
+           (width-pri 1)
+           (width-title (- width-total
+                           width-tags width-cat width-todo width-pri
+                           ;; spaces between columns
+                           4))
            (props (org-roam-node-properties node))
            (title (org-roam-node-title node))
            (tag-list (org-roam-node-tags node))
@@ -4023,12 +4036,24 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
                               (assoc-default "CATEGORY" props)
                               'font-lock-builtin-face
                               width-cat))
-           (todo (funcall pretty
-                          (assoc-default "TODO" props)
-                          'org-todo
-                          width-todo))
-           (pretty-text (format (format "%%-%ds %%s %%s %%s" width-title)
-                                title todo category (if tag-list tags ""))))
+           (todo (let ((todo (assoc-default "TODO" props)))
+                   (funcall pretty
+                            todo
+                            (if (member todo zetian--org-done-keywords)
+                                'org-done
+                              'org-todo)
+                            width-todo)))
+           (pri (let ((pri-char (aref (assoc-default "PRIORITY" props) 0)))
+                  (funcall pretty
+                           (if (equal pri-char org-default-priority)
+                               "    "
+                             (format "%c" pri-char))
+                           (org-get-priority-face pri-char)
+                           width-pri)))
+           (pretty-text (format (format "%%s %%s %%-%ds %%s %%s"
+                                        width-title)
+                                pri todo title category
+                                (if tag-list tags ""))))
       ;; helm will save this string in the match buffer, so we need to ensure that
       ;; we pass along the 'node text property
       (propertize pretty-text 'node node)))
