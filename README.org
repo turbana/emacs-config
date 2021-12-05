@@ -2766,6 +2766,18 @@ Some useful buffer related functions.
     "Switch to the `*scratch*' buffer."
     (interactive)
     (switch-to-buffer (startup--get-buffer-create-scratch)))
+
+  (defun ic/check-buffer-visiting (file-name)
+    "Return the first active buffer visiting FILE-NAME, NIL if not such buffer
+  exists."
+    (when file-name
+      (let ((expanded-file-name (expand-file-name file-name)))
+        (car (seq-filter
+              (lambda (b)
+                (when-let ((buf-file (buffer-file-name b)))
+                  (equal expanded-file-name
+                         (expand-file-name buf-file))))
+              (buffer-list))))))
 #+END_SRC
 
 ** Files
