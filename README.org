@@ -3476,27 +3476,26 @@ I do some common queries against =Zetian= so save them here.
   (defconst zetian-new-note-template-key "p"
     "Template key used when creating a new note from elisp.")
 
-  (defun zetian-link ()
-    "Query Zetian for a node and insert a link at point."
+  (defun zetian-node-link (node)
+    "Return an `org-mode' link to NODE as a string."
+    (org-make-link-string (concat "id:" (org-roam-node-id node))
+                          (org-roam-node-title node)))
+
+  (defun zetian-link (&optional immediate)
+    "Query Zetian for a node and return an `org-mode' link as a string, creating
+  the node if IMMEDIATE is non-nil."
     (interactive)
-    (let ((node (zetian-search nil "Zetian node: ")))
-      ;; assume if the node has a file that it exists
-      (if (org-roam-node-file node)
-          (org-make-link-string (org-roam-node-id node)
-                                (org-roam-node-title node))
-        (error "Zetian node not found: %s" (org-roam-node-title node)))))
+    (when-let ((node (zetian-search nil immediate
+                                    (concat "node to link"
+                                            (when immediate
+                                              " (create if needed)")))))
+        (zetian-node-link node)))
 
   (defun zetian-link-immediate ()
-    "Query Zetian for a node and insert a link at point, creating the node if
-    needed."
+    "Query Zetian for a node and return an `org-mode' link as a string, creating
+  the node if needed."
     (interactive)
-    (let ((node (zetian-search nil "Zetian node: ")))
-      ;; assume if the node lacks a file that it doesn't exist
-      (unless (org-roam-node-file node)
-        (setq node (zetian-node-create (org-roam-node-title node)
-                                       zetian-new-note-template-key)))
-      (org-make-link-string (org-roam-node-id node)
-                            (org-roam-node-title node))))
+    (zetian-link t))
 
   (defun zetian-link-insert ()
     "Query Zetian for a node and insert a link at point."
