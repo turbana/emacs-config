@@ -497,6 +497,8 @@ Some basic community =evil-mode= key bindings for =org-mode=.
      "C-," 'helm-select-action
      ;; C-. to paste into buffer
      "C-." 'helm-insert-or-copy
+     ;; C-a to select all matches
+     "C-a" 'helm-toggle-all-marks
      ;; <left/right> should move the point
      "<left>" 'backward-char
      "<right>" 'forward-char
