@@ -4054,14 +4054,16 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
 
   Then restore window configuration after exiting."
     (declare (indent 1))
-    `(save-window-excursion
-       (dolist (,node-sym (helm-marked-candidates))
-         (zetian-node-find ,node-sym)
-         ,@body
-         (save-buffer)
-         ;; (goto-char (point-min))
-         ;; (org-roam-db-insert-file-node)
-         )))
+    (let ((visited-sym (gensym)))
+      `(save-window-excursion
+         (dolist (,node-sym (helm-marked-candidates))
+           (let ((,visited-sym (ic/check-buffer-visiting
+                                (org-roam-node-file ,node-sym))))
+             (zetian-node-find ,node-sym)
+             ,@body
+             (save-buffer)
+             (unless ,visited-sym
+               (kill-buffer)))))))
 
   (defun zetian--helm-action-add-file-tags (_candidate)
     "Add file tags to one or more selected nodes."
