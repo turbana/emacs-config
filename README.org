@@ -3505,6 +3505,20 @@ I do some common queries against =Zetian= so save them here.
                           template-key)))
 #+END_SRC
 
+*** Set Category
+I need an easy way to set either the file category or a node's category.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-set-category (&optional category)
+    "Set the category of the node at point. If it's on a file, set the #+category:
+    property, otherwise use the property drawer."
+    (interactive)
+    (let ((node (org-roam-node-at-point 'assert))
+          (cat (or category (completing-read "Category: " nil))))
+      (save-excursion
+        (org-set-property "CATEGORY" cat))))
+#+END_SRC
+
 *** Update Agenda Files
 Ensure that =org-agenda= can find the relevant notes.
 #+BEGIN_SRC emacs-lisp
@@ -3946,6 +3960,12 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
                      ;; default is to return node
                      "Continue with note" #'identity
                      "View note(s)" #'zetian--helm-action-view
+                     "Add state for note(s)"
+                     #'zetian--helm-action-add-file-tags
+                     "Remove state from note(s)"
+                     #'zetian--helm-action-remove-file-tags
+                     "Set category for note(s)"
+                     #'zetian--helm-action-set-category
                      )
                     :before-init-hook
                     (lambda ()
@@ -3996,6 +4016,48 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
         (balance-windows)))
     ;; return nil as we don't want the function that called helm to do anything
     nil)
+
+  (defmacro as-zetian-action (node-sym &rest body)
+    "Loop through `(helm-marked-candidates)' and for each node:
+
+  - bind it to NODE-SYM
+  - navigate to a buffer contained the node
+  - evaluate BODY
+  - save the buffer
+
+  Then restore window configuration after exiting."
+    (declare (indent 1))
+    `(save-window-excursion
+       (dolist (,node-sym (helm-marked-candidates))
+         (zetian-node-find ,node-sym)
+         ,@body
+         (save-buffer)
+         ;; (goto-char (point-min))
+         ;; (org-roam-db-insert-file-node)
+         )))
+
+  (defun zetian--helm-action-add-file-tags (_candidate)
+    "Add file tags to one or more selected nodes."
+    (interactive)
+    (let ((tags (completing-read-multiple
+                 "Add state: " (org-roam-tag-completions))))
+      (as-zetian-action _node
+        (org-roam-tag-add tags))))
+
+  (defun zetian--helm-action-remove-file-tags (_candidate)
+    "Remove file tags from one or more selected nodes."
+    (interactive)
+    (let ((tags (completing-read-multiple
+                 "Remove state: " (org-roam-tag-completions))))
+      (as-zetian-action _node
+        (org-roam-tag-remove tags))))
+
+  (defun zetian--helm-action-set-category (_candidate)
+    "Set the category for one more selected nodes."
+    (interactive)
+    (let ((cat (completing-read "Category: " nil)))
+      (as-zetian-action _node
+        (zetian-set-category cat))))
 
   (defun zetian--helm-add-input (candidates _source)
     "Added the initial '[?]' line."
