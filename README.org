@@ -2105,7 +2105,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
       "l" #'zetian-find-task-open-link
       "n" #'zetian-find-task-next
       "o" #'zetian-find-task-open
-      "p" #'zetian-find-task-open-project
+      "p" #'zetian-find-task-next-project
+      "P" #'zetian-find-task-open-project
       "T" #'zetian-find-task
       )
     (local-leader-keys 'org-mode-map
@@ -3381,6 +3382,18 @@ I do some common queries against =Zetian= so save them here.
         name
       (if-let ((node (zetian-search query nil query-name)))
           (org-roam-node-title node))))
+
+  (defun zetian-find-task-next-project (&optional project-name)
+    "Find all NEXT tasks that link to PROJECT-NAME. Prompt user if NIL."
+    (interactive)
+    (if-let ((project (zetian--sub-search project-name
+                                          '(tag "project")
+                                          "projects")))
+        (zetian-search-find
+         `(and (category "task")
+               (todo "NEXT")
+               (links-to ,project))
+         (format "NEXT tasks that link to %S" project))))
 
   (defun zetian-find-task-open-project (&optional project-name)
     "Find all open tasks that link to PROJECT-NAME. Prompt user if NIL."
