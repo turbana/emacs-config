@@ -2096,6 +2096,9 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
       "L" #'zetian-find-link-from
       "o" #'zetian-find-task-open-orphaned
       "p" #'zetian-find-project
+      "r" #'zetian-find-review
+      "s" #'zetian-find-state
+      "S" #'zetian-find-strange
       "t" #'zetian-find-task-next
       )
     (leader-keys
@@ -3469,6 +3472,32 @@ I do some common queries against =Zetian= so save them here.
     (interactive)
     (zetian-search-find '(category "project")
                         "project"))
+
+  (defun zetian-find-strange ()
+    "Find any \"strange\" zetian notes. Strange could be unknown categories or
+    weird tags."
+    (interactive)
+    (let* ((cats '("task" "event" "book" "author" "project" "perm" "lit"
+                   "book" "web" "recipe" "video" "idea"))
+           (good-cat (append '(or)
+                             (mapcar
+                              (lambda (c) `(category ,c))
+                              cats))))
+      (zetian-search-find `(not ,good-cat))))
+
+  (defun zetian-find-state ()
+    "Prompt for state and find all nodes matching it."
+    (interactive)
+    (let ((state (completing-read "State: "
+                                  (zetian-all-states))))
+      (zetian-search-find `(tag ,state)
+                          (format "notes with state: %s" state))))
+
+  (defun zetian-find-review ()
+    "Find all notes that need review."
+    (interactive)
+    (zetian-search-find '(tag "review")
+                        "notes needing review"))
 #+END_SRC
 
 *** Inserting Links
