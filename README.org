@@ -3348,24 +3348,21 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
 *** Saved searches
 I do some common queries against =Zetian= so save them here.
 #+BEGIN_SRC emacs-lisp
-  (defconst zetian--open-tasks
-    '(and (category "task")
-          (not (tag "event"))
-          (or (todo "TODO")
-              (todo "NEXT")))
-    "Zetian query for all open tasks.")
+  (defconst zetian--open-state
+    '(or (todo "TODO")
+         (todo "NEXT"))
+    "Zetian sub-query for an \"open\" item.")
 
   (defun zetian-find-book ()
     "Search zetian for a book and navigate to buffer."
     (interactive)
-    (zetian-search-find '(and (tag "book")
-                              (not (tag "lit")))
+    (zetian-search-find '(category "book")
                         "books"))
 
   (defun zetian-find-author ()
     "Search zetian for a book and navigate to buffer."
     (interactive)
-    (zetian-search-find '(tag "author")
+    (zetian-search-find '(category "author")
                         "authors"))
 
   (defun zetian-find-task ()
@@ -3384,7 +3381,8 @@ I do some common queries against =Zetian= so save them here.
   (defun zetian-find-task-open ()
     "Search zetian for a book and navigate to buffer."
     (interactive)
-    (zetian-search-find zetian--open-tasks
+    (zetian-search-find `(and (category "task")
+                              ,zetian--open-state)
                         "open tasks"))
 
   (defun zetian--sub-search (name query query-name)
@@ -3399,7 +3397,7 @@ I do some common queries against =Zetian= so save them here.
     "Find all NEXT tasks that link to PROJECT-NAME. Prompt user if NIL."
     (interactive)
     (if-let ((project (zetian--sub-search project-name
-                                          '(tag "project")
+                                          '(category "project")
                                           "projects")))
         (zetian-search-find
          `(and (category "task")
@@ -3411,10 +3409,11 @@ I do some common queries against =Zetian= so save them here.
     "Find all open tasks that link to PROJECT-NAME. Prompt user if NIL."
     (interactive)
     (if-let ((project (zetian--sub-search project-name
-                                          '(tag "project")
+                                          '(category "project")
                                           "projects")))
         (zetian-search-find
-         `(and ,zetian--open-tasks
+         `(and (category "task")
+               ,zetian--open-state
                (links-to ,project))
          (format "open tasks that link to %S" project))))
 
@@ -3425,7 +3424,8 @@ I do some common queries against =Zetian= so save them here.
                                         nil
                                         "linked note")))
         (zetian-search-find
-         `(and ,zetian--open-tasks
+         `(and (category "task")
+               ,zetian--open-state
                (links-to ,title))
          (format "open tasks that link to %S" title))))
 
@@ -3437,8 +3437,10 @@ I do some common queries against =Zetian= so save them here.
                           (mapcar
                            (lambda (node)
                              `(links-to ,(org-roam-node-title node)))
-                           (zetian-query '(tag "project")))))))
-      (zetian-search-find `(and ,zetian--open-tasks ,no-project)
+                           (zetian-query '(category "project")))))))
+      (zetian-search-find `(and (category "task")
+                                ,zetian--open-state
+                                ,no-project)
                           "orphaned tasks")))
 
   (defun zetian-find-link-to (&optional node-name)
@@ -3458,16 +3460,14 @@ I do some common queries against =Zetian= so save them here.
   (defun zetian-find-open-event ()
     "Search zetian for open events"
     (interactive)
-    (zetian-search-find '(and (category "task")
-                              (or (todo "TODO")
-                                  (todo "NEXT"))
-                              (tag "event"))
+    (zetian-search-find `(and (category "event")
+                              ,zetian--open-state)
                         "open events"))
 
   (defun zetian-find-project ()
     "Search zetian for projects"
     (interactive)
-    (zetian-search-find '(tag "project")
+    (zetian-search-find '(category "project")
                         "project"))
 #+END_SRC
 
@@ -3839,7 +3839,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
     "Prompt for a node to add as a project to the current zettel."
     (interactive)
     (zetian-add-header-link 'project
-                            (zetian-search '(tag "project")
+                            (zetian-search '(category "project")
                                            "Add Zetian project: ")))
 
   (defun zetian-remove-project ()
