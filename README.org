@@ -767,20 +767,25 @@ Because =org-mode= is mostly prose use =buffer-face-mode= (along with setting th
 
 Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]]. See [[*org-bullets][org-bullets]] setup as well.
 #+BEGIN_SRC emacs-lisp
-  ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅
+  ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒
   (setq org-ellipsis (if on-tablet " …" " ⌵"))
 
   ;; replace certain org-mode text with symbols
   (defun ic/org-mode-pretty-symbols ()
     "Enable `prettify-symbols-mode' and set `prettify-symbols-alist' for certain
   `org-mode' symbols."
+    ;; don't show the prettified symbol around point
+    (setq prettify-symbols-unprettify-at-point t)
     (setq prettify-symbols-alist
-          `(("[#A]" . ?🅐)
-            ("[#B]" . ?🅑)
-            ("[#C]" . ?🅒)
+          `(("[#A]" . ?Ⓐ)
+            ("[#B]" . ?Ⓑ)
+            ("[#C]" . ?Ⓒ)
             ("[ ]" . ?)
             ("[X]" . ?)
             ("[-]" . ?)
+            ("#+BEGIN_SRC" . ?λ)
+            ("#+END_SRC" . ?ƛ)
+            ("CLOSED:" . ?⟁)
             ("SCHEDULED:" . ?)
             ("DEADLINE:" . ?)))
     (prettify-symbols-mode 1))
