@@ -3847,6 +3847,18 @@ I want an easy way to add/update tags and other links on a given zettel. To star
     (zetian-remove-header-link 'project))
 #+END_SRC
 
+*** Meta Information
+Sometimes I want some information about the entire state of =Zetian=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-all-states ()
+    "Return a list of all states (org tags) in the zetian database."
+    (let ((results (org-roam-db-query [:select :distinct tag :from tags])))
+      (sort (mapcar #'car results)
+            #'string-collate-lessp)))
+
+#+END_SRC
+
 *** OpenLibrary Book Import
 Let's migrate my book importing code to =org-roam=.
 #+BEGIN_SRC emacs-lisp
