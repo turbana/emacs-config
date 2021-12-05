@@ -2059,6 +2059,9 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (org-roam-completion-everywhere t)
 
     :config
+    ;; the org-element cache messes with correct category lookup and seems to
+    ;; break org-roam sometimes, so disable it
+    (setq org-element-use-cache nil)
     (org-roam-setup)
     (require 'org-roam-protocol)
     :general
