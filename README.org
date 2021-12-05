@@ -3930,12 +3930,10 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
                     (append '(zetian--helm-sort)
                             (when create '(zetian--helm-add-input)))
                     :get-line #'zetian--helm-get-candidate-for-display
-                    :coerce
-                    (lambda (_sel)
-                      ;; XXX whhhhyyyy?
-                      ;; helm doesn't seem to want to return a selection
-                      ;; *with* text properties. so cheat a little
-                      (get-text-property 0 'node (helm-get-selection nil 'withprop)))
+                    ;; ensure we return candidates with properties
+                    :marked-with-props 'withprop
+                    ;; return a zetian node, not the internal helm candidate
+                    :coerce #'zetian--helm-coerce
                     :before-init-hook
                     (lambda ()
                       (add-hook 'helm-after-update-hook
@@ -3958,6 +3956,15 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
              node)
             (create
              (zetian-node-create (org-roam-node-title node))))))
+
+  (defun zetian--helm-coerce (sel)
+    "Return the node attached to SEL, or if NIL: the node of the current selection."
+    ;; XXX helm will call this function *twice* the second time without text
+    ;; properties?! So if we don't have a 'node property try again with the
+    ;; current selection
+    (or (get-text-property 0 'node sel)
+        (zetian--helm-coerce
+         (helm-get-selection nil 'withprop))))
 
   (defun zetian--helm-add-input (candidates _source)
     "Added the initial '[?]' line."
