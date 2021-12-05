@@ -3934,6 +3934,16 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
                     :marked-with-props 'withprop
                     ;; return a zetian node, not the internal helm candidate
                     :coerce #'zetian--helm-coerce
+                    ;; quick action should be to view
+                    :persistent-action #'zetian--helm-action-view
+                    :persistent-help "view note"
+                    ;; other possible actions
+                    :action
+                    (helm-make-actions
+                     ;; default is to return node
+                     "Continue with note" #'identity
+                     "View note(s)" #'zetian--helm-action-view
+                     )
                     :before-init-hook
                     (lambda ()
                       (add-hook 'helm-after-update-hook
@@ -3965,6 +3975,24 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
     (or (get-text-property 0 'node sel)
         (zetian--helm-coerce
          (helm-get-selection nil 'withprop))))
+
+  (defun zetian--helm-action-view (_candidate)
+    "View one or more selected notes, splitting the window if needed."
+    (interactive)
+    (let ((nodes (helm-marked-candidates))
+          did-split)
+      (while nodes
+        ;; navigate to top node
+        (zetian-node-find (pop nodes))
+        ;; if we have more nodes, split the window to make room
+        (when nodes
+          (split-window-right)
+          (setq did-split t)))
+      ;; if we split then balance the windows
+      (when did-split
+        (balance-windows)))
+    ;; return nil as we don't want the function that called helm to do anything
+    nil)
 
   (defun zetian--helm-add-input (candidates _source)
     "Added the initial '[?]' line."
