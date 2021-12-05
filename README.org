@@ -200,6 +200,11 @@ Load my custom theme early so if we have errors emacs still looks pretty.
           (load-theme (if (or on-tablet on-old-imac) 'themian-light 'themian-dark) t))))
     (add-hook 'after-make-frame-functions 'themian--load-theme-on-frame-create)
 
+    ;; HACK
+    ;; something is using quote as a face, not sure where that is, but define it
+    ;; here to silence the warnings in *Messages*
+    (defface quote nil "not sure what this is")
+
     ;; don't use `general' to bind keys as it's not loaded yet
     :bind (("M-<f5>" . 'themian--reload-dark-theme)
            ("M-<f6>" . 'themian--reload-light-theme)))
