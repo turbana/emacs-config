@@ -2093,7 +2093,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
       :infix "zc"
       "" '(nil :which-key "capture")
       "c" 'org-roam-capture
-      "b" 'ic/org-roam-capture-book
+      "b" 'zetian-capture-book
       )
     (leader-keys
       :infix "zf"
@@ -3954,7 +3954,7 @@ Sometimes I want some information about the entire state of =Zetian=.
 *** OpenLibrary Book Import
 Let's migrate my book importing code to =org-roam=.
 #+BEGIN_SRC emacs-lisp
-  (defun ic/org-roam-format-book-template-header (book)
+  (defun zetian--format-book-template-header (book)
     "Create a template header from BOOK suitable for `org-roam-capture-templates'."
     (with-temp-buffer
       (unless (yas-minor-mode 1)
@@ -3969,18 +3969,18 @@ Let's migrate my book importing code to =org-roam=.
         (yas-expand-snippet
          (concat
           ":PROPERTIES:\n"
+          ":CATEGORY: book\n"
           ":TITLE: `title`\n"
           ":AUTHORS: `(mapcar (lambda (a) (format \"%S\" a)) authors)`\n"
           ":PAGES_MEDIAN: `pages-median`\n"
           ":END:\n"
-          "#+title: `title`\n"
-          "#+filetags: :book:")
+          "#+title: `title`\n")
          nil
          nil
          snippet-env))
       (buffer-string)))
 
-  (defun ic/org-roam-format-book-template-body (book)
+  (defun zetian--format-book-template-body (book)
     "Create a template body from BOOK suitable for `org-roam-capture-templates'."
     (with-temp-buffer
       (unless (yas-minor-mode 1)
@@ -3999,7 +3999,8 @@ Let's migrate my book importing code to =org-roam=.
                 (authors-pretty-links
                  ,(string-join (mapcar
                                 (lambda (author)
-                                  (ic/org-roam-node-link-immediate author "a"))
+                                  (zetian-node-link
+                                   (zetian-node-create author "P")))
                                 (assoc-default 'authors book))
                                ", and "))
 
@@ -4021,7 +4022,8 @@ Let's migrate my book importing code to =org-roam=.
                 (gr-uri
                  ,(if-let (id (assoc-default 'goodreads-id book))
                       (format "/book/show/%s" id)
-                    (format "/search?q=%s&search_type=books")))))))
+                    (format "/search?q=%s&search_type=books"
+                            (assoc-default 'query-title book))))))))
         (yas-expand-snippet
          (concat
           "\%U\n\n"
@@ -4039,19 +4041,20 @@ Let's migrate my book importing code to =org-roam=.
          snippet-env))
       (buffer-string)))
 
-  (defun ic/org-roam-capture-book ()
+  (defun zetian-capture-book ()
     "`org-roam-capture' to import a new book from OpenLibrary."
     (interactive)
     (let* ((book (ic/openlibrary-helm-find-book))
            (title (assoc-default 'title book))
-           (template `("X" "capture book template" plain
-                      ,(ic/org-roam-format-book-template-body book)
+           (template `("p" "capture book template" plain
+                      ,(zetian--format-book-template-body book)
                       :target (file+head
                                "%<%Y%m%d%H%M%S>-${slug}.org"
-                               ,(ic/org-roam-format-book-template-header book)))))
+                               ,(zetian--format-book-template-header book)))))
+      (message "BOOK: %S\nTITLE: %S\nTEMPLATE:%S" book title template)
       (cl-letf ((org-roam-capture-templates
                  (list template)))
-        (if-let ((node (ic/org-roam-node-create title)))
+        (if-let ((node (zetian-node-create title)))
             (find-file (org-roam-node-file node))))))
 #+END_SRC
 
