@@ -2125,6 +2125,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (local-leader-keys 'org-mode-map
       :infix "z"
       "" '(nil :which-key "zetian")
+      "s" #'zetian-add-state
+      "S" #'zetian-remove-state
       "t" #'zetian-add-tag
       "T" #'zetian-remove-tag
       "p" #'zetian-add-project
@@ -3623,7 +3625,7 @@ I do some common queries against =Zetian= so save them here.
                           template-key)))
 #+END_SRC
 
-*** Set Category
+*** Set Category / State
 I need an easy way to set either the file category or a node's category.
 
 #+BEGIN_SRC emacs-lisp
@@ -3635,6 +3637,15 @@ I need an easy way to set either the file category or a node's category.
           (cat (or category (completing-read "Category: " nil))))
       (save-excursion
         (org-set-property "CATEGORY" cat))))
+#+END_SRC
+
+I use =org-mode= tags for state and =org-roam= provides a pair of functions that work with both file tags and element tags, so let's use those.
+#+BEGIN_SRC emacs-lisp
+  (defalias #'zetian-add-state #'org-roam-tag-add
+    "Add a state to a zetian node.")
+
+  (defalias #'zetian-remove-state #'org-roam-tag-remove
+    "Remove a state from a zetian node.")
 #+END_SRC
 
 *** Update Agenda Files
