@@ -396,7 +396,7 @@ Minimal setup for viewing =C#= code.
 
 ** evil
 *** use-package
-#+BEGIN_SRC emacs-lisp :noweb yes
+#+BEGIN_SRC emacs-lisp :noweb yes :tangle no
   (use-package evil
       :ensure evil
       :init
@@ -449,7 +449,7 @@ Misc setup
 ** evil-collection
 Some basic community =evil-mode= bindings for various modes. See =evil-collection--supported-modes= for a list.
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package evil-collection
       :after evil
       :init
@@ -461,7 +461,7 @@ Some basic community =evil-mode= bindings for various modes. See =evil-collectio
 ** evil-org-mode
 Some basic community =evil-mode= key bindings for =org-mode=.
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package evil-org
       :demand t
       :after (evil org)
@@ -631,6 +631,176 @@ Let's try having =helm= popup in a frame. I'd like it to cover to full screen wi
       :keymaps 'prog-mode-map
       "l" lsp-command-map)
     )
+#+END_SRC
+
+** meow
+Let's give modal editing package a try
+
+*** Keybinds
+**** Core
+#+BEGIN_SRC emacs-lisp
+  (defun meow-setup ()
+    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+    (meow-motion-overwrite-define-key
+     '("j" . meow-next)
+     '("k" . meow-prev))
+    (meow-leader-define-key
+     ;; SPC j/k will run the original command in MOTION state.
+     '("j" . "H-j")
+     '("k" . "H-k")
+     ;; Use SPC (0-9) for digit arguments.
+     '("1" . meow-digit-argument)
+     '("2" . meow-digit-argument)
+     '("3" . meow-digit-argument)
+     '("4" . meow-digit-argument)
+     '("5" . meow-digit-argument)
+     '("6" . meow-digit-argument)
+     '("7" . meow-digit-argument)
+     '("8" . meow-digit-argument)
+     '("9" . meow-digit-argument)
+     '("0" . meow-digit-argument)
+     '("/" . meow-keypad-describe-key)
+     '("?" . meow-cheatsheet))
+    (meow-normal-define-key
+     '("0" . meow-expand-0)
+     '("9" . meow-expand-9)
+     '("8" . meow-expand-8)
+     '("7" . meow-expand-7)
+     '("6" . meow-expand-6)
+     '("5" . meow-expand-5)
+     '("4" . meow-expand-4)
+     '("3" . meow-expand-3)
+     '("2" . meow-expand-2)
+     '("1" . meow-expand-1)
+     '("-" . negative-argument)
+     '(";" . meow-reverse)
+     '("," . meow-inner-of-thing)
+     '("." . meow-bounds-of-thing)
+     '("[" . meow-beginning-of-thing)
+     '("]" . meow-end-of-thing)
+     '("a" . meow-append)
+     '("A" . meow-open-below)
+     '("b" . meow-back-word)
+     '("B" . meow-back-symbol)
+     '("c" . meow-change)
+     '("d" . meow-delete)
+     '("D" . meow-backward-delete)
+     '("e" . meow-next-word)
+     '("E" . meow-next-symbol)
+     '("f" . meow-find)
+     '("g" . meow-cancel-selection)
+     '("G" . meow-grab)
+     '("h" . meow-left)
+     '("H" . meow-left-expand)
+     '("i" . meow-insert)
+     '("I" . meow-open-above)
+     '("j" . meow-next)
+     '("J" . meow-next-expand)
+     '("k" . meow-prev)
+     '("K" . meow-prev-expand)
+     '("l" . meow-right)
+     '("L" . meow-right-expand)
+     '("m" . meow-join)
+     '("n" . meow-search)
+     '("o" . meow-block)
+     '("O" . meow-to-block)
+     '("p" . meow-yank)
+     '("q" . keyboard-quit)
+     '("Q" . meow-goto-line)
+     '("r" . meow-replace)
+     '("R" . meow-swap-grab)
+     '("s" . meow-kill)
+     '("t" . meow-till)
+     '("u" . meow-undo)
+     '("U" . meow-undo-in-selection)
+     '("v" . meow-visit)
+     '("w" . meow-mark-word)
+     '("W" . meow-mark-symbol)
+     '("x" . meow-line)
+     '("X" . meow-goto-line)
+     '("y" . meow-save)
+     '("Y" . meow-sync-grab)
+     '("z" . meow-pop-selection)
+     '("'" . repeat)
+     '("<escape>" . keyboard-quit)
+     ))
+#+END_SRC
+**** Org Mode
+#+BEGIN_SRC emacs-lisp
+  (defmacro ic-define-key-action-by-major-mode (func default-action &rest map)
+    "Define a function for KEY-NAME with MAP as a mapping of (MAJOR-MODE
+  . FUNCTION), call DEFAULT when current mode not found in MAP."
+    (declare (indent 2))
+    (let ((key-name (replace-regexp-in-string
+                     "-" " "
+                     (replace-regexp-in-string
+                      "ic-" ""
+                      (symbol-name func)))))
+      `(defun ,func (arg)
+         ,(format "Action for <%s>." key-name)
+         (interactive "P")
+         (call-interactively
+          (pcase major-mode
+           ,@(mapcar
+              (lambda (binding)
+                `(',(caadr binding) #',(cdadr binding)))
+              map)
+           (_ ,default-action))))))
+
+  (ic-define-key-action-by-major-mode ic-left-arrow #'meow-left
+    '(org-mode . ic/outline-current-heading-or-up))
+
+  (ic-define-key-action-by-major-mode ic-up-arrow #'meow-prev
+    '(org-mode . ic/outline-current-heading-or-backward))
+
+  (ic-define-key-action-by-major-mode ic-down-arrow #'meow-next
+    '(org-mode . org-forward-heading-same-level))
+
+  (ic-define-key-action-by-major-mode ic-right-arrow #'meow-right
+    '(org-mode . outline-next-visible-heading))
+
+  (ic-define-key-action-by-major-mode ic-shift-left-arrow #'ignore
+    '(org-mode . org-promote-subtree))
+
+  (ic-define-key-action-by-major-mode ic-shift-up-arrow #'ignore
+    '(org-mode . org-move-subtree-up))
+
+  (ic-define-key-action-by-major-mode ic-shift-down-arrow #'ignore
+    '(org-mode . org-move-subtree-down))
+
+  (ic-define-key-action-by-major-mode ic-shift-right-arrow #'ignore
+    '(org-mode . org-demote-subtree))
+
+  (ic-define-key-action-by-major-mode ic-control-shift-left-arrow
+      #'ignore
+    '(org-mode . org-do-promote))
+
+  (ic-define-key-action-by-major-mode ic-control-shift-right-arrow
+      #'ignore
+    '(org-mode . org-do-demote))
+
+  (meow-normal-define-key
+   '("<left>" . ic-left-arrow)
+   '("<up>" . ic-up-arrow)
+   '("<down>" . ic-down-arrow)
+   '("<right>" . ic-right-arrow)
+   '("S-<left>" . ic-shift-left-arrow)
+   '("S-<up>" . ic-shift-up-arrow)
+   '("S-<down>" . ic-shift-down-arrow)
+   '("S-<right>" . ic-shift-right-arrow)
+   '("C-S-<left>" . ic-control-shift-left-arrow)
+   '("C-S-<right>" . ic-control-shift-right-arrow)
+   )
+#+END_SRC
+
+*** use-package
+#+BEGIN_SRC emacs-lisp
+  (use-package meow
+    :ensure t
+    :demand t
+    :config
+    (meow-setup)
+    (meow-global-mode 1))
 #+END_SRC
 
 ** magit
@@ -856,7 +1026,7 @@ Use current window to edit =org-src= blocks. Don't indent.
 #+END_SRC
 
 When editing an =org-src= block =:w= should save the parent buffer.
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :noweb-ref org-config--DISABLED
   (evil-define-operator ic/evil-write (&rest args)
     "When editing an org-src block `:w' should call `(org-edit-src-save)'."
     :motion nil
@@ -1303,7 +1473,7 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
            "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")))
 
   ;; start capture in insert mode
-  (add-hook 'org-capture-mode-hook 'evil-insert-state)
+  ;; (add-hook 'org-capture-mode-hook 'evil-insert-state)
 #+END_SRC
 
 ***** Books
@@ -2950,7 +3120,7 @@ I want emacs to continue to run as a server whenever I "quit". I should have to 
 #+END_SRC
 
 Set evil ex commands:
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (evil-ex-define-cmd "q[uit]" 'ic/kill-buffer-and-window)
   (evil-ex-define-cmd "wq" 'ic/save-and-kill-buffer-and-window)
 #+END_SRC
