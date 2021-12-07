@@ -779,18 +779,23 @@ Let's give modal editing package a try
       #'ignore
     '(org-mode . org-do-demote))
 
-  (meow-normal-define-key
-   '("<left>" . ic-left-arrow)
-   '("<up>" . ic-up-arrow)
-   '("<down>" . ic-down-arrow)
-   '("<right>" . ic-right-arrow)
-   '("S-<left>" . ic-shift-left-arrow)
-   '("S-<up>" . ic-shift-up-arrow)
-   '("S-<down>" . ic-shift-down-arrow)
-   '("S-<right>" . ic-shift-right-arrow)
-   '("C-S-<left>" . ic-control-shift-left-arrow)
-   '("C-S-<right>" . ic-control-shift-right-arrow)
-   )
+  (ic-define-key-action-by-major-mode ic-less-than-sign #'self-insert-command
+    '(org-mode . ic/yas-expand->))
+
+  (defun meow-setup-extra ()
+    (meow-normal-define-key
+     '("<left>" . ic-left-arrow)
+     '("<up>" . ic-up-arrow)
+     '("<down>" . ic-down-arrow)
+     '("<right>" . ic-right-arrow)
+     '("S-<left>" . ic-shift-left-arrow)
+     '("S-<up>" . ic-shift-up-arrow)
+     '("S-<down>" . ic-shift-down-arrow)
+     '("S-<right>" . ic-shift-right-arrow)
+     '("C-S-<left>" . ic-control-shift-left-arrow)
+     '("C-S-<right>" . ic-control-shift-right-arrow))
+    (define-key global-map
+       ">" #'ic-less-than-sign))
 #+END_SRC
 
 *** use-package
@@ -800,6 +805,7 @@ Let's give modal editing package a try
     :demand t
     :config
     (meow-setup)
+    (meow-setup-extra)
     (meow-global-mode 1))
 #+END_SRC
 
