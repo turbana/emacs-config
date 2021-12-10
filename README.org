@@ -156,6 +156,153 @@ This file (=README.org=) should be tangled into the startup config file (=init.e
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
 
+** meow
+Let's give modal editing package a try
+
+*** Keybinds
+**** Core
+I really don't like how the default =meow= bindings put the universal arguments under /SPC/ and the expansion digits are the digits. I want to only hit the digit keys and have a function that just does "the right thing" depending on if we're currently expanding or not.
+#+BEGIN_SRC emacs-lisp
+  (defmacro def-meow-digit-action (func digit)
+    "Create function FUNC that when called will call `meow-expand-DIGIT' when
+    expanding, and `meow-digit-argument' otherwise."
+    (let ((meow-expand-digit (intern (format "meow-expand-%d" digit))))
+      `(defun ,func ()
+         (interactive)
+         (if (meow-expanding-p)
+             (,meow-expand-digit)
+           (meow-digit-argument)))))
+
+  (defun meow-expanding-p ()
+    "Return non-NIL when `meow' is either expanding or selecting text."
+    (meow--selection-type))
+
+  (def-meow-digit-action meow-1 1)
+  (def-meow-digit-action meow-2 2)
+  (def-meow-digit-action meow-3 3)
+  (def-meow-digit-action meow-4 4)
+  (def-meow-digit-action meow-5 5)
+  (def-meow-digit-action meow-6 6)
+  (def-meow-digit-action meow-7 7)
+  (def-meow-digit-action meow-8 8)
+  (def-meow-digit-action meow-9 9)
+  (def-meow-digit-action meow-0 0)
+
+  ;; don't need the macro anymore
+  (fmakunbound 'def-meow-digit-action)
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (defun meow-setup ()
+    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+    (meow-motion-overwrite-define-key
+     '("j" . meow-next)
+     '("k" . meow-prev))
+    (meow-leader-define-key
+     ;; SPC j/k will run the original command in MOTION state.
+     '("j" . "H-j")
+     '("k" . "H-k")
+     ;; select windows
+     '("1" . winum-select-window-1)
+     '("2" . winum-select-window-2)
+     '("3" . winum-select-window-3)
+     '("4" . winum-select-window-4)
+     '("5" . winum-select-window-5)
+     '("6" . winum-select-window-6)
+     '("7" . winum-select-window-7)
+     '("8" . winum-select-window-8)
+     '("9" . winum-select-window-9)
+     '("0" . winum-select-window-0-or-10)
+     ;; kill windows
+     '("C-1" . ic/winum-delete-window-1)
+     '("C-2" . ic/winum-delete-window-2)
+     '("C-3" . ic/winum-delete-window-3)
+     '("C-4" . ic/winum-delete-window-4)
+     '("C-5" . ic/winum-delete-window-5)
+     '("C-6" . ic/winum-delete-window-6)
+     '("C-7" . ic/winum-delete-window-7)
+     '("C-8" . ic/winum-delete-window-8)
+     '("C-9" . ic/winum-delete-window-9)
+     '("C-0" . ic/winum-delete-window-0-or-10)
+     '("/" . meow-keypad-describe-key)
+     '("?" . meow-cheatsheet))
+    (meow-normal-define-key
+     '("1" . meow-1)
+     '("2" . meow-2)
+     '("3" . meow-3)
+     '("4" . meow-4)
+     '("5" . meow-5)
+     '("6" . meow-6)
+     '("7" . meow-7)
+     '("8" . meow-8)
+     '("9" . meow-9)
+     '("0" . meow-0)
+     '("-" . negative-argument)
+     '(";" . meow-reverse)
+     '("," . meow-inner-of-thing)
+     '("." . meow-bounds-of-thing)
+     '("[" . meow-beginning-of-thing)
+     '("]" . meow-end-of-thing)
+     '("a" . meow-append)
+     '("A" . meow-open-below)
+     '("b" . meow-back-word)
+     '("B" . meow-back-symbol)
+     '("c" . meow-change)
+     '("d" . meow-delete)
+     '("D" . meow-backward-delete)
+     '("e" . meow-next-word)
+     '("E" . meow-next-symbol)
+     '("f" . meow-find)
+     '("g" . meow-cancel-selection)
+     '("G" . meow-grab)
+     '("h" . meow-left)
+     '("H" . meow-left-expand)
+     '("i" . meow-insert)
+     '("I" . meow-open-above)
+     '("j" . meow-next)
+     '("J" . meow-next-expand)
+     '("k" . meow-prev)
+     '("K" . meow-prev-expand)
+     '("l" . meow-right)
+     '("L" . meow-right-expand)
+     '("m" . meow-join)
+     '("n" . meow-search)
+     '("o" . meow-block)
+     '("O" . meow-to-block)
+     '("p" . meow-yank)
+     '("q" . keyboard-quit)
+     '("Q" . meow-goto-line)
+     '("r" . meow-replace)
+     '("R" . meow-swap-grab)
+     '("s" . meow-kill)
+     '("t" . meow-till)
+     '("u" . meow-undo)
+     '("U" . meow-undo-in-selection)
+     '("v" . meow-visit)
+     '("w" . meow-mark-word)
+     '("W" . meow-mark-symbol)
+     '("x" . meow-line)
+     '("X" . meow-goto-line)
+     '("y" . meow-save)
+     '("Y" . meow-sync-grab)
+     '("z" . meow-pop-selection)
+     '("'" . repeat)
+     '("<escape>" . keyboard-quit)
+     ))
+#+END_SRC
+*** use-package
+#+BEGIN_SRC emacs-lisp
+  (use-package meow
+    :ensure t
+    :demand t
+    :config
+    (meow-setup)
+    (meow-setup-extra)
+    (meow-global-mode 1)
+    ;; keep the expand hints around a while longer
+    (setq meow-expand-hint-remove-delay 3.0)
+    )
+#+END_SRC
 ** Theme
 Load my custom theme early so if we have errors emacs still looks pretty.
 
@@ -633,153 +780,6 @@ Let's try having =helm= popup in a frame. I'd like it to cover to full screen wi
     )
 #+END_SRC
 
-** meow
-Let's give modal editing package a try
-
-*** Keybinds
-**** Core
-I really don't like how the default =meow= bindings put the universal arguments under /SPC/ and the expansion digits are the digits. I want to only hit the digit keys and have a function that just does "the right thing" depending on if we're currently expanding or not.
-#+BEGIN_SRC emacs-lisp
-  (defmacro def-meow-digit-action (func digit)
-    "Create function FUNC that when called will call `meow-expand-DIGIT' when
-    expanding, and `meow-digit-argument' otherwise."
-    (let ((meow-expand-digit (intern (format "meow-expand-%d" digit))))
-      `(defun ,func ()
-         (interactive)
-         (if (meow-expanding-p)
-             (,meow-expand-digit)
-           (meow-digit-argument)))))
-
-  (defun meow-expanding-p ()
-    "Return non-NIL when `meow' is either expanding or selecting text."
-    (meow--selection-type))
-
-  (def-meow-digit-action meow-1 1)
-  (def-meow-digit-action meow-2 2)
-  (def-meow-digit-action meow-3 3)
-  (def-meow-digit-action meow-4 4)
-  (def-meow-digit-action meow-5 5)
-  (def-meow-digit-action meow-6 6)
-  (def-meow-digit-action meow-7 7)
-  (def-meow-digit-action meow-8 8)
-  (def-meow-digit-action meow-9 9)
-  (def-meow-digit-action meow-0 0)
-
-  ;; don't need the macro anymore
-  (fmakunbound 'def-meow-digit-action)
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-  (defun meow-setup ()
-    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-    (meow-motion-overwrite-define-key
-     '("j" . meow-next)
-     '("k" . meow-prev))
-    (meow-leader-define-key
-     ;; SPC j/k will run the original command in MOTION state.
-     '("j" . "H-j")
-     '("k" . "H-k")
-     ;; select windows
-     '("1" . winum-select-window-1)
-     '("2" . winum-select-window-2)
-     '("3" . winum-select-window-3)
-     '("4" . winum-select-window-4)
-     '("5" . winum-select-window-5)
-     '("6" . winum-select-window-6)
-     '("7" . winum-select-window-7)
-     '("8" . winum-select-window-8)
-     '("9" . winum-select-window-9)
-     '("0" . winum-select-window-0-or-10)
-     ;; kill windows
-     '("C-1" . ic/winum-delete-window-1)
-     '("C-2" . ic/winum-delete-window-2)
-     '("C-3" . ic/winum-delete-window-3)
-     '("C-4" . ic/winum-delete-window-4)
-     '("C-5" . ic/winum-delete-window-5)
-     '("C-6" . ic/winum-delete-window-6)
-     '("C-7" . ic/winum-delete-window-7)
-     '("C-8" . ic/winum-delete-window-8)
-     '("C-9" . ic/winum-delete-window-9)
-     '("C-0" . ic/winum-delete-window-0-or-10)
-     '("/" . meow-keypad-describe-key)
-     '("?" . meow-cheatsheet))
-    (meow-normal-define-key
-     '("1" . meow-1)
-     '("2" . meow-2)
-     '("3" . meow-3)
-     '("4" . meow-4)
-     '("5" . meow-5)
-     '("6" . meow-6)
-     '("7" . meow-7)
-     '("8" . meow-8)
-     '("9" . meow-9)
-     '("0" . meow-0)
-     '("-" . negative-argument)
-     '(";" . meow-reverse)
-     '("," . meow-inner-of-thing)
-     '("." . meow-bounds-of-thing)
-     '("[" . meow-beginning-of-thing)
-     '("]" . meow-end-of-thing)
-     '("a" . meow-append)
-     '("A" . meow-open-below)
-     '("b" . meow-back-word)
-     '("B" . meow-back-symbol)
-     '("c" . meow-change)
-     '("d" . meow-delete)
-     '("D" . meow-backward-delete)
-     '("e" . meow-next-word)
-     '("E" . meow-next-symbol)
-     '("f" . meow-find)
-     '("g" . meow-cancel-selection)
-     '("G" . meow-grab)
-     '("h" . meow-left)
-     '("H" . meow-left-expand)
-     '("i" . meow-insert)
-     '("I" . meow-open-above)
-     '("j" . meow-next)
-     '("J" . meow-next-expand)
-     '("k" . meow-prev)
-     '("K" . meow-prev-expand)
-     '("l" . meow-right)
-     '("L" . meow-right-expand)
-     '("m" . meow-join)
-     '("n" . meow-search)
-     '("o" . meow-block)
-     '("O" . meow-to-block)
-     '("p" . meow-yank)
-     '("q" . keyboard-quit)
-     '("Q" . meow-goto-line)
-     '("r" . meow-replace)
-     '("R" . meow-swap-grab)
-     '("s" . meow-kill)
-     '("t" . meow-till)
-     '("u" . meow-undo)
-     '("U" . meow-undo-in-selection)
-     '("v" . meow-visit)
-     '("w" . meow-mark-word)
-     '("W" . meow-mark-symbol)
-     '("x" . meow-line)
-     '("X" . meow-goto-line)
-     '("y" . meow-save)
-     '("Y" . meow-sync-grab)
-     '("z" . meow-pop-selection)
-     '("'" . repeat)
-     '("<escape>" . keyboard-quit)
-     ))
-#+END_SRC
-*** use-package
-#+BEGIN_SRC emacs-lisp
-  (use-package meow
-    :ensure t
-    :demand t
-    :config
-    (meow-setup)
-    (meow-setup-extra)
-    (meow-global-mode 1)
-    ;; keep the expand hints around a while longer
-    (setq meow-expand-hint-remove-delay 3.0)
-    )
-#+END_SRC
 
 ** magit
 For some reason on the Surface Pro 4 tablet we need to manually load =magit-section= before loading =magit= proper.
