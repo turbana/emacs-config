@@ -767,79 +767,6 @@ I really don't like how the default =meow= bindings put the universal arguments 
      '("<escape>" . keyboard-quit)
      ))
 #+END_SRC
-**** Org Mode
-#+BEGIN_SRC emacs-lisp
-  (defmacro ic-define-key-action-by-major-mode (func default-action &rest map)
-    "Define a function for KEY-NAME with MAP as a mapping of (MAJOR-MODE
-  . FUNCTION), call DEFAULT when current mode not found in MAP."
-    (declare (indent 2))
-    (let ((key-name (replace-regexp-in-string
-                     "-" " "
-                     (replace-regexp-in-string
-                      "ic-" ""
-                      (symbol-name func)))))
-      `(defun ,func (arg)
-         ,(format "Action for <%s>." key-name)
-         (interactive "P")
-         (call-interactively
-          (pcase major-mode
-           ,@(mapcar
-              (lambda (binding)
-                `(',(caadr binding) #',(cdadr binding)))
-              map)
-           (_ ,default-action))))))
-
-  (ic-define-key-action-by-major-mode ic-left-arrow #'meow-left
-    '(org-mode . ic/outline-current-heading-or-up))
-
-  (ic-define-key-action-by-major-mode ic-up-arrow #'meow-prev
-    '(org-mode . ic/outline-current-heading-or-backward))
-
-  (ic-define-key-action-by-major-mode ic-down-arrow #'meow-next
-    '(org-mode . org-forward-heading-same-level))
-
-  (ic-define-key-action-by-major-mode ic-right-arrow #'meow-right
-    '(org-mode . outline-next-visible-heading))
-
-  (ic-define-key-action-by-major-mode ic-shift-left-arrow #'ignore
-    '(org-mode . org-promote-subtree))
-
-  (ic-define-key-action-by-major-mode ic-shift-up-arrow #'ignore
-    '(org-mode . org-move-subtree-up))
-
-  (ic-define-key-action-by-major-mode ic-shift-down-arrow #'ignore
-    '(org-mode . org-move-subtree-down))
-
-  (ic-define-key-action-by-major-mode ic-shift-right-arrow #'ignore
-    '(org-mode . org-demote-subtree))
-
-  (ic-define-key-action-by-major-mode ic-control-shift-left-arrow
-      #'ignore
-    '(org-mode . org-do-promote))
-
-  (ic-define-key-action-by-major-mode ic-control-shift-right-arrow
-      #'ignore
-    '(org-mode . org-do-demote))
-
-  (ic-define-key-action-by-major-mode ic-less-than-sign #'self-insert-command
-    '(org-mode . ic/yas-expand->))
-
-  (defun meow-setup-extra ()
-    (meow-normal-define-key
-     '("<left>" . ic-left-arrow)
-     '("<up>" . ic-up-arrow)
-     '("<down>" . ic-down-arrow)
-     '("<right>" . ic-right-arrow)
-     '("S-<left>" . ic-shift-left-arrow)
-     '("S-<up>" . ic-shift-up-arrow)
-     '("S-<down>" . ic-shift-down-arrow)
-     '("S-<right>" . ic-shift-right-arrow)
-     '("C-S-<left>" . ic-control-shift-left-arrow)
-     '("C-S-<right>" . ic-control-shift-right-arrow))
-    (define-key global-map
-       ">" #'ic-less-than-sign))
-#+END_SRC
-
 *** use-package
 #+BEGIN_SRC emacs-lisp
   (use-package meow
@@ -848,7 +775,10 @@ I really don't like how the default =meow= bindings put the universal arguments 
     :config
     (meow-setup)
     (meow-setup-extra)
-    (meow-global-mode 1))
+    (meow-global-mode 1)
+    ;; keep the expand hints around a while longer
+    (setq meow-expand-hint-remove-delay 3.0)
+    )
 #+END_SRC
 
 ** magit
