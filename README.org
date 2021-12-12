@@ -166,11 +166,14 @@ Let's give modal editing package a try
     :ensure t
     :demand t
     :config
-    (setq meow-local-leader-prefix "M-.")
-    ;; (meow-setup)
-    (meow-global-mode 1)
+    ;; use my local leader key
+    (setq meow-local-leader-prefix "/")
     ;; keep the expand hints around a while longer
-    (setq meow-expand-hint-remove-delay 3.0))
+    (setq meow-expand-hint-remove-delay 3.0)
+    ;; start git commits in insert mode
+    (add-hook 'git-commit-mode-hook 'meow-insert-mode)
+    ;; turn it on, baby
+    (meow-global-mode 1))
 #+END_SRC
 *** Keybinds
 **** Core
