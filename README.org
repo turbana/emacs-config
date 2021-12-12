@@ -159,8 +159,123 @@ This file (=README.org=) should be tangled into the startup config file (=init.e
 ** meow
 Let's give modal editing package a try
 
+*** use-package
+#+BEGIN_SRC emacs-lisp
+  (use-package meow
+    :straight (meow :type git :host github :repo "turbana/meow")
+    :ensure t
+    :demand t
+    :config
+    (setq meow-local-leader-prefix "M-.")
+    ;; (meow-setup)
+    (meow-global-mode 1)
+    ;; keep the expand hints around a while longer
+    (setq meow-expand-hint-remove-delay 3.0))
+#+END_SRC
 *** Keybinds
 **** Core
+#+BEGIN_SRC emacs-lisp
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+
+  (meow-motion-overwrite-define-key
+   '("j" . meow-next)
+   '("k" . meow-prev))
+
+  (meow-leader-define-key
+   ;; SPC j/k will run the original command in MOTION state.
+   '("j" . "H-j")
+   '("k" . "H-k")
+   ;; select windows
+   '("1" . winum-select-window-1)
+   '("2" . winum-select-window-2)
+   '("3" . winum-select-window-3)
+   '("4" . winum-select-window-4)
+   '("5" . winum-select-window-5)
+   '("6" . winum-select-window-6)
+   '("7" . winum-select-window-7)
+   '("8" . winum-select-window-8)
+   '("9" . winum-select-window-9)
+   '("0" . winum-select-window-0-or-10)
+   ;; kill windows
+   '("C-1" . ic/winum-delete-window-1)
+   '("C-2" . ic/winum-delete-window-2)
+   '("C-3" . ic/winum-delete-window-3)
+   '("C-4" . ic/winum-delete-window-4)
+   '("C-5" . ic/winum-delete-window-5)
+   '("C-6" . ic/winum-delete-window-6)
+   '("C-7" . ic/winum-delete-window-7)
+   '("C-8" . ic/winum-delete-window-8)
+   '("C-9" . ic/winum-delete-window-9)
+   '("C-0" . ic/winum-delete-window-0-or-10)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
+
+  (meow-normal-define-key
+   '("1" . meow-1)
+   '("2" . meow-2)
+   '("3" . meow-3)
+   '("4" . meow-4)
+   '("5" . meow-5)
+   '("6" . meow-6)
+   '("7" . meow-7)
+   '("8" . meow-8)
+   '("9" . meow-9)
+   '("0" . meow-0)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-next)
+   '("J" . meow-next-expand)
+   '("k" . meow-prev)
+   '("K" . meow-prev-expand)
+   '("l" . meow-right)
+   '("L" . meow-right-expand)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("q" . keyboard-quit)
+   '("Q" . meow-goto-line)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("t" . meow-till)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-mark-word)
+   '("W" . meow-mark-symbol)
+   '("x" . meow-line)
+   '("X" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . keyboard-quit)
+   )
+#+END_SRC
+
+**** Digit Keys
 I really don't like how the default =meow= bindings put the universal arguments under /SPC/ and the expansion digits are the digits. I want to only hit the digit keys and have a function that just does "the right thing" depending on if we're currently expanding or not.
 #+BEGIN_SRC emacs-lisp
   (defmacro def-meow-digit-action (func digit)
@@ -192,117 +307,70 @@ I really don't like how the default =meow= bindings put the universal arguments 
   (fmakunbound 'def-meow-digit-action)
 #+END_SRC
 
+**** general.el definers
+I used to use =general.el= to set my keybinds. To make migration easier let's setup a couple of macros to mimic the old behavior.
 #+BEGIN_SRC emacs-lisp
-  (defun meow-setup ()
-    (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
-    (meow-motion-overwrite-define-key
-     '("j" . meow-next)
-     '("k" . meow-prev))
-    (meow-leader-define-key
-     ;; SPC j/k will run the original command in MOTION state.
-     '("j" . "H-j")
-     '("k" . "H-k")
-     ;; select windows
-     '("1" . winum-select-window-1)
-     '("2" . winum-select-window-2)
-     '("3" . winum-select-window-3)
-     '("4" . winum-select-window-4)
-     '("5" . winum-select-window-5)
-     '("6" . winum-select-window-6)
-     '("7" . winum-select-window-7)
-     '("8" . winum-select-window-8)
-     '("9" . winum-select-window-9)
-     '("0" . winum-select-window-0-or-10)
-     ;; kill windows
-     '("C-1" . ic/winum-delete-window-1)
-     '("C-2" . ic/winum-delete-window-2)
-     '("C-3" . ic/winum-delete-window-3)
-     '("C-4" . ic/winum-delete-window-4)
-     '("C-5" . ic/winum-delete-window-5)
-     '("C-6" . ic/winum-delete-window-6)
-     '("C-7" . ic/winum-delete-window-7)
-     '("C-8" . ic/winum-delete-window-8)
-     '("C-9" . ic/winum-delete-window-9)
-     '("C-0" . ic/winum-delete-window-0-or-10)
-     '("/" . meow-keypad-describe-key)
-     '("?" . meow-cheatsheet))
-    (meow-normal-define-key
-     '("1" . meow-1)
-     '("2" . meow-2)
-     '("3" . meow-3)
-     '("4" . meow-4)
-     '("5" . meow-5)
-     '("6" . meow-6)
-     '("7" . meow-7)
-     '("8" . meow-8)
-     '("9" . meow-9)
-     '("0" . meow-0)
-     '("-" . negative-argument)
-     '(";" . meow-reverse)
-     '("," . meow-inner-of-thing)
-     '("." . meow-bounds-of-thing)
-     '("[" . meow-beginning-of-thing)
-     '("]" . meow-end-of-thing)
-     '("a" . meow-append)
-     '("A" . meow-open-below)
-     '("b" . meow-back-word)
-     '("B" . meow-back-symbol)
-     '("c" . meow-change)
-     '("d" . meow-delete)
-     '("D" . meow-backward-delete)
-     '("e" . meow-next-word)
-     '("E" . meow-next-symbol)
-     '("f" . meow-find)
-     '("g" . meow-cancel-selection)
-     '("G" . meow-grab)
-     '("h" . meow-left)
-     '("H" . meow-left-expand)
-     '("i" . meow-insert)
-     '("I" . meow-open-above)
-     '("j" . meow-next)
-     '("J" . meow-next-expand)
-     '("k" . meow-prev)
-     '("K" . meow-prev-expand)
-     '("l" . meow-right)
-     '("L" . meow-right-expand)
-     '("m" . meow-join)
-     '("n" . meow-search)
-     '("o" . meow-block)
-     '("O" . meow-to-block)
-     '("p" . meow-yank)
-     '("q" . keyboard-quit)
-     '("Q" . meow-goto-line)
-     '("r" . meow-replace)
-     '("R" . meow-swap-grab)
-     '("s" . meow-kill)
-     '("t" . meow-till)
-     '("u" . meow-undo)
-     '("U" . meow-undo-in-selection)
-     '("v" . meow-visit)
-     '("w" . meow-mark-word)
-     '("W" . meow-mark-symbol)
-     '("x" . meow-line)
-     '("X" . meow-goto-line)
-     '("y" . meow-save)
-     '("Y" . meow-sync-grab)
-     '("z" . meow-pop-selection)
-     '("'" . repeat)
-     '("<escape>" . keyboard-quit)
-     ))
+  (defmacro leader-keys (&rest args)
+    (declare (indent 0))
+    `(meow-leader-define-key ,@(ic--parse-general-definer args)))
+
+  (defmacro local-leader-keys (&rest args)
+    (declare (indent 1))
+    (let ((map (and (not (keywordp (car args)))
+                    (pop args))))
+      (catch 'done
+        (while (keywordp (car args))
+          (pcase (car args)
+            (:keymaps
+             (pop args)
+             (setq map (pop args)))
+            (:infix
+             (throw 'done nil))
+            (_
+             (pop args)
+             (pop args)))))
+      (when (listp map)
+        (setq map (cadr map)))
+      (let ((mode (intern (replace-regexp-in-string "-map$" "" (symbol-name map))))
+            (keys (ic--parse-general-definer args)))
+        `(meow-local-leader-define-key ',mode ,@keys))))
+
+  (defun ic--parse-general-definer (args)
+    (let ((prefix "")
+          arg keys)
+      (while args
+        (setq arg (pop args))
+        (cond ((eq arg ':infix)
+               (setq prefix (pop args)))
+              ((keywordp arg)
+               ;; ignore, added by :general use-package section
+               (pop args))
+              (t
+               (let* ((key (concat prefix arg))
+                      (def (pop args))
+                      (def (if (symbolp def) def (cadr def)))
+                      (def (if (listp def) (car def) def)))
+                 (when (not (string-equal arg ""))
+                   (push `'(,key . ,def) keys))))))
+      (nreverse keys)))
+
+  (defmacro ic-general-define-key (&rest args)
+    (let ((states '(quote normal))
+          (keymaps '(quote global-map))
+          keys)
+      (while args
+        (setq arg (pop args))
+        (cond ((eq arg ':states)
+               (setq states (pop args)))
+              ((eq arg ':keymaps)
+               (setq keymaps (pop args)))
+              (t
+               (setq keys (ic--parse-general-definer (cons arg args)))
+               (setq args nil))))
+      `(meow-state-define-mode-key ,keymaps ,states ,@keys)))
+  (defalias 'general-define-key 'ic-general-define-key)
 #+END_SRC
-*** use-package
-#+BEGIN_SRC emacs-lisp
-  (use-package meow
-    :ensure t
-    :demand t
-    :config
-    (meow-setup)
-    (meow-setup-extra)
-    (meow-global-mode 1)
-    ;; keep the expand hints around a while longer
-    (setq meow-expand-hint-remove-delay 3.0)
-    )
-#+END_SRC
+
 ** Theme
 Load my custom theme early so if we have errors emacs still looks pretty.
 
@@ -461,28 +529,25 @@ There are a few things I don't care for though: I don't need emacs bindings, nor
 
 The package =general.el= makes all of the above rather simple. Here we ensure it's installed and activated with =:demand t=. We then setup two =definers=, one for the leader key (=leader-keys=) and one for the local leader key (=local-leader-keys=). Both =definers= define their keys in the =general-override-mode-map= keymap. This keymap has a high priority, but only when =general-override-mode= is active so ensure it is with =(general-override-mode 1)=.
 
+=NOTE=: some of the above is outdated (as of [2021-12-12 Sun]). See [[*meow][meow]] for more details.
+
 #+BEGIN_SRC emacs-lisp
   (use-package general
       :demand t
       :config
-      ;; ensure `general-override-mode-map' is active
-      (general-override-mode 1)
+      ;; ensure `general-override-mode-map' is INactive
+      (general-override-mode -1)
 
-      ;; create leader (SPC) definer
-      (general-create-definer leader-keys
-        :states '(normal motion insert emacs)
-        :keymaps 'general-override-mode-map
-        :prefix "SPC"
-        :non-normal-prefix "C-SPC")
-
-      ;; create local leader (,) definer
-      (general-create-definer local-leader-keys
-        :states '(normal motion insert emacs)
-        :keymaps 'general-override-mode-map
-        :prefix ","
-        :non-normal-prefix "C-,"))
+      ;; general.el defines `general-define-key' so re-alias it now
+      (defalias 'general-define-key 'ic-general-define-key))
 #+END_SRC
 
+** which-key
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+      :config
+      (which-key-mode 1))
+#+END_SRC
 * Packages
 ** all-the-icons
 #+BEGIN_SRC emacs-lisp
@@ -675,9 +740,9 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     (general-define-key
      "M-x" 'helm-M-x)
 
-    (general-define-key
-     :states '(normal)
-     "gi" 'helm-semantic-or-imenu)
+    ;; (general-define-key
+    ;;  :states '(normal)
+    ;;  "gi" 'helm-semantic-or-imenu)
 
     (leader-keys
       "R" 'helm-resume)
@@ -780,7 +845,6 @@ Let's try having =helm= popup in a frame. I'd like it to cover to full screen wi
     )
 #+END_SRC
 
-
 ** magit
 For some reason on the Surface Pro 4 tablet we need to manually load =magit-section= before loading =magit= proper.
 #+BEGIN_SRC emacs-lisp
@@ -797,7 +861,7 @@ Main =magit= config.
 
     :general
     (general-define-key
-     :keymaps 'magit-status-mode-map
+     :keymaps 'magit-section-mode-map
      "<up>" 'magit-section-backward
      "<down>" 'magit-section-forward))
 #+END_SRC
@@ -1682,7 +1746,6 @@ I like my =helm= searches to be pretty, so let's define some faces to use for th
     "Face used for OpenLibrary seperators in a helm buffer.")
 #+END_SRC
 
-
 ***** Full Frame
 The standard =org-capture= behavior is to split the window before capturing a task. When this is started from outside emacs a random buffer occupies half the frame. What I want is the capture buffer to take the full frame when starting the capture from outside emacs. My window manager will start the capture task with a frame name of =OrgCapture=. Because =org-capture= doesn't provide a hook where it splits the frame we'll need to advise it to ~(delete-other-windows)~ when our frame is =OrgCapture= and one of the following:
 
@@ -2233,63 +2296,55 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (setq org-element-use-cache nil)
     (org-roam-setup)
     (require 'org-roam-protocol)
-    :general
-    (general-define-key
-     :keymaps 'global-map
-     "<f2>" 'org-roam-capture)
-    (leader-keys
-      :infix "z"
-      "" '(nil :which-key "zetian")
-      "b" 'org-roam-buffer-toggle
-      "D" 'org-roam-db-diagnose-node
-      "i" #'zetian-link-insert
-      "I" #'zetian-link-insert-immediate
-      "u" 'org-roam-ui-open
-      )
-    (leader-keys
-      :infix "zc"
-      "" '(nil :which-key "capture")
-      "c" 'org-roam-capture
-      "b" 'zetian-capture-book
-      )
-    (leader-keys
-      :infix "zf"
-      "" '(nil :which-key "find")
-      "f" #'zetian-node-find
-      "a" #'zetian-find-author
-      "b" #'zetian-find-book
-      "e" #'zetian-find-open-event
-      "l" #'zetian-find-link-to
-      "L" #'zetian-find-link-from
-      "o" #'zetian-find-task-open-orphaned
-      "p" #'zetian-find-project
-      "r" #'zetian-find-review
-      "s" #'zetian-find-state
-      "S" #'zetian-find-strange
-      "t" #'zetian-find-task-next
-      )
-    (leader-keys
-      :infix "zfT"
-      "" '(nil :which-key "tasks")
-      "a" #'zetian-find-task
-      "l" #'zetian-find-task-open-link
-      "n" #'zetian-find-task-next
-      "o" #'zetian-find-task-open
-      "p" #'zetian-find-task-next-project
-      "P" #'zetian-find-task-open-project
-      "T" #'zetian-find-task
-      )
-    (local-leader-keys 'org-mode-map
-      :infix "z"
-      "" '(nil :which-key "zetian")
-      "s" #'zetian-add-state
-      "S" #'zetian-remove-state
-      "t" #'zetian-add-tag
-      "T" #'zetian-remove-tag
-      "p" #'zetian-add-project
-      "P" #'zetian-remove-project
-      )
-    )
+    :bind (("<f2>" . org-roam-capture)
+           :map meow-leader-keymap
+           :prefix "z"
+           :prefix-map zetian
+           ("b" . org-roam-buffer-toggle)
+           ("D" . org-roam-db-diagnose-node)
+           ("i" . zetian-link-insert)
+           ("I" . zetian-link-insert-immediate)
+           ("u" . org-roam-ui-open)
+           :prefix "zc"
+           :prefix-map zetian-capture
+           ("c" . org-roam-capture)
+           ("b" . zetian-capture-book)
+           :prefix "zf"
+           :prefix-map zetian-find
+           ("f" . zetian-node-find)
+           ("a" . zetian-find-author)
+           ("b" . zetian-find-book)
+           ("e" . zetian-find-open-event)
+           ("l" . zetian-find-link-to)
+           ("L" . zetian-find-link-from)
+           ("o" . zetian-find-task-open-orphaned)
+           ("p" . zetian-find-project)
+           ("r" . zetian-find-review)
+           ("s" . zetian-find-state)
+           ("S" . zetian-find-strange)
+           ("t" . zetian-find-task-next)
+           :prefix "zfT"
+           :prefix-map zetian-find-tasks
+           ("a" . zetian-find-task)
+           ("l" . zetian-find-task-open-link)
+           ("n" . zetian-find-task-next)
+           ("o" . zetian-find-task-open)
+           ("p" . zetian-find-task-next-project)
+           ("P" . zetian-find-task-open-project)
+           ("T" . zetian-find-task)
+           ))
+
+  ;; TODO
+  ;; (local-leader-keys 'org-mode-map
+  ;;   :infix "z"
+  ;;   "" '(nil :which-key "zetian")
+  ;;   "s" #'zetian-add-state
+  ;;   "S" #'zetian-remove-state
+  ;;   "t" #'zetian-add-tag
+  ;;   "T" #'zetian-remove-tag
+  ;;   "p" #'zetian-add-project
+  ;;   "P" #'zetian-remove-project
+  ;;   )
 #+END_SRC
 
 ** org-roam-ui
@@ -2502,7 +2557,7 @@ Keep my toe-nail clippings in balance.
 
     :general
     (general-define-key
-     :keymaps '(emacs-lisp-mode-map list-interaction-mode-map)
+     :keymaps 'emacs-lisp-mode-map
      :states '(normal motion)
      "^" #'sp-backward-up-sexp))
 #+END_SRC
@@ -2681,12 +2736,6 @@ I want emacs to wrap long lines automatically and refill when modifying text. =v
     (add-hook 'helm-occur-mode-hook #'wgrep-change-to-wgrep-mode))
 #+END_SRC
 
-** which-key
-#+BEGIN_SRC emacs-lisp
-  (use-package which-key
-      :config
-      (which-key-mode 1))
-#+END_SRC
 
 ** winum
 For numbering and jumping to windows.
@@ -2819,7 +2868,7 @@ Some useful functions.
 Setup keybinds
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys
-    :keymaps '(emacs-lisp-mode-map lisp-interaction-mode-map)
+    :keymaps emacs-lisp-mode-map
     "e" '(ic/eval-enclosing-sexp :which-key "ic/eval-enclosing-sexp")
     "E" 'ic/eval-outer-sexp-dwim
     "B" 'eval-buffer
@@ -4500,11 +4549,11 @@ Here we copy the spacemacs keybindings, more or less.
 
 ** normal mode
 #+BEGIN_SRC emacs-lisp
-  (general-define-key
-   :states '(normal)
-   :keymaps 'general-override-mode-map
-   "go" 'ic/move-to-outline-dwim
-   "gl" 'helm-occur)
+  ;; (general-define-key
+  ;;  :states '(normal)
+  ;;  :keymaps 'general-override-mode-map
+  ;;  "go" 'ic/move-to-outline-dwim
+  ;;  "gl" 'helm-occur)
 #+END_SRC
 
 ** Escape Key
@@ -4617,7 +4666,7 @@ Profiler bindings.
 #+END_SRC
 
 ** g :: git/vc
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
     :infix "g"
     "" '(nil :which-key "git")
@@ -4629,7 +4678,7 @@ Profiler bindings.
 #+END_SRC
 
 ** h :: help
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
    :infix "h"
    "" '(nil :which-key "help")
@@ -4641,7 +4690,7 @@ Profiler bindings.
 #+END_SRC
 
 ** hd :: help describe
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
    :infix "hd"
    "" '(nil :which-key "describe")
