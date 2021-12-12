@@ -2337,17 +2337,16 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("T" . zetian-find-task)
            ))
 
-  ;; TODO
-  ;; (local-leader-keys 'org-mode-map
-  ;;   :infix "z"
-  ;;   "" '(nil :which-key "zetian")
-  ;;   "s" #'zetian-add-state
-  ;;   "S" #'zetian-remove-state
-  ;;   "t" #'zetian-add-tag
-  ;;   "T" #'zetian-remove-tag
-  ;;   "p" #'zetian-add-project
-  ;;   "P" #'zetian-remove-project
-  ;;   )
+  (local-leader-keys 'org-mode-map
+    :infix "z"
+    "" '(nil :which-key "zetian")
+    "s" #'zetian-add-state
+    "S" #'zetian-remove-state
+    "t" #'zetian-add-tag
+    "T" #'zetian-remove-tag
+    "p" #'zetian-add-project
+    "P" #'zetian-remove-project
+    )
 #+END_SRC
 
 ** org-roam-ui
