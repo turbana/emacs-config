@@ -370,7 +370,7 @@ I used to use =general.el= to set my keybinds. To make migration easier let's se
               (t
                (setq keys (ic--parse-general-definer (cons arg args)))
                (setq args nil))))
-      `(meow-state-define-mode-key ,keymaps ,states ,@keys)))
+      `(meow-state-define-key ,keymaps ,states ,@keys)))
   (defalias 'general-define-key 'ic-general-define-key)
 #+END_SRC
 
