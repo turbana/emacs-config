@@ -162,7 +162,7 @@ Let's give modal editing package a try
 *** use-package
 #+BEGIN_SRC emacs-lisp
   (use-package meow
-    :straight (meow :type git :host github :repo "turbana/meow")
+    ;; :straight (meow :type git :host github :repo "turbana/meow")
     :ensure t
     :demand t
     :config
@@ -312,10 +312,18 @@ I really don't like how the default =meow= bindings put the universal arguments 
 
 **** general.el definers
 I used to use =general.el= to set my keybinds. To make migration easier let's setup a couple of macros to mimic the old behavior.
+
+=WHAT A MESS=
+Just committing this because it "works", but my goal is migrate away from all this into just using the basic emacs functions.
 #+BEGIN_SRC emacs-lisp
   (defmacro leader-keys (&rest args)
     (declare (indent 0))
-    `(meow-leader-define-key ,@(ic--parse-general-definer args)))
+    (let ((pairs (ic--parse-general-definer args)))
+      `(meow-leader-define-key
+        ,@(mapcar
+           (lambda (pair)
+             `'(,(car pair) . ,(cdr pair)))
+           pairs))))
 
   (defmacro local-leader-keys (&rest args)
     (declare (indent 1))
@@ -336,41 +344,78 @@ I used to use =general.el= to set my keybinds. To make migration easier let's se
         (setq map (cadr map)))
       (let ((mode (intern (replace-regexp-in-string "-map$" "" (symbol-name map))))
             (keys (ic--parse-general-definer args)))
-        `(meow-local-leader-define-key ',mode ,@keys))))
+        ;; (message "(meow-local-leader-define-key '%S, %S)" mode keys)
+        ;; `(meow-local-leader-define-key ',mode ,@keys)
+        ;; (message "keys: %S" keys)
+        `(progn
+           ,@(ic--emit-define-keys map keys)))))
+
+  (defun ic--emit-define-keys (map keys)
+    (mapcar
+     (lambda (pair)
+       ;; (message "pair: %S" pair)
+       `(define-key
+          ,map
+          (kbd ,(concat ic--local-leader-prefix " " (car pair)))
+          ',(cdr pair)))
+     keys))
+
+  (defvar ic--local-leader-prefix "C-c C-/")
+  (defvar ic--local-leader-map (make-sparse-keymap))
+
+  (meow-normal-define-key `("/" . ,ic--local-leader-prefix))
+
+  ;; (local-leader-keys 'org-mode-map
+  ;;   "a" 'foo
+  ;;   "b" 'bar)
 
   (defun ic--parse-general-definer (args)
     (let ((prefix "")
-          arg keys)
+      arg keys)
       (while args
-        (setq arg (pop args))
-        (cond ((eq arg ':infix)
-               (setq prefix (pop args)))
-              ((keywordp arg)
-               ;; ignore, added by :general use-package section
-               (pop args))
-              (t
-               (let* ((key (concat prefix arg))
-                      (def (pop args))
-                      (def (if (symbolp def) def (cadr def)))
-                      (def (if (listp def) (car def) def)))
-                 (when (not (string-equal arg ""))
-                   (push `'(,key . ,def) keys))))))
+    (setq arg (pop args))
+    (cond ((eq arg ':infix)
+           (setq prefix (pop args)))
+          ((keywordp arg)
+           ;; ignore, added by :general use-package section
+           (pop args))
+          (t
+           (let* ((key (concat prefix arg))
+              (def (pop args))
+              (def (if (symbolp def) def (cadr def)))
+              (def (if (listp def) (car def) def)))
+         (when (not (string-equal arg ""))
+           (push (cons key def) keys))))))
       (nreverse keys)))
 
   (defmacro ic-general-define-key (&rest args)
     (let ((states '(quote normal))
-          (keymaps '(quote global-map))
-          keys)
+      (keymaps '(global-map))
+      keys)
       (while args
-        (setq arg (pop args))
-        (cond ((eq arg ':states)
-               (setq states (pop args)))
-              ((eq arg ':keymaps)
-               (setq keymaps (pop args)))
-              (t
-               (setq keys (ic--parse-general-definer (cons arg args)))
-               (setq args nil))))
-      `(meow-state-define-key ,keymaps ,states ,@keys)))
+    (setq arg (pop args))
+    (cond ((eq arg ':states)
+           (setq states (pop args)))
+          ((eq arg ':keymaps)
+           (setq keymaps (cadr (pop args)))
+           (unless (listp keymaps)
+             (setq keymaps (list keymaps)))
+           ;; (message "keymaps set: %S" keymaps)
+           )
+          (t
+           (setq keys (ic--parse-general-definer (cons arg args)))
+           (setq args nil))))
+      (when (memq 'insert states)
+        (user-error "Cannot use 'insert mode with `general-define-key' macro"))
+      `(progn
+         ,@(mapcar
+            (lambda (map)
+              (let ((ic--local-leader-prefix ""))
+                `(progn ,@(ic--emit-define-keys map keys))))
+            keymaps))
+      ;; `(meow-state-define-key ,keymaps ,states ,@keys)
+      ;; XXX
+      ))
   (defalias 'general-define-key 'ic-general-define-key)
 #+END_SRC
 
@@ -2191,7 +2236,7 @@ TODO =,T= tables keybinds
   (local-leader-keys
       :definer 'minor-mode
       :states 'normal
-      :keymaps 'org-src-mode
+      :keymaps 'org-src-mode-map
       ;; ,c has which-key information from "clocks"
       "c" '(org-edit-src-exit :which-key "org-edit-src-exit")
       "k" 'org-edit-src-abort
@@ -2258,7 +2303,7 @@ Here I have some custom normal mode navigation.
 **** insert mode
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-      :states 'insert
+      ;; :states 'insert
       :keymaps 'org-mode-map
       ">" 'ic/yas-expand->
       "M-<return>" 'ic/org-insert-item-dwim
