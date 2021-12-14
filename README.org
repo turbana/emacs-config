@@ -764,6 +764,8 @@ Main =magit= config.
 
     :general
     (general-define-key
+     "C-x g" 'magit-status)
+    (general-define-key
      :keymaps 'magit-section-mode-map
      "<up>" 'magit-section-backward
      "<down>" 'magit-section-forward))
