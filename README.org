@@ -589,86 +589,6 @@ Minimal setup for viewing =C#= code.
   (use-package csharp-mode)
 #+END_SRC
 
-** evil
-*** use-package
-#+BEGIN_SRC emacs-lisp :noweb yes :tangle no
-  (use-package evil
-      :ensure evil
-      :init
-      <<evil-init>>
-      :config
-      <<evil-config>>
-      )
-#+END_SRC
-
-*** evil-init
-:PROPERTIES:
-:header-args: :noweb-ref evil-init :tangle no
-:END:
-
-The following are needed for =evil-collection=:
-#+BEGIN_SRC emacs-lisp
-  ;; needed for evil-collection
-  (setq evil-want-integration t)
-  (setq evil-want-keybinding nil)
-#+END_SRC
-
-Misc setup
-#+BEGIN_SRC emacs-lisp
-  ;; don't bind anything under C-g
-  (setq evil-want-C-g-bindings nil)
-
-  ;; C-u/d should scroll up/down
-  (setq evil-want-C-u-scroll t)
-  (setq evil-want-C-d-scroll t)
-
-  ;; C-w should backwards delete work in insert mode
-  (setq evil-want-C-w-delete t)
-
-  ;; Y should only yank from point to eol
-  (setq evil-want-Y-yank-to-eol t)
-
-  ;; movement commands should respect `visual-line-mode'
-  (setq evil-respect-visual-line-mode t)
-#+END_SRC
-
-*** evil-config
-:PROPERTIES:
-:header-args: :noweb-ref evil-config :tangle no
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (evil-mode 1)
-#+END_SRC
-
-** evil-collection
-Some basic community =evil-mode= bindings for various modes. See =evil-collection--supported-modes= for a list.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package evil-collection
-      :after evil
-      :init
-      (setq evil-collection-company-use-tng nil)
-      :config
-      (evil-collection-init))
-#+END_SRC
-
-** evil-org-mode
-Some basic community =evil-mode= key bindings for =org-mode=.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package evil-org
-      :demand t
-      :after (evil org)
-      :hook (org-mode . evil-org-mode)
-      :init
-      ;; don't make a new list item when using o/O
-      (setq evil-org-special-o/O '(table-row))
-      :config
-      (require 'evil-org-agenda)
-      (evil-org-agenda-set-keys))
-#+END_SRC
-
 ** flycheck
 #+BEGIN_SRC emacs-lisp
   (use-package flycheck
@@ -1047,22 +967,6 @@ Use current window to edit =org-src= blocks. Don't indent.
   (setq org-src-preserve-indentation nil)
   (setq org-edit-src-content-indentation 2)
   (setq org-src-window-setup 'current-window)
-#+END_SRC
-
-When editing an =org-src= block =:w= should save the parent buffer.
-#+BEGIN_SRC emacs-lisp :noweb-ref org-config--DISABLED
-  (evil-define-operator ic/evil-write (&rest args)
-    "When editing an org-src block `:w' should call `(org-edit-src-save)'."
-    :motion nil
-    :move-point nil
-    :type line
-    :repeat nil
-    (interactive "<R><fsh><!>")
-    (if (bound-and-true-p org-src-mode)
-        (org-edit-src-save)
-      (call-interactively 'evil-write args)))
-
-  (evil-ex-define-cmd "w" 'ic/evil-write)
 #+END_SRC
 
 **** org-babel
@@ -1495,9 +1399,6 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
            "* %^{name}\n:PROPERTIES:\n:SOURCE: %^{source}\n:SERVINGS: %^{servings}\n:END:\n%U\n** Ingredients\n- %?\n** Steps\n-\n** Notes")
           ("J" "job" entry (file org-default-notes-file)
            "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")))
-
-  ;; start capture in insert mode
-  ;; (add-hook 'org-capture-mode-hook 'evil-insert-state)
 #+END_SRC
 
 ***** Books
@@ -1918,7 +1819,10 @@ I want to hit =M-RET= from either insert or normal mode and insert a new list it
     "Call `ic/org-insert-item-dwim' and enter insert mode."
     (interactive)
     (when (ic/org-insert-item-dwim)
-      (evil-insert 0)))
+      (cond ((fboundp 'meow-insert-mode)
+             (meow-insert-mode))
+            ((fboundp 'evil-insert)
+             (evil-insert 0)))))
 #+END_SRC
 
 **** Weekly Review
@@ -2550,7 +2454,8 @@ I want a pretty mode-line. Note: most of the configuration happens in the =space
       (setq powerline-default-separator 'contour)
 
       ;; change face based on evil state
-      (setq spaceline-highlight-face-func #'spaceline-highlight-face-evil-state)
+      ;; TODO add meow state function
+      ;; (setq spaceline-highlight-face-func #'spaceline-highlight-face-evil-state)
 
       ;; ensure the mode-line is re-compiled when switching themes
       (advice-add 'load-theme :after
@@ -2651,7 +2556,7 @@ Set the mode line.
     ;; left side
     '((window-number
        :priority 100
-       :fallback evil-state
+       ;; :fallback evil-state
        :face highlight-face)
       ((buffer-modified
         all-the-icons-mode-icon
@@ -3121,12 +3026,6 @@ I want emacs to continue to run as a server whenever I "quit". I should have to 
        (make-frame-invisible nil 1))))
 #+END_SRC
 
-Set evil ex commands:
-#+BEGIN_SRC emacs-lisp :tangle no
-  (evil-ex-define-cmd "q[uit]" 'ic/kill-buffer-and-window)
-  (evil-ex-define-cmd "wq" 'ic/save-and-kill-buffer-and-window)
-#+END_SRC
-
 And some =leader-key= bindings:
 #+BEGIN_SRC emacs-lisp
   (leader-keys
@@ -3275,7 +3174,7 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
 #+BEGIN_SRC emacs-lisp
   (general-define-key
    :keymaps 'minibuffer-local-map
-   "C-w" 'evil-delete-backward-word)
+   "C-w" 'backward-kill-word)
 
 #+END_SRC
 
@@ -4516,7 +4415,7 @@ Here we copy the spacemacs keybindings, more or less.
   (leader-keys
     "|" 'ic/shell-command-on-region-replace
     "C-|" 'shell-command-on-region
-    "TAB" 'evil-switch-to-windows-last-buffer
+    ;; "TAB" 'evil-switch-to-windows-last-buffer
     "u" 'universal-argument)
 #+END_SRC
 
