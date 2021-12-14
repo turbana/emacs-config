@@ -183,7 +183,9 @@ Let's give modal editing package a try
 
   (meow-motion-overwrite-define-key
    '("j" . meow-next)
-   '("k" . meow-prev))
+   '("k" . meow-prev)
+   ;; local leader
+   '("/" . "C-c C-/"))
 
   (meow-leader-define-key
    ;; SPC j/k will run the original command in MOTION state.
@@ -277,8 +279,7 @@ Let's give modal editing package a try
    '("Y" . meow-sync-grab)
    '("z" . meow-pop-selection)
    '("'" . repeat)
-   '("<escape>" . keyboard-quit)
-   )
+   '("<escape>" . keyboard-quit))
 
   ;; local leader in insert mode
   (define-key meow-insert-state-keymap
