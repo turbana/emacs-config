@@ -156,6 +156,168 @@ This file (=README.org=) should be tangled into the startup config file (=init.e
   (add-hook 'after-save-hook 'ic-maybe-tangle-init-file)
 #+END_SRC
 
+** meow
+Let's give modal editing package a try
+
+*** use-package
+#+BEGIN_SRC emacs-lisp
+  (use-package meow
+    ;; :straight (meow :type git :host github :repo "turbana/meow")
+    :ensure t
+    :demand t
+    :config
+    ;; use my local leader key
+    (setq meow-local-leader-prefix "/")
+    (setq meow-local-leader-insert-prefix "C-/")
+    ;; keep the expand hints around a while longer
+    (setq meow-expand-hint-remove-delay 3.0)
+    ;; start git commits in insert mode
+    (add-hook 'git-commit-mode-hook 'meow-insert-mode)
+    ;; turn it on, baby
+    (meow-global-mode 1))
+#+END_SRC
+*** Keybinds
+**** Core
+#+BEGIN_SRC emacs-lisp
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+
+  (meow-motion-overwrite-define-key
+   '("j" . meow-next)
+   '("k" . meow-prev)
+   ;; local leader
+   '("/" . "C-c C-/"))
+
+  (meow-leader-define-key
+   ;; SPC j/k will run the original command in MOTION state.
+   '("j" . "H-j")
+   '("k" . "H-k")
+   ;; select windows
+   '("1" . winum-select-window-1)
+   '("2" . winum-select-window-2)
+   '("3" . winum-select-window-3)
+   '("4" . winum-select-window-4)
+   '("5" . winum-select-window-5)
+   '("6" . winum-select-window-6)
+   '("7" . winum-select-window-7)
+   '("8" . winum-select-window-8)
+   '("9" . winum-select-window-9)
+   '("0" . winum-select-window-0-or-10)
+   ;; kill windows
+   '("C-1" . ic/winum-delete-window-1)
+   '("C-2" . ic/winum-delete-window-2)
+   '("C-3" . ic/winum-delete-window-3)
+   '("C-4" . ic/winum-delete-window-4)
+   '("C-5" . ic/winum-delete-window-5)
+   '("C-6" . ic/winum-delete-window-6)
+   '("C-7" . ic/winum-delete-window-7)
+   '("C-8" . ic/winum-delete-window-8)
+   '("C-9" . ic/winum-delete-window-9)
+   '("C-0" . ic/winum-delete-window-0-or-10)
+   '("/" . meow-keypad-describe-key)
+   '("?" . meow-cheatsheet))
+
+  (meow-normal-define-key
+   '("1" . meow-1)
+   '("2" . meow-2)
+   '("3" . meow-3)
+   '("4" . meow-4)
+   '("5" . meow-5)
+   '("6" . meow-6)
+   '("7" . meow-7)
+   '("8" . meow-8)
+   '("9" . meow-9)
+   '("0" . meow-0)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+   ;; local leader
+   '("/" . "C-c C-/")
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("b" . meow-back-word)
+   '("B" . meow-back-symbol)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+   '("D" . meow-backward-delete)
+   '("e" . meow-next-word)
+   '("E" . meow-next-symbol)
+   '("f" . meow-find)
+   '("g" . meow-cancel-selection)
+   '("G" . meow-grab)
+   '("h" . meow-left)
+   '("H" . meow-left-expand)
+   '("i" . meow-insert)
+   '("I" . meow-open-above)
+   '("j" . meow-next)
+   '("J" . meow-next-expand)
+   '("k" . meow-prev)
+   '("K" . meow-prev-expand)
+   '("l" . meow-right)
+   '("L" . meow-right-expand)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("q" . keyboard-quit)
+   '("Q" . meow-goto-line)
+   '("r" . meow-replace)
+   '("R" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("t" . meow-till)
+   '("u" . meow-undo)
+   '("U" . meow-undo-in-selection)
+   '("v" . meow-visit)
+   '("w" . meow-mark-word)
+   '("W" . meow-mark-symbol)
+   '("x" . meow-line)
+   '("X" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . keyboard-quit))
+
+  ;; local leader in insert mode
+  (define-key meow-insert-state-keymap
+    (kbd meow-local-leader-insert-prefix) (meow--parse-def "C-c C-/"))
+#+END_SRC
+
+**** Digit Keys
+I really don't like how the default =meow= bindings put the universal arguments under /SPC/ and the expansion digits are the digits. I want to only hit the digit keys and have a function that just does "the right thing" depending on if we're currently expanding or not.
+#+BEGIN_SRC emacs-lisp
+  (defmacro def-meow-digit-action (func digit)
+    "Create function FUNC that when called will call `meow-expand-DIGIT' when
+    expanding, and `meow-digit-argument' otherwise."
+    (let ((meow-expand-digit (intern (format "meow-expand-%d" digit))))
+      `(defun ,func ()
+         (interactive)
+         (if (meow-expanding-p)
+             (,meow-expand-digit)
+           (meow-digit-argument)))))
+
+  (defun meow-expanding-p ()
+    "Return non-NIL when `meow' is either expanding or selecting text."
+    (meow--selection-type))
+
+  (def-meow-digit-action meow-1 1)
+  (def-meow-digit-action meow-2 2)
+  (def-meow-digit-action meow-3 3)
+  (def-meow-digit-action meow-4 4)
+  (def-meow-digit-action meow-5 5)
+  (def-meow-digit-action meow-6 6)
+  (def-meow-digit-action meow-7 7)
+  (def-meow-digit-action meow-8 8)
+  (def-meow-digit-action meow-9 9)
+  (def-meow-digit-action meow-0 0)
+
+  ;; don't need the macro anymore
+  (fmakunbound 'def-meow-digit-action)
+#+END_SRC
+
 ** Theme
 Load my custom theme early so if we have errors emacs still looks pretty.
 
@@ -197,8 +359,14 @@ Load my custom theme early so if we have errors emacs still looks pretty.
       (with-selected-frame frame
         (when (and (display-graphic-p)
                    (not custom-enabled-themes))
-          (load-theme (if (or on-tablet on-old-imac) 'themian-light 'themian-dark) t))))
+          (load-theme
+           (if (or on-tablet on-old-imac) 'themian-light 'themian-dark)
+           t))))
+
+    ;; set initial theme on frame create
     (add-hook 'after-make-frame-functions 'themian--load-theme-on-frame-create)
+    ;; try to set initial theme now
+    (themian--load-theme-on-frame-create (selected-frame))
 
     ;; HACK
     ;; something is using quote as a face, not sure where that is, but define it
@@ -314,6 +482,8 @@ There are a few things I don't care for though: I don't need emacs bindings, nor
 
 The package =general.el= makes all of the above rather simple. Here we ensure it's installed and activated with =:demand t=. We then setup two =definers=, one for the leader key (=leader-keys=) and one for the local leader key (=local-leader-keys=). Both =definers= define their keys in the =general-override-mode-map= keymap. This keymap has a high priority, but only when =general-override-mode= is active so ensure it is with =(general-override-mode 1)=.
 
+=NOTE=: some of the above is outdated (as of [2021-12-12 Sun]). See [[*meow][meow]] for more details.
+
 #+BEGIN_SRC emacs-lisp
   (use-package general
       :demand t
@@ -321,21 +491,47 @@ The package =general.el= makes all of the above rather simple. Here we ensure it
       ;; ensure `general-override-mode-map' is active
       (general-override-mode 1)
 
+    
+      ;; ;; create leader (SPC) definer
+      ;; (general-create-definer leader-keys
+      ;;   :states '(normal motion insert emacs)
+      ;;   :keymaps 'general-override-mode-map
+      ;;   :prefix "SPC"
+      ;;   :non-normal-prefix "C-SPC")
+
+      ;; ;; create local leader (,) definer
+      ;; (general-create-definer local-leader-keys
+      ;;   :states '(normal motion insert emacs)
+      ;;   :keymaps 'general-override-mode-map
+      ;;   :prefix ","
+      ;;   :non-normal-prefix "C-,")
+
+
       ;; create leader (SPC) definer
       (general-create-definer leader-keys
-        :states '(normal motion insert emacs)
-        :keymaps 'general-override-mode-map
-        :prefix "SPC"
-        :non-normal-prefix "C-SPC")
+        :keymaps 'meow-leader-keymap
+        ;; :prefix "SPC"
+        )
 
       ;; create local leader (,) definer
       (general-create-definer local-leader-keys
-        :states '(normal motion insert emacs)
         :keymaps 'general-override-mode-map
-        :prefix ","
-        :non-normal-prefix "C-,"))
+        :prefix "C-c C-/ "
+        )
+
+    
+      ;; general.el defines `general-define-key' so re-alias it now
+      ;; (defalias 'general-define-key 'ic-general-define-key)
+
+      )
 #+END_SRC
 
+** which-key
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+      :config
+      (which-key-mode 1))
+#+END_SRC
 * Packages
 ** all-the-icons
 #+BEGIN_SRC emacs-lisp
@@ -394,86 +590,6 @@ Minimal setup for viewing =C#= code.
   (use-package csharp-mode)
 #+END_SRC
 
-** evil
-*** use-package
-#+BEGIN_SRC emacs-lisp :noweb yes
-  (use-package evil
-      :ensure evil
-      :init
-      <<evil-init>>
-      :config
-      <<evil-config>>
-      )
-#+END_SRC
-
-*** evil-init
-:PROPERTIES:
-:header-args: :noweb-ref evil-init :tangle no
-:END:
-
-The following are needed for =evil-collection=:
-#+BEGIN_SRC emacs-lisp
-  ;; needed for evil-collection
-  (setq evil-want-integration t)
-  (setq evil-want-keybinding nil)
-#+END_SRC
-
-Misc setup
-#+BEGIN_SRC emacs-lisp
-  ;; don't bind anything under C-g
-  (setq evil-want-C-g-bindings nil)
-
-  ;; C-u/d should scroll up/down
-  (setq evil-want-C-u-scroll t)
-  (setq evil-want-C-d-scroll t)
-
-  ;; C-w should backwards delete work in insert mode
-  (setq evil-want-C-w-delete t)
-
-  ;; Y should only yank from point to eol
-  (setq evil-want-Y-yank-to-eol t)
-
-  ;; movement commands should respect `visual-line-mode'
-  (setq evil-respect-visual-line-mode t)
-#+END_SRC
-
-*** evil-config
-:PROPERTIES:
-:header-args: :noweb-ref evil-config :tangle no
-:END:
-
-#+BEGIN_SRC emacs-lisp
-  (evil-mode 1)
-#+END_SRC
-
-** evil-collection
-Some basic community =evil-mode= bindings for various modes. See =evil-collection--supported-modes= for a list.
-
-#+BEGIN_SRC emacs-lisp
-  (use-package evil-collection
-      :after evil
-      :init
-      (setq evil-collection-company-use-tng nil)
-      :config
-      (evil-collection-init))
-#+END_SRC
-
-** evil-org-mode
-Some basic community =evil-mode= key bindings for =org-mode=.
-
-#+BEGIN_SRC emacs-lisp
-  (use-package evil-org
-      :demand t
-      :after (evil org)
-      :hook (org-mode . evil-org-mode)
-      :init
-      ;; don't make a new list item when using o/O
-      (setq evil-org-special-o/O '(table-row))
-      :config
-      (require 'evil-org-agenda)
-      (evil-org-agenda-set-keys))
-#+END_SRC
-
 ** flycheck
 #+BEGIN_SRC emacs-lisp
   (use-package flycheck
@@ -520,7 +636,6 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 
     ;; set some helm-grep keys
     (general-define-key
-     :states '(normal)
      :keymaps 'helm-grep-mode-map
      "RET" 'helm-grep-mode-jump
      "o" 'helm-grep-mode-jump-other-window)
@@ -528,9 +643,9 @@ Some basic community =evil-mode= key bindings for =org-mode=.
     (general-define-key
      "M-x" 'helm-M-x)
 
-    (general-define-key
-     :states '(normal)
-     "gi" 'helm-semantic-or-imenu)
+    ;; (general-define-key
+    ;;  :states '(normal)
+    ;;  "gi" 'helm-semantic-or-imenu)
 
     (leader-keys
       "R" 'helm-resume)
@@ -649,7 +764,7 @@ Main =magit= config.
 
     :general
     (general-define-key
-     :keymaps 'magit-status-mode-map
+     :keymaps 'magit-section-mode-map
      "<up>" 'magit-section-backward
      "<down>" 'magit-section-forward))
 #+END_SRC
@@ -853,22 +968,6 @@ Use current window to edit =org-src= blocks. Don't indent.
   (setq org-src-preserve-indentation nil)
   (setq org-edit-src-content-indentation 2)
   (setq org-src-window-setup 'current-window)
-#+END_SRC
-
-When editing an =org-src= block =:w= should save the parent buffer.
-#+BEGIN_SRC emacs-lisp
-  (evil-define-operator ic/evil-write (&rest args)
-    "When editing an org-src block `:w' should call `(org-edit-src-save)'."
-    :motion nil
-    :move-point nil
-    :type line
-    :repeat nil
-    (interactive "<R><fsh><!>")
-    (if (bound-and-true-p org-src-mode)
-        (org-edit-src-save)
-      (call-interactively 'evil-write args)))
-
-  (evil-ex-define-cmd "w" 'ic/evil-write)
 #+END_SRC
 
 **** org-babel
@@ -1301,9 +1400,6 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
            "* %^{name}\n:PROPERTIES:\n:SOURCE: %^{source}\n:SERVINGS: %^{servings}\n:END:\n%U\n** Ingredients\n- %?\n** Steps\n-\n** Notes")
           ("J" "job" entry (file org-default-notes-file)
            "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")))
-
-  ;; start capture in insert mode
-  (add-hook 'org-capture-mode-hook 'evil-insert-state)
 #+END_SRC
 
 ***** Books
@@ -1534,7 +1630,6 @@ I like my =helm= searches to be pretty, so let's define some faces to use for th
     "Face used for OpenLibrary seperators in a helm buffer.")
 #+END_SRC
 
-
 ***** Full Frame
 The standard =org-capture= behavior is to split the window before capturing a task. When this is started from outside emacs a random buffer occupies half the frame. What I want is the capture buffer to take the full frame when starting the capture from outside emacs. My window manager will start the capture task with a frame name of =OrgCapture=. Because =org-capture= doesn't provide a hook where it splits the frame we'll need to advise it to ~(delete-other-windows)~ when our frame is =OrgCapture= and one of the following:
 
@@ -1725,7 +1820,10 @@ I want to hit =M-RET= from either insert or normal mode and insert a new list it
     "Call `ic/org-insert-item-dwim' and enter insert mode."
     (interactive)
     (when (ic/org-insert-item-dwim)
-      (evil-insert 0)))
+      (cond ((fboundp 'meow-insert-mode)
+             (meow-insert-mode))
+            ((fboundp 'evil-insert)
+             (evil-insert 0)))))
 #+END_SRC
 
 **** Weekly Review
@@ -1975,13 +2073,10 @@ TODO =,T= tables keybinds
 =org-src-mode= bindings:
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys
-      :definer 'minor-mode
-      :states 'normal
-      :keymaps 'org-src-mode
-      ;; ,c has which-key information from "clocks"
-      "c" '(org-edit-src-exit :which-key "org-edit-src-exit")
-      "k" 'org-edit-src-abort
-      )
+    :keymaps 'org-src-mode-map
+    "c" '(org-edit-src-exit :which-key "org-edit-src-exit")
+    "k" 'org-edit-src-abort
+    )
 #+END_SRC
 
 **** leader-key
@@ -2021,7 +2116,6 @@ global keybinds:
 Here I have some custom normal mode navigation.
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-    :states 'normal
     :keymaps 'org-mode-map
 
     "<left>"      'ic/outline-current-heading-or-up
@@ -2044,7 +2138,6 @@ Here I have some custom normal mode navigation.
 **** insert mode
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-      :states 'insert
       :keymaps 'org-mode-map
       ">" 'ic/yas-expand->
       "M-<return>" 'ic/org-insert-item-dwim
@@ -2085,62 +2178,53 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (setq org-element-use-cache nil)
     (org-roam-setup)
     (require 'org-roam-protocol)
-    :general
-    (general-define-key
-     :keymaps 'global-map
-     "<f2>" 'org-roam-capture)
-    (leader-keys
-      :infix "z"
-      "" '(nil :which-key "zetian")
-      "b" 'org-roam-buffer-toggle
-      "D" 'org-roam-db-diagnose-node
-      "i" #'zetian-link-insert
-      "I" #'zetian-link-insert-immediate
-      "u" 'org-roam-ui-open
-      )
-    (leader-keys
-      :infix "zc"
-      "" '(nil :which-key "capture")
-      "c" 'org-roam-capture
-      "b" 'zetian-capture-book
-      )
-    (leader-keys
-      :infix "zf"
-      "" '(nil :which-key "find")
-      "f" #'zetian-node-find
-      "a" #'zetian-find-author
-      "b" #'zetian-find-book
-      "e" #'zetian-find-open-event
-      "l" #'zetian-find-link-to
-      "L" #'zetian-find-link-from
-      "o" #'zetian-find-task-open-orphaned
-      "p" #'zetian-find-project
-      "r" #'zetian-find-review
-      "s" #'zetian-find-state
-      "S" #'zetian-find-strange
-      "t" #'zetian-find-task-next
-      )
-    (leader-keys
-      :infix "zfT"
-      "" '(nil :which-key "tasks")
-      "a" #'zetian-find-task
-      "l" #'zetian-find-task-open-link
-      "n" #'zetian-find-task-next
-      "o" #'zetian-find-task-open
-      "p" #'zetian-find-task-next-project
-      "P" #'zetian-find-task-open-project
-      "T" #'zetian-find-task
-      )
-    (local-leader-keys 'org-mode-map
-      :infix "z"
-      "" '(nil :which-key "zetian")
-      "s" #'zetian-add-state
-      "S" #'zetian-remove-state
-      "t" #'zetian-add-tag
-      "T" #'zetian-remove-tag
-      "p" #'zetian-add-project
-      "P" #'zetian-remove-project
-      )
+    :bind (("<f2>" . org-roam-capture)
+           :map meow-leader-keymap
+           :prefix "z"
+           :prefix-map zetian
+           ("b" . org-roam-buffer-toggle)
+           ("D" . org-roam-db-diagnose-node)
+           ("i" . zetian-link-insert)
+           ("I" . zetian-link-insert-immediate)
+           ("u" . org-roam-ui-open)
+           :prefix "zc"
+           :prefix-map zetian-capture
+           ("c" . org-roam-capture)
+           ("b" . zetian-capture-book)
+           :prefix "zf"
+           :prefix-map zetian-find
+           ("f" . zetian-node-find)
+           ("a" . zetian-find-author)
+           ("b" . zetian-find-book)
+           ("e" . zetian-find-open-event)
+           ("l" . zetian-find-link-to)
+           ("L" . zetian-find-link-from)
+           ("o" . zetian-find-task-open-orphaned)
+           ("p" . zetian-find-project)
+           ("r" . zetian-find-review)
+           ("s" . zetian-find-state)
+           ("S" . zetian-find-strange)
+           ("t" . zetian-find-task-next)
+           :prefix "zfT"
+           :prefix-map zetian-find-tasks
+           ("a" . zetian-find-task)
+           ("l" . zetian-find-task-open-link)
+           ("n" . zetian-find-task-next)
+           ("o" . zetian-find-task-open)
+           ("p" . zetian-find-task-next-project)
+           ("P" . zetian-find-task-open-project)
+           ("T" . zetian-find-task)
+           ))
+
+  (local-leader-keys 'org-mode-map
+    :infix "z"
+    "" '(nil :which-key "zetian")
+    "s" #'zetian-add-state
+    "S" #'zetian-remove-state
+    "t" #'zetian-add-tag
+    "T" #'zetian-remove-tag
+    "p" #'zetian-add-project
+    "P" #'zetian-remove-project
     )
 #+END_SRC
 
@@ -2354,8 +2438,7 @@ Keep my toe-nail clippings in balance.
 
     :general
     (general-define-key
-     :keymaps '(emacs-lisp-mode-map list-interaction-mode-map)
-     :states '(normal motion)
+     :keymaps 'emacs-lisp-mode-map
      "^" #'sp-backward-up-sexp))
 #+END_SRC
 
@@ -2372,7 +2455,8 @@ I want a pretty mode-line. Note: most of the configuration happens in the =space
       (setq powerline-default-separator 'contour)
 
       ;; change face based on evil state
-      (setq spaceline-highlight-face-func #'spaceline-highlight-face-evil-state)
+      ;; TODO add meow state function
+      ;; (setq spaceline-highlight-face-func #'spaceline-highlight-face-evil-state)
 
       ;; ensure the mode-line is re-compiled when switching themes
       (advice-add 'load-theme :after
@@ -2473,7 +2557,7 @@ Set the mode line.
     ;; left side
     '((window-number
        :priority 100
-       :fallback evil-state
+       ;; :fallback evil-state
        :face highlight-face)
       ((buffer-modified
         all-the-icons-mode-icon
@@ -2533,12 +2617,6 @@ I want emacs to wrap long lines automatically and refill when modifying text. =v
     (add-hook 'helm-occur-mode-hook #'wgrep-change-to-wgrep-mode))
 #+END_SRC
 
-** which-key
-#+BEGIN_SRC emacs-lisp
-  (use-package which-key
-      :config
-      (which-key-mode 1))
-#+END_SRC
 
 ** winum
 For numbering and jumping to windows.
@@ -2671,7 +2749,7 @@ Some useful functions.
 Setup keybinds
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys
-    :keymaps '(emacs-lisp-mode-map lisp-interaction-mode-map)
+    :keymaps 'emacs-lisp-mode-map
     "e" '(ic/eval-enclosing-sexp :which-key "ic/eval-enclosing-sexp")
     "E" 'ic/eval-outer-sexp-dwim
     "B" 'eval-buffer
@@ -2949,12 +3027,6 @@ I want emacs to continue to run as a server whenever I "quit". I should have to 
        (make-frame-invisible nil 1))))
 #+END_SRC
 
-Set evil ex commands:
-#+BEGIN_SRC emacs-lisp
-  (evil-ex-define-cmd "q[uit]" 'ic/kill-buffer-and-window)
-  (evil-ex-define-cmd "wq" 'ic/save-and-kill-buffer-and-window)
-#+END_SRC
-
 And some =leader-key= bindings:
 #+BEGIN_SRC emacs-lisp
   (leader-keys
@@ -2996,7 +3068,6 @@ When typing in insert mode I want to hit =C-e= to automatically correct the prev
 
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-   :states '(insert normal)
    "C-e" #'flyspell-auto-correct-previous-word)
 #+END_SRC
 
@@ -3104,7 +3175,7 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
 #+BEGIN_SRC emacs-lisp
   (general-define-key
    :keymaps 'minibuffer-local-map
-   "C-w" 'evil-delete-backward-word)
+   "C-w" 'backward-kill-word)
 
 #+END_SRC
 
@@ -3140,7 +3211,6 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
       )
 
     (general-define-key
-     :states '(normal)
      "go" 'consult-outline
      "gh" 'consult-org-heading
      "gi" 'consult-imenu
@@ -4346,17 +4416,29 @@ Here we copy the spacemacs keybindings, more or less.
   (leader-keys
     "|" 'ic/shell-command-on-region-replace
     "C-|" 'shell-command-on-region
-    "TAB" 'evil-switch-to-windows-last-buffer
+    ;; "TAB" 'evil-switch-to-windows-last-buffer
     "u" 'universal-argument)
 #+END_SRC
 
 ** normal mode
 #+BEGIN_SRC emacs-lisp
+  ;; (general-define-key
+  ;;  :states '(normal)
+  ;;  :keymaps 'general-override-mode-map
+  ;;  "go" 'ic/move-to-outline-dwim
+  ;;  "gl" 'helm-occur)
+#+END_SRC
+
+** insert mode
+Some of these keys are set in a mode specific keymap that I don't want to trigger while in insert mode.
+#+BEGIN_SRC emacs-lisp
   (general-define-key
-   :states '(normal)
-   :keymaps 'general-override-mode-map
-   "go" 'ic/move-to-outline-dwim
-   "gl" 'helm-occur)
+   :keymaps  'meow-insert-state-keymap
+   "<left>"  'meow-left
+   "<up>"    'meow-prev
+   "<down>"  'meow-next
+   "<right>" 'meow-right
+   )
 #+END_SRC
 
 ** Escape Key
@@ -4469,7 +4551,7 @@ Profiler bindings.
 #+END_SRC
 
 ** g :: git/vc
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
     :infix "g"
     "" '(nil :which-key "git")
@@ -4481,7 +4563,7 @@ Profiler bindings.
 #+END_SRC
 
 ** h :: help
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
    :infix "h"
    "" '(nil :which-key "help")
@@ -4493,7 +4575,7 @@ Profiler bindings.
 #+END_SRC
 
 ** hd :: help describe
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
    :infix "hd"
    "" '(nil :which-key "describe")
@@ -4560,14 +4642,18 @@ Profiler bindings.
    "=" 'balance-windows
    "d" 'delete-window
    "f" 'follow-mode
-   "H" 'evil-window-move-far-left
-   "h" 'evil-window-left
-   "J" 'evil-window-move-very-bottom
-   "j" 'evil-window-down
-   "K" 'evil-window-move-very-top
-   "k" 'evil-window-up
-   "L" 'evil-window-move-far-right
-   "l" 'evil-window-right
+   ;; "H" 'evil-window-move-far-left
+   ;; "h" 'evil-window-left
+   ;; "J" 'evil-window-move-very-bottom
+   ;; "j" 'evil-window-down
+   ;; "K" 'evil-window-move-very-top
+   ;; "k" 'evil-window-up
+   ;; "L" 'evil-window-move-far-right
+   ;; "l" 'evil-window-right
+   "h" 'windmove-left
+   "j" 'windmove-down
+   "k" 'windmove-up
+   "l" 'windmove-right
    "m" 'delete-other-windows
    "S" 'split-window-below-and-focus
    "s" 'split-window-below
