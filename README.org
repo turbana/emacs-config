@@ -168,6 +168,7 @@ Let's give modal editing package a try
     :config
     ;; use my local leader key
     (setq meow-local-leader-prefix "/")
+    (setq meow-local-leader-insert-prefix "C-/")
     ;; keep the expand hints around a while longer
     (setq meow-expand-hint-remove-delay 3.0)
     ;; start git commits in insert mode
@@ -230,6 +231,8 @@ Let's give modal editing package a try
    '("." . meow-bounds-of-thing)
    '("[" . meow-beginning-of-thing)
    '("]" . meow-end-of-thing)
+   ;; local leader
+   '("/" . "C-c C-/")
    '("a" . meow-append)
    '("A" . meow-open-below)
    '("b" . meow-back-word)
@@ -276,6 +279,10 @@ Let's give modal editing package a try
    '("'" . repeat)
    '("<escape>" . keyboard-quit)
    )
+
+  ;; local leader in insert mode
+  (define-key meow-insert-state-keymap
+    (kbd meow-local-leader-insert-prefix) (meow--parse-def "C-c C-/"))
 #+END_SRC
 
 **** Digit Keys
@@ -308,115 +315,6 @@ I really don't like how the default =meow= bindings put the universal arguments 
 
   ;; don't need the macro anymore
   (fmakunbound 'def-meow-digit-action)
-#+END_SRC
-
-**** general.el definers
-I used to use =general.el= to set my keybinds. To make migration easier let's setup a couple of macros to mimic the old behavior.
-
-=WHAT A MESS=
-Just committing this because it "works", but my goal is migrate away from all this into just using the basic emacs functions.
-#+BEGIN_SRC emacs-lisp
-  (defmacro leader-keys (&rest args)
-    (declare (indent 0))
-    (let ((pairs (ic--parse-general-definer args)))
-      `(meow-leader-define-key
-        ,@(mapcar
-           (lambda (pair)
-             `'(,(car pair) . ,(cdr pair)))
-           pairs))))
-
-  (defmacro local-leader-keys (&rest args)
-    (declare (indent 1))
-    (let ((map (and (not (keywordp (car args)))
-                    (pop args))))
-      (catch 'done
-        (while (keywordp (car args))
-          (pcase (car args)
-            (:keymaps
-             (pop args)
-             (setq map (pop args)))
-            (:infix
-             (throw 'done nil))
-            (_
-             (pop args)
-             (pop args)))))
-      (when (listp map)
-        (setq map (cadr map)))
-      (let ((mode (intern (replace-regexp-in-string "-map$" "" (symbol-name map))))
-            (keys (ic--parse-general-definer args)))
-        ;; (message "(meow-local-leader-define-key '%S, %S)" mode keys)
-        ;; `(meow-local-leader-define-key ',mode ,@keys)
-        ;; (message "keys: %S" keys)
-        `(progn
-           ,@(ic--emit-define-keys map keys)))))
-
-  (defun ic--emit-define-keys (map keys)
-    (mapcar
-     (lambda (pair)
-       ;; (message "pair: %S" pair)
-       `(define-key
-          ,map
-          (kbd ,(concat ic--local-leader-prefix " " (car pair)))
-          ',(cdr pair)))
-     keys))
-
-  (defvar ic--local-leader-prefix "C-c C-/")
-  (defvar ic--local-leader-map (make-sparse-keymap))
-
-  (meow-normal-define-key `("/" . ,ic--local-leader-prefix))
-
-  ;; (local-leader-keys 'org-mode-map
-  ;;   "a" 'foo
-  ;;   "b" 'bar)
-
-  (defun ic--parse-general-definer (args)
-    (let ((prefix "")
-      arg keys)
-      (while args
-    (setq arg (pop args))
-    (cond ((eq arg ':infix)
-           (setq prefix (pop args)))
-          ((keywordp arg)
-           ;; ignore, added by :general use-package section
-           (pop args))
-          (t
-           (let* ((key (concat prefix arg))
-              (def (pop args))
-              (def (if (symbolp def) def (cadr def)))
-              (def (if (listp def) (car def) def)))
-         (when (not (string-equal arg ""))
-           (push (cons key def) keys))))))
-      (nreverse keys)))
-
-  (defmacro ic-general-define-key (&rest args)
-    (let ((states '(quote normal))
-      (keymaps '(global-map))
-      keys)
-      (while args
-    (setq arg (pop args))
-    (cond ((eq arg ':states)
-           (setq states (pop args)))
-          ((eq arg ':keymaps)
-           (setq keymaps (cadr (pop args)))
-           (unless (listp keymaps)
-             (setq keymaps (list keymaps)))
-           ;; (message "keymaps set: %S" keymaps)
-           )
-          (t
-           (setq keys (ic--parse-general-definer (cons arg args)))
-           (setq args nil))))
-      (when (memq 'insert states)
-        (user-error "Cannot use 'insert mode with `general-define-key' macro"))
-      `(progn
-         ,@(mapcar
-            (lambda (map)
-              (let ((ic--local-leader-prefix ""))
-                `(progn ,@(ic--emit-define-keys map keys))))
-            keymaps))
-      ;; `(meow-state-define-key ,keymaps ,states ,@keys)
-      ;; XXX
-      ))
-  (defalias 'general-define-key 'ic-general-define-key)
 #+END_SRC
 
 ** Theme
@@ -589,11 +487,42 @@ The package =general.el= makes all of the above rather simple. Here we ensure it
   (use-package general
       :demand t
       :config
-      ;; ensure `general-override-mode-map' is INactive
-      (general-override-mode -1)
+      ;; ensure `general-override-mode-map' is active
+      (general-override-mode 1)
 
+    
+      ;; ;; create leader (SPC) definer
+      ;; (general-create-definer leader-keys
+      ;;   :states '(normal motion insert emacs)
+      ;;   :keymaps 'general-override-mode-map
+      ;;   :prefix "SPC"
+      ;;   :non-normal-prefix "C-SPC")
+
+      ;; ;; create local leader (,) definer
+      ;; (general-create-definer local-leader-keys
+      ;;   :states '(normal motion insert emacs)
+      ;;   :keymaps 'general-override-mode-map
+      ;;   :prefix ","
+      ;;   :non-normal-prefix "C-,")
+
+
+      ;; create leader (SPC) definer
+      (general-create-definer leader-keys
+        :keymaps 'meow-leader-keymap
+        ;; :prefix "SPC"
+        )
+
+      ;; create local leader (,) definer
+      (general-create-definer local-leader-keys
+        :keymaps 'general-override-mode-map
+        :prefix "C-c C-/ "
+        )
+
+    
       ;; general.el defines `general-define-key' so re-alias it now
-      (defalias 'general-define-key 'ic-general-define-key))
+      ;; (defalias 'general-define-key 'ic-general-define-key)
+
+      )
 #+END_SRC
 
 ** which-key
@@ -786,7 +715,6 @@ Some basic community =evil-mode= key bindings for =org-mode=.
 
     ;; set some helm-grep keys
     (general-define-key
-     :states '(normal)
      :keymaps 'helm-grep-mode-map
      "RET" 'helm-grep-mode-jump
      "o" 'helm-grep-mode-jump-other-window)
@@ -2240,13 +2168,10 @@ TODO =,T= tables keybinds
 =org-src-mode= bindings:
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys
-      :definer 'minor-mode
-      :states 'normal
-      :keymaps 'org-src-mode-map
-      ;; ,c has which-key information from "clocks"
-      "c" '(org-edit-src-exit :which-key "org-edit-src-exit")
-      "k" 'org-edit-src-abort
-      )
+    :keymaps 'org-src-mode-map
+    "c" '(org-edit-src-exit :which-key "org-edit-src-exit")
+    "k" 'org-edit-src-abort
+    )
 #+END_SRC
 
 **** leader-key
@@ -2286,7 +2211,6 @@ global keybinds:
 Here I have some custom normal mode navigation.
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-    :states 'normal
     :keymaps 'org-mode-map
 
     "<left>"      'ic/outline-current-heading-or-up
@@ -2309,7 +2233,6 @@ Here I have some custom normal mode navigation.
 **** insert mode
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-      ;; :states 'insert
       :keymaps 'org-mode-map
       ">" 'ic/yas-expand->
       "M-<return>" 'ic/org-insert-item-dwim
@@ -2611,7 +2534,6 @@ Keep my toe-nail clippings in balance.
     :general
     (general-define-key
      :keymaps 'emacs-lisp-mode-map
-     :states '(normal motion)
      "^" #'sp-backward-up-sexp))
 #+END_SRC
 
@@ -2921,7 +2843,7 @@ Some useful functions.
 Setup keybinds
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys
-    :keymaps emacs-lisp-mode-map
+    :keymaps 'emacs-lisp-mode-map
     "e" '(ic/eval-enclosing-sexp :which-key "ic/eval-enclosing-sexp")
     "E" 'ic/eval-outer-sexp-dwim
     "B" 'eval-buffer
@@ -3246,7 +3168,6 @@ When typing in insert mode I want to hit =C-e= to automatically correct the prev
 
 #+BEGIN_SRC emacs-lisp
   (general-define-key
-   :states '(insert normal)
    "C-e" #'flyspell-auto-correct-previous-word)
 #+END_SRC
 
@@ -3390,7 +3311,6 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
       )
 
     (general-define-key
-     :states '(normal)
      "go" 'consult-outline
      "gh" 'consult-org-heading
      "gi" 'consult-imenu
@@ -4607,6 +4527,18 @@ Here we copy the spacemacs keybindings, more or less.
   ;;  :keymaps 'general-override-mode-map
   ;;  "go" 'ic/move-to-outline-dwim
   ;;  "gl" 'helm-occur)
+#+END_SRC
+
+** insert mode
+Some of these keys are set in a mode specific keymap that I don't want to trigger while in insert mode.
+#+BEGIN_SRC emacs-lisp
+  (general-define-key
+   :keymaps  'meow-insert-state-keymap
+   "<left>"  'meow-left
+   "<up>"    'meow-prev
+   "<down>"  'meow-next
+   "<right>" 'meow-right
+   )
 #+END_SRC
 
 ** Escape Key
