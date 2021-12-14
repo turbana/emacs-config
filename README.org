@@ -2253,16 +2253,10 @@ Let's try having a nice search interface for =org-mode=.
   (use-package org-ql)
 #+END_SRC
 
-** TODO projectile
-=projectile= makes it easy to perform actions on a project, like grepping or listing relevant files or running tests/compiling. It also keeps buffers grouped by project so navigating between them is pleasant inside a project.
+** projectile
+This used to be much more involved, but I found a lot of my project specific code just wasn't all that useful and I'm trying to pare down my config as much as possible, so let's see what a more or less default =projectile= can look like.
 
-One thing I wish it did was restore the window layout when opening a project. I've tried to use =persp-mode= for that, but it's heavy-weight and difficult to configure for my use. The author's =persp-mode-projectile-bridge= package has some design choices I don't care for. Such as prefixing perspectives with =[p]= (configurable at least), and /setting the window config to not permit saving to disk/ (huh?).
-
-All I want is to restore the window layout, as best as possible, to as close as it was to the previous time I visited the project. Luckily, emacs has a couple of functions to save/restore the window configuration builtin.
-
-So, we can save the window configuration when either moving to a new project or closing emacs, then we can load the new project's layout. When loading, any buffer that is a part of the window configuration, but not active will cause that window to not load. So we need to make sure we re-visit any buffers that were active when that configuration was saved.
-
-#+BEGIN_SRC emacs-lisp :noweb yes
+#+BEGIN_SRC emacs-lisp
   (use-package projectile
     :demand t
     :init
@@ -2271,157 +2265,14 @@ So, we can save the window configuration when either moving to a new project or 
           (concat user-cache-directory "projectile.cache"))
     (setq projectile-known-projects-file
           (concat user-cache-directory "projectile-bookmarks.eld"))
-    ;; ensure we save window config files in a nice location
-    (defvar ic/projectile-window-default-name "default")
-    (defvar ic/projectile-window-save-dir
-      (concat user-cache-directory "projectile-windows/"))
 
     :config
-    <<projectile-config>>
-
-    :hook
-    ;; we want to save window config when switching projects and closing emacs
-    ((kill-emacs projectile-before-switch-project) . #'ic/projectile-window-save-layout)
+    (projectile-mode 1)
 
     :general
-    ;; XXX
     (leader-keys
-      "p" 'projectile-command-map)
-    )
+      "p" 'projectile-command-map))
 #+END_SRC
-
-*** projectile-config
-:PROPERTIES:
-:header-args: :noweb-ref projectile-config :tangle no
-:END:
-
-We need a couple of functions to walk through the window state data structure as returned by =(window-state-get)=. Shamelessly stolen from [[https://depp.brause.cc/eyebrowse/][eyebrowse]].
-#+BEGIN_SRC emacs-lisp
-  ;; eyebrowse functions taken from: https://depp.brause.cc/eyebrowse/
-  (defun eyebrowse--dotted-list-p (list)
-    "Non-nil if LIST is terminated by a non-nil value."
-    (cdr (last list)))
-
-  (defun eyebrowse--walk-window-config (window-config function)
-    "Walk through WINDOW-CONFIG and apply FUNCTION to each leaf."
-    (dolist (item window-config)
-      (when (consp item)
-        (when (symbolp (car item))
-          (funcall function item))
-        (when (and (consp (cdr item))
-                   (not (eyebrowse--dotted-list-p (cdr item))))
-          (eyebrowse--walk-window-config (cdr item) function)))))
-#+END_SRC
-
-Next, a couple functions to walk through the window state data structure. The first, will replace any buffers that are in the (loading) window state, but are not active are replace with the =*scratch*= buffer. This is because when emacs encounters a buffer that is in the window state, but is not active that window is not loaded. I at least want a window restored, so replace the buffer with something harmless.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/projectile-window--replace-dead-buffers (layout)
-    "Replace any unloadable buffers in LAYOUT with *scratch*."
-    (let ((replaced-buffers '()))
-      (eyebrowse--walk-window-config
-       layout
-       (lambda (item)
-         (when (eq 'buffer (car item))
-           (let ((buffer-name (cadr item)))
-             (unless (get-buffer buffer-name)
-                 (add-to-list 'replaced-buffers buffer-name)
-                 (message "Replaced %s buffer with *scratch*" buffer-name)
-                 (setf (cadr item) "*scratch*"))))))
-      (when replaced-buffers
-        (let ((n (length replaced-buffers)))
-          (message "Unable to restore %d buffer%s: %s"
-                   n
-                   (if (> n 1) "s" "")
-                   (s-join ", " replaced-buffers))))))
-#+END_SRC
-
-The next function will return a list of full paths for any visible buffer (i.e. it exists in the window state) that is visiting a file. We want to save these paths along with the window state so that we can restore the buffers upon loading.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/projectile-window--full-buffer-paths (layout)
-    "Return a list of full paths for any visible buffer in LAYOUT
-  visiting a file."
-    (let ((full-paths '()))
-      (eyebrowse--walk-window-config
-       layout
-       (lambda (item)
-         (when (eq 'buffer (car item))
-           (when-let ((buffer (get-buffer (cadr item))))
-             (when-let ((path (buffer-file-name buffer)))
-               (add-to-list 'full-paths path))))))
-      full-paths))
-#+END_SRC
-
-A helper function to return the filename of where we should store the project's window state.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/projectile-window--get-filename ()
-    "Return the filename for the active project."
-    (let ((project (and projectile-mode
-                        (projectile-project-name))))
-      (concat ic/projectile-window-save-dir
-              (or project ic/projectile-window-default-name))))
-#+END_SRC
-
-Finally the pair of function to save/restore the window state. Here we store a cons cell of the format =(<full paths of active buffers> . <window state>)= in the file specified by =ic/projectile-window--get-filename=. When loading, we ensure we visit any files listed and then restore the window state.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/projectile-window-save-layout ()
-    "Save the active window's layout to disk. The filename is based
-  on the active `projectile' project."
-    (interactive)
-    ;; make parent directory, if needed
-    (unless (file-directory-p ic/projectile-window-save-dir)
-      (make-directory ic/projectile-window-save-dir t))
-    (let* ((layout (window-state-get nil t))
-           (paths (ic/projectile-window--full-buffer-paths layout))
-           (filename (ic/projectile-window--get-filename)))
-      (with-temp-file filename
-        (insert (prin1-to-string
-                 (cons paths layout))))))
-
-  (defun ic/projectile-window-load-layout ()
-    "Restore the current `projectile' project's window layout from
-  disk."
-    (interactive)
-    (let ((filename (ic/projectile-window--get-filename))
-          (project (or (and projectile-mode (projectile-project-name))
-                       ic/projectile-window-default-name)))
-      (if (file-exists-p filename)
-          (with-temp-buffer
-            (insert-file-contents-literally filename)
-            (let* ((data (read (current-buffer)))
-                   (paths (car data))
-                   (layout (cdr data)))
-              ;; ensure known files are loaded
-              (mapc #'find-file paths)
-              ;; and any buffers not know are replaced with *scratch*
-              (ic/projectile-window--replace-dead-buffers layout)
-              ;; ensure we start from a single window
-              (delete-other-windows)
-              ;; and restore what we had
-              (window-state-put layout (frame-root-window) 'safe)
-              t))
-        (message "No layout found for '%s' project" project)
-        nil)))
-#+END_SRC
-
-When we open a new project =projectile= will call =projectile-switch-project-action=, by default it's bound to =projectile-find-file=. If we were able to load a saved layout then we already have open buffers. So we only need to prompt for a file if this is a new project (i.e. no layout found).
-#+BEGIN_SRC emacs-lisp
-  (defun ic/projectile-window--find-file-maybe ()
-    "Call `projectile-find-file' if we couldn't load a window config,
-  do nothing if we did."
-    (interactive)
-    (unless (ic/projectile-window-load-layout)
-      (call-interactively 'projectile-find-file)
-      (delete-other-windows)))
-
-  (setq projectile-switch-project-action 'ic/projectile-window--find-file-maybe)
-#+END_SRC
-
-Now we can finally enable =projectile=.
-#+BEGIN_SRC emacs-lisp
-  (projectile-mode 1)
-#+END_SRC
-
-*** TODO save layout when =find-file='ing away 
 
 ** requests
 =emacs-request= is a library for making HTTP requests easily.
