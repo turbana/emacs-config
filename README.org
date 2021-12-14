@@ -544,11 +544,6 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
 #+BEGIN_SRC emacs-lisp
   (use-package auto-dim-other-buffers
       :config
-      (defun ic-dont-auto-dim-helm-windows (buffer)
-        "Return `t' if inside a helm buffer, so `auto-dim-other-buffers' won't dim the current helm window."
-        (string-match-p "^\*helm" (buffer-name buffer)))
-      (push #'ic-dont-auto-dim-helm-windows
-            auto-dim-other-buffers-never-dim-buffer-functions)
       (setq auto-dim-other-buffers-dim-on-focus-out t)
       (setq auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
       ;; ensure org-indent face is properly hidden
@@ -600,130 +595,6 @@ Minimal setup for viewing =C#= code.
 #+BEGIN_SRC emacs-lisp
   (use-package haskell-mode
     :demand t)
-#+END_SRC
-
-** helm
-#+BEGIN_SRC emacs-lisp
-  (use-package helm
-    :demand t
-    :config
-    (helm-mode 1)
-
-    ;; bring up helm full width below other windows
-    (setq helm-default-display-buffer-functions '(display-buffer-in-side-window))
-
-    ;; short window by default
-    (setq helm-display-buffer-default-height 20)
-
-    :general
-    (general-define-key
-     :keymaps 'helm-map
-     ;; I'm too used to C-w killing a word backwards
-     "C-w" 'backward-kill-word
-     ;; TAB should be more useful than bringing up actions
-     "<tab>" 'helm-execute-persistent-action
-     "C-i" 'helm-execute-persistent-action
-     ;; C-, should start actions
-     "C-," 'helm-select-action
-     ;; C-. to paste into buffer
-     "C-." 'helm-insert-or-copy
-     ;; C-a to select all matches
-     "C-a" 'helm-toggle-all-marks
-     ;; <left/right> should move the point
-     "<left>" 'backward-char
-     "<right>" 'forward-char
-     )
-
-    ;; set some helm-grep keys
-    (general-define-key
-     :keymaps 'helm-grep-mode-map
-     "RET" 'helm-grep-mode-jump
-     "o" 'helm-grep-mode-jump-other-window)
-
-    (general-define-key
-     "M-x" 'helm-M-x)
-
-    ;; (general-define-key
-    ;;  :states '(normal)
-    ;;  "gi" 'helm-semantic-or-imenu)
-
-    (leader-keys
-      "R" 'helm-resume)
-    )
-#+END_SRC
-
-** helm-org-ql
-#+BEGIN_SRC emacs-lisp
-  (use-package helm-org-ql)
-#+END_SRC
-
-** helm-posframe
-Let's try having =helm= popup in a frame. I'd like it to cover to full screen width and have minimal styling.
-
-#+BEGIN_SRC emacs-lisp :tangle no
-  (use-package helm-posframe
-    :config
-    (setq helm-posframe-poshandler
-          #'posframe-poshandler-frame-bottom-center)
-    (setq helm-posframe-min-width (+ 1 (frame-width)))
-    (setq helm-posframe-width helm-posframe-min-width)
-    (setq helm-posframe-min-height 20)
-    (setq helm-posframe-height helm-posframe-min-height)
-    (setq helm-posframe-border-width 0)
-    (helm-posframe-enable))
-#+END_SRC
-
-** helm-projectile
-#+BEGIN_SRC emacs-lisp
-  (use-package helm-projectile
-    :demand t
-    :after (helm projectile)
-    :config
-    (helm-projectile-on)
-
-    (defmacro ic/defproject-call-switch (name-sym proj-func-sym non-proj-func-sym)
-      "Bind function NAME and have it call PROJ-FUNC when inside a
-  `projectile-mode' project, or NON-PROJ-FUNC otherwise."
-      (declare (indent defun))
-      (let ((proj-func (cadr proj-func-sym))
-            (non-proj-func (cadr non-proj-func-sym))
-            (name (cadr name-sym)))
-        (cond ((not (fboundp proj-func))
-               (error "Function `%s' not bound" (symbol-name proj-func)))
-              ((not (fboundp non-proj-func))
-               (error "Function `%s' not bound" (symbol-name non-proj-func)))
-              (t
-               `(defun ,name ()
-                  ,(format "Call `%s' when inside a project, `%s' otherwise."
-                           (symbol-name proj-func) (symbol-name non-proj-func))
-                  (interactive)
-                  (if (and (fboundp 'projectile-project-p) (projectile-project-p))
-                      (call-interactively ,proj-func-sym)
-                    (call-interactively ,non-proj-func-sym)))))))
-
-    (defun ic//helm-find-files ()
-      "Call `(help-find-files nil)'."
-      (interactive "P")
-      (call-interactively 'helm-find-files nil))
-
-    (ic/defproject-call-switch 'ic/helm-buffers
-      'helm-projectile-switch-to-buffer 'helm-mini)
-
-    (ic/defproject-call-switch 'ic/helm-find-files
-      'helm-projectile-find-file 'helm-find-files)
-
-    (ic/defproject-call-switch 'ic/helm-recentf
-      'helm-projectile-recentf 'helm-recentf)
-
-    (ic/defproject-call-switch 'ic/projectile-ibuffer
-      'projectile-ibuffer 'ibuffer)
-    )
-#+END_SRC
-
-** helm-rg
-#+BEGIN_SRC emacs-lisp
-  (use-package helm-rg
-    :after (helm))
 #+END_SRC
 
 ** lsp
@@ -1500,13 +1371,14 @@ Now, make another call to =LibraryThing= and check for =Work= data to add in.
             doc)))
 #+END_SRC
 
-****** Helm
-We'll be using =helm= to narrow the results and provide fuzzy matching. Before we call =helm= though we need to prompt the user for a query string to send to =OpenLibrary=. Since =helm= takes over the minibuffer, we need to do this prior to calling =helm=. We also need to ensure the query string is available to the actual request function and =helm= expects it's =:candidates= function to accept zero parameters. So we'll set the global variable :( =ic/openlibrary--query-string= to the user's query and use that in the fetching function.
+****** TODO Helm
+/need to rewrite against completing-read/
 #+BEGIN_SRC emacs-lisp
   (defun ic/openlibrary-helm-find-book ()
     "Prompt user for query string to search OpenLibrary, then display helm buffer
   to select book. Returns an ALIST with OpenLibrary data."
     (interactive)
+    (error "helm not installed")
     (setq ic/openlibrary--query-string
           (read-from-minibuffer "Search OpenLibrary: "))
     (helm :sources
@@ -1619,7 +1491,9 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
     (ic/org-capture-book t))
 #+END_SRC
 
-****** Faces
+****** TODO Faces
+/does this really need to be tied to helm?/
+
 I like my =helm= searches to be pretty, so let's define some faces to use for that.
 #+BEGIN_SRC emacs-lisp
   (defface helm-ol-title nil
@@ -2304,9 +2178,6 @@ I want a pretty mode-line. Note: most of the configuration happens in the =space
 #+BEGIN_SRC emacs-lisp
   (use-package spaceline
       :config
-      ;; use a custom mode-line while in helm
-      (spaceline-helm-mode 1)
-
       ;; use pretty separators
       (setq powerline-default-separator 'contour)
 
@@ -2469,10 +2340,10 @@ I want emacs to wrap long lines automatically and refill when modifying text. =v
 =wgrep= is a package that let's us live edit a =helm-occur= buffer.
 #+BEGIN_SRC emacs-lisp
   (use-package wgrep
-    :init
-    (add-hook 'helm-occur-mode-hook #'wgrep-change-to-wgrep-mode))
+    ;; :init
+    ;; (add-hook 'helm-occur-mode-hook #'wgrep-change-to-wgrep-mode)
+    )
 #+END_SRC
-
 
 ** winum
 For numbering and jumping to windows.
@@ -3770,6 +3641,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
   (defun zetian-header-link-read (type &optional prompt)
     "Show a list of header links of TYPE and return the user selected node."
     (interactive)
+    (error "helm not installed")
     (when-let ((links (zetian--header-read type)))
       (when-let ((link (helm
                         :sources
@@ -4004,7 +3876,9 @@ Let's migrate my book importing code to =org-roam=.
             (find-file (org-roam-node-file node))))))
 #+END_SRC
 
-*** Integrate with Helm
+*** TODO Integrate with Helm
+/rewrite without helm/
+
 Since I do a lot of searching withing =Zetian= it needs to be fast and easy to use, that means =Helm=.
 
 #+BEGIN_SRC emacs-lisp
@@ -4013,6 +3887,7 @@ Since I do a lot of searching withing =Zetian= it needs to be fast and easy to u
 
   (defun zetian-search (&optional query create query-name)
     (interactive)
+    (error "helm not installed")
     (let* ((node
             (helm :sources
                   (helm-build-in-buffer-source
@@ -4328,11 +4203,9 @@ XXX should these go in an override map?
   (leader-keys
    :infix "b"
    "" '(nil :which-key "buffers")
-   "b" 'ic/helm-buffers
-   "B" 'helm-mini
+   "b" 'switch-to-buffer
    "d" 'kill-this-buffer
-   "i" 'ic/projectile-ibuffer
-   "I" 'ibuffer
+   "i" 'ibuffer
    "P" 'ic/paste-clipboard-to-buffer
    "R" 'revert-buffer
    "s" 'ic/switch-to-scratch-buffer
@@ -4373,16 +4246,14 @@ Profiler bindings.
   (leader-keys
    :infix "f"
    "" '(nil :which-key "files")
-   "b" 'helm-bookmarks
+   "b" 'bookmark-jump
    "c" 'copy-file
    "D" 'ic/delete-current-buffer-file
    "E" 'sudo-edit
-   "f" 'ic/helm-find-files
-   "F" 'helm-find-files
-   "L" 'helm-locate-library
+   "f" 'find-file
+   "L" 'locate-library
    "M" 'ic/rename-current-buffer-file
-   "r" 'ic/helm-recentf
-   "R" 'helm-recentf
+   ;; "r" 'ic/helm-recentf
    "y" 'ic/yank-current-filename)
 #+END_SRC
 
@@ -4402,11 +4273,11 @@ Profiler bindings.
    "" '(nil :which-key "emacs")
    "i" 'ic/edit-init-file
    "I" 'ic/edit-early-init-file
-   "o" 'ic/edit-org-config-file
-   "l" 'helm-locate-library)
+   "o" 'ic/edit-org-config-file)
 #+END_SRC
 
-** g :: git/vc
+** TODO g :: git/vc
+/can't use "g" with meow/
 #+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
     :infix "g"
@@ -4418,7 +4289,8 @@ Profiler bindings.
     )
 #+END_SRC
 
-** h :: help
+** TODO h :: help
+/can't use "h" with meow/
 #+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
    :infix "h"
@@ -4430,7 +4302,7 @@ Profiler bindings.
    "m" 'helm-man-woman)
 #+END_SRC
 
-** hd :: help describe
+** TODO hd :: help describe
 #+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
    :infix "hd"
@@ -4454,7 +4326,7 @@ Profiler bindings.
   (leader-keys
    :infix "i"
    "" '(nil :which-key "insert")
-   "8" 'helm-ucs
+   ;; "8" 'helm-ucs
    "c" 'insert-char
    )
 #+END_SRC
