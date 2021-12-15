@@ -3930,267 +3930,77 @@ Let's migrate my book importing code to =org-roam=.
             (find-file (org-roam-node-file node))))))
 #+END_SRC
 
-*** TODO Integrate with Helm
-/rewrite without helm/
-
-Since I do a lot of searching withing =Zetian= it needs to be fast and easy to use, that means =Helm=.
-
+*** Integrate with completing-read
+Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll also annotate each item as ='zetian= so further packages (=marginalia= / =embark=) can key off the category.
 #+BEGIN_SRC emacs-lisp
-  (defvar zetian--org-done-keywords nil
-    "Saved `org-done-keywords' so we can properly style todo items.")
 
   (defun zetian-search (&optional query create query-name)
     (interactive)
-    (error "helm not installed")
-    (let* ((node
-            (helm :sources
-                  (helm-build-in-buffer-source
-                      (format "Zetian: %s"
-                              (or query-name
-                                  (and query
-                                       (prin1-to-string query))
-                                  "Everything"))
-                    :data (zetian--helm-candidates query)
-                    :filtered-candidate-transformer
-                    (append '(zetian--helm-sort)
-                            (when create '(zetian--helm-add-input)))
-                    :get-line #'zetian--helm-get-candidate-for-display
-                    ;; ensure we return candidates with properties
-                    :marked-with-props 'withprop
-                    ;; return a zetian node, not the internal helm candidate
-                    :coerce #'zetian--helm-coerce
-                    ;; quick action should be to view
-                    :persistent-action #'zetian--helm-action-view
-                    :persistent-help "view note"
-                    ;; other possible actions
-                    :action
-                    (helm-make-actions
-                     ;; default is to return node
-                     "Continue with note" #'identity
-                     "View note(s)" #'zetian--helm-action-view
-                     "Add state for note(s)"
-                     #'zetian--helm-action-add-file-tags
-                     "Remove state from note(s)"
-                     #'zetian--helm-action-remove-file-tags
-                     "Set category for note(s)"
-                     #'zetian--helm-action-set-category
-                     )
-                    :before-init-hook
-                    (lambda ()
-                      (add-hook 'helm-after-update-hook
-                                #'zetian--helm-move-to-first))
-                    :after-init-hook
-                    (lambda ()
-                      (setq zetian--org-done-keywords
-                            (with-temp-buffer
-                              (org-mode)
-                              org-done-keywords)))
-                    :cleanup
-                    (lambda ()
-                      (remove-hook 'helm-after-update-hook
-                                   #'zetian--helm-move-to-first)))
-                  :buffer "*helm-zetian*"
-                  :prompt "Node: ")))
-      (cond ((not node)
-             nil)
-            ((org-roam-node-file node)
-             node)
-            (create
-             (zetian-node-create (org-roam-node-title node))))))
+    (let* ((candidates
+            (mapcar
+             (lambda (node)
+               (let ((title (org-roam-node-title node)))
+                 (add-text-properties 0 1 `(zetian-node ,node) title)
+                 (cons title node)))
+             (zetian-query query)))
+           (completing-func
+            (lambda (input predicate action)
+              (if (eq action 'metadata)
+                  '(metadata (category . zetian))
+                (complete-with-action action candidates input predicate))))
+           (prompt (if query-name
+                       (format "[%s]: " query-name)
+                     "Zetian Node: "))
+           (selection (completing-read prompt completing-func)))
+      (if-let ((node (assoc-default selection candidates)))
+          node
+        (when create
+          (zetian-node-create selection)))))
+#+END_SRC
 
-  (defun zetian--helm-coerce (sel)
-    "Return the node attached to SEL, or if NIL: the node of the current selection."
-    ;; XXX helm will call this function *twice* the second time without text
-    ;; properties?! So if we don't have a 'node property try again with the
-    ;; current selection
-    (or (get-text-property 0 'node sel)
-        (zetian--helm-coerce
-         (helm-get-selection nil 'withprop))))
+*** Integrate with marginalia
+Let's tell =marginalia= how to annotate zetian nodes so we get pretty completions.
+#+BEGIN_SRC emacs-lisp
+  (defvar zetian--org-done-keywords nil
+    "Saved `org-done-keywords' so we can properly style todo items.")
+  (with-eval-after-load 'org
+    (setq zetian--org-done-keywords
+          (with-temp-buffer
+            (org-mode)
+            org-done-keywords)))
 
-  (defun zetian--helm-action-view (_candidate)
-    "View one or more selected notes, splitting the window if needed."
-    (interactive)
-    (let ((nodes (helm-marked-candidates))
-          did-split)
-      (while nodes
-        ;; navigate to top node
-        (zetian-node-find (pop nodes))
-        ;; if we have more nodes, split the window to make room
-        (when nodes
-          (split-window-right)
-          (setq did-split t)))
-      ;; if we split then balance the windows
-      (when did-split
-        (balance-windows)))
-    ;; return nil as we don't want the function that called helm to do anything
-    nil)
+  (defun zetian--completion-annotator (cand)
+    "An annotator function for zetian nodes to be called from
+  `completing-read'."
+    (when-let ((node (get-text-property 0 'zetian-node cand)))
+      (let* ((todo (org-roam-node-todo node))
+             (todo-str (if todo
+                           (if (< 4 (length todo))
+                               (concat (substring todo 0 4)
+                                       ".")
+                             todo)
+                         ""))
+             (tags (string-join (org-roam-node-tags node) ":"))
+             (pri (org-roam-node-priority node))
+             (pri-str (if pri
+                          (format "[#%s]" (char-to-string pri))
+                        "")))
+        (marginalia--fields
+         (pri-str :face (org-get-priority-face pri)
+                  :width 4)
+         (todo-str :face (if (member todo zetian--org-done-keywords)
+                             'org-done
+                           'org-todo)
+                   :width 5)
+         (tags :face 'org-tag
+               :width 20
+               :truncate 20)
+         ))))
 
-  (defmacro as-zetian-action (node-sym &rest body)
-    "Loop through `(helm-marked-candidates)' and for each node:
-
-  - bind it to NODE-SYM
-  - navigate to a buffer contained the node
-  - evaluate BODY
-  - save the buffer
-
-  Then restore window configuration after exiting."
-    (declare (indent 1))
-    (let ((visited-sym (gensym)))
-      `(save-window-excursion
-         (dolist (,node-sym (helm-marked-candidates))
-           (let ((,visited-sym (ic/check-buffer-visiting
-                                (org-roam-node-file ,node-sym))))
-             (zetian-node-find ,node-sym)
-             ,@body
-             (save-buffer)
-             (unless ,visited-sym
-               (kill-buffer)))))))
-
-  (defun zetian--helm-action-add-file-tags (_candidate)
-    "Add file tags to one or more selected nodes."
-    (interactive)
-    (let ((tags (completing-read-multiple
-                 "Add state: " (org-roam-tag-completions))))
-      (as-zetian-action _node
-        (org-roam-tag-add tags))))
-
-  (defun zetian--helm-action-remove-file-tags (_candidate)
-    "Remove file tags from one or more selected nodes."
-    (interactive)
-    (let ((tags (completing-read-multiple
-                 "Remove state: " (org-roam-tag-completions))))
-      (as-zetian-action _node
-        (org-roam-tag-remove tags))))
-
-  (defun zetian--helm-action-set-category (_candidate)
-    "Set the category for one more selected nodes."
-    (interactive)
-    (let ((cat (completing-read "Category: " nil)))
-      (as-zetian-action _node
-        (zetian-set-category cat))))
-
-  (defun zetian--helm-add-input (candidates _source)
-    "Added the initial '[?]' line."
-    (let* ((display-string (helm-ff-prefix-filename helm-pattern nil t))
-           (empty-node (org-roam-node-create :title helm-pattern))
-           (first-line (cons (propertize display-string 'node empty-node)
-                             helm-pattern)))
-      (cons first-line candidates)))
-
-  (defun zetian--helm-sort (candidates _source)
-    "Sort function for zetian helm functions."
-    (let* ((cache (make-hash-table :test 'equal))
-           (score (lambda (title)
-                    (helm-score-candidate-for-pattern
-                     title helm-pattern)))
-           (all
-            (sort
-             candidates
-             (lambda (s1 s2)
-               (let* ((t1 (org-roam-node-title (get-text-property 0 'node s1)))
-                      (t2 (org-roam-node-title (get-text-property 0 'node s2)))
-                      (sc1 (or (gethash t1 cache)
-                               (puthash t1 (funcall score t1) cache)))
-                      (sc2 (or (gethash t2 cache)
-                               (puthash t2 (funcall score t2) cache))))
-                 (cond ((= sc1 sc2)
-                        (< (string-width t1)
-                           (string-width t2)))
-                       ((> sc1 sc2))))))))
-      all))
-
-  (defun zetian--helm-candidates (query)
-    "Run QUERY and build a list of `helm' candidates in the form (DISPLAY
-  . REAL)."
-    (mapcar
-     (lambda (node)
-       ;; save the org-roam-node in the 'node text property
-       (propertize (org-roam-node-title node)
-                   'node node))
-     (zetian-query query)))
-
-  (defun zetian--helm-get-candidate-for-display (beg end)
-    "Given a substring into `helm-buffer' (with BEG END): return a string that
-  helm will use to display matches."
-    (let ((text (buffer-substring beg end)))
-      (zetian--helm-format-node (get-text-property 0 'node text))))
-
-  (defun zetian--helm-format-node (node)
-    "Format NODE for display in a helm buffer."
-    (let* ((pretty
-            (lambda (s face width)
-              (let* ((count (max 0 (- width (length s))))
-                     (padding (make-string count ? )))
-                (propertize
-                 " "
-                 'display (propertize (substring (concat s padding)
-                                                 0 width)
-                                      'face face)))))
-           (width-total (window-text-width))
-           (width-tags 30)
-           (width-cat 20)
-           (width-todo 4)
-           (width-pri 1)
-           (width-title (- width-total
-                           width-tags width-cat width-todo width-pri
-                           ;; spaces between columns
-                           4))
-           (props (org-roam-node-properties node))
-           (title (org-roam-node-title node))
-           (tag-list (org-roam-node-tags node))
-           (tags (funcall pretty
-                          (concat ":" (s-join ":" tag-list) ":")
-                          'helm-separator
-                          width-tags))
-           (category (funcall pretty
-                              (assoc-default "CATEGORY" props)
-                              'font-lock-builtin-face
-                              width-cat))
-           (todo (let ((todo (assoc-default "TODO" props)))
-                   (funcall pretty
-                            todo
-                            (if (member todo zetian--org-done-keywords)
-                                'org-done
-                              'org-todo)
-                            width-todo)))
-           (pri (let ((pri-char (aref (assoc-default "PRIORITY" props) 0)))
-                  (funcall pretty
-                           (if (equal pri-char org-default-priority)
-                               "    "
-                             (format "%c" pri-char))
-                           (org-get-priority-face pri-char)
-                           width-pri)))
-           (pretty-text (format (format "%%s %%s %%-%ds %%s %%s"
-                                        width-title)
-                                pri todo title category
-                                (if tag-list tags ""))))
-      ;; helm will save this string in the match buffer, so we need to ensure that
-      ;; we pass along the 'node text property
-      (propertize pretty-text 'node node)))
-
-  (defun zetian--helm-move-to-first ()
-    "Move to the first actual node in the helm list."
-    ;; in case this remains in `helm-after-update-hook', check that we're in the
-    ;; correct buffer
-    (when (string= (buffer-name (current-buffer))
-                   "*helm-zetian*")
-      (let ((total-candidates
-             (save-excursion
-               (with-current-buffer helm-buffer
-                 (1- (count-lines (point-min) (point-max)))))))
-        (while
-            (let* ((sel (helm-get-selection nil 'withprop))
-                   (cand-num (and sel (get-text-property 0 'helm-cand-num sel))))
-              ;; move to the next line while...
-              (and
-               ;; we have a actual selection...
-               sel
-               ;; it's not a valid zetian node (i.e. it's user input)...
-               (not (org-roam-node-file
-                     (get-text-property 0 'node sel)))
-               ;; and we have a line to move to
-               (< cand-num total-candidates)))
-          (helm-next-line)))))
+  ;; add our annotator to marginalia
+  (with-eval-after-load 'marginalia
+    (add-to-list 'marginalia-annotator-registry
+                 '(zetian zetian--completion-annotator builtin none)))
 #+END_SRC
 
 * Keybindings
