@@ -3074,6 +3074,17 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
     (prescient-persist-mode 1))
 #+END_SRC
 
+*** Embark
+#+BEGIN_SRC emacs-lisp
+  (use-package embark
+    :config
+    ;; always use completing-read for selecting actions, rather than keybinds
+    (setq embark-prompter 'embark-completing-read-prompter)
+    ;; setup initial action keybind
+    (meow-normal-define-key
+     '("C-." . embark-act)))
+#+END_SRC
+
 ** Movement
 Some misc functions to support moving around.
 
