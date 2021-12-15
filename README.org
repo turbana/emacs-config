@@ -3085,6 +3085,19 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
      '("C-." . embark-act)))
 #+END_SRC
 
+*** Consult
+#+BEGIN_SRC emacs-lisp
+  (use-package consult
+    :config
+    (defun consult-outline-or-org-heading (&optional match scope)
+      "Call `consult-org-heading' when in an `org-mode' buffer, otherwise call
+    `consult-outline'."
+      (interactive)
+      (if (bound-and-true-p org-mode)
+          (consult-org-heading match scope)
+        (consult-outline))))
+#+END_SRC
+
 ** Movement
 Some misc functions to support moving around.
 
@@ -4078,7 +4091,8 @@ XXX should these go in an override map?
   (leader-keys
    :infix "b"
    "" '(nil :which-key "buffers")
-   "b" 'switch-to-buffer
+   "b" 'consult-buffer
+   "B" 'consult-buffer-other-window
    "d" 'kill-this-buffer
    "i" 'ibuffer
    "P" 'ic/paste-clipboard-to-buffer
@@ -4121,11 +4135,12 @@ Profiler bindings.
   (leader-keys
    :infix "f"
    "" '(nil :which-key "files")
-   "b" 'bookmark-jump
+   "b" 'consult-bookmark
    "c" 'copy-file
    "D" 'ic/delete-current-buffer-file
    "E" 'sudo-edit
    "f" 'find-file
+   "F" 'find-file-other-window
    "L" 'locate-library
    "M" 'ic/rename-current-buffer-file
    ;; "r" 'ic/helm-recentf
@@ -4166,6 +4181,10 @@ Profiler bindings.
 
 ** TODO h :: help
 /can't use "h" with meow/
+#+BEGIN_SRC emacs-lisp
+  (define-key help-map (kbd "a") 'consult-apropos)
+#+END_SRC
+
 #+BEGIN_SRC emacs-lisp :tangle no
   (leader-keys
    :infix "h"
@@ -4205,6 +4224,21 @@ Profiler bindings.
    "c" 'insert-char
    )
 #+END_SRC
+
+** j :: jump
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+    :infix "j"
+    "" '(nil :which-key "jump")
+    "i" 'consult-imenu
+    "I" 'consult-imenu-multi
+    "l" 'consult-line
+    "m" 'consult-mark
+    "M" 'consult-global-mark
+    "o" 'consult-outline-or-org-heading
+    )
+#+END_SRC
+
 ** l :: layouts
 
 ** m :: major mode
@@ -4212,8 +4246,28 @@ Profiler bindings.
 ** p :: projects
 
 ** r :: registers
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+    :infix "r"
+    "" '(nil :which-key "registers")
+    "l" 'consult-register-load
+    "k" 'consult-yank-from-kill-ring
+    "r" 'consult-register
+    "s" 'consult-register-store
+    )
+#+END_SRC
 
 ** s :: search
+#+BEGIN_SRC emacs-lisp
+  (leader-keys
+    :infix "s"
+    "" '(nil :which-key "search")
+    "f" 'consult-find
+    "g" 'consult-git-grep
+    "G" 'consult-grep
+    "r" 'consult-ripgrep
+    )
+#+END_SRC
 
 ** S :: snippets
 #+BEGIN_SRC emacs-lisp
@@ -4233,6 +4287,7 @@ Profiler bindings.
    "C" 'flycheck-mode
    "S" 'flyspell-mode
    "T" 'load-theme
+   "m" 'consult-minor-mode-menu
    "w" 'whitespace-mode
    )
 #+END_SRC
