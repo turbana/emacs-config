@@ -3020,6 +3020,60 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
     )
 #+END_SRC
 
+** Second completion testing
+
+*** Selectrum
+#+BEGIN_SRC emacs-lisp
+  (use-package selectrum
+    :init
+    ;; always show a certain amount of candidates
+    (setq selectrum-max-window-height 15)
+    (setq selectrum-fix-vertical-window-height t)
+    ;; selection face should extend to the screen edge
+    (setq selectrum-extend-current-candidate-highlight t)
+  
+    :config
+    (selectrum-mode 1)
+  
+    :general
+    (leader-keys
+      "R" 'selectrum-repeat))
+#+END_SRC
+
+*** Marginalia
+#+BEGIN_SRC emacs-lisp
+  (use-package marginalia
+    :config
+    (marginalia-mode 1))
+#+END_SRC
+
+*** Orderless
+#+BEGIN_SRC emacs-lisp
+  (use-package orderless
+    :init
+    (setq completion-styles '(orderless))
+    ;; Optional performance optimization
+    ;; by highlighting only the visible candidates.
+    (setq orderless-skip-highlighting (lambda () selectrum-is-active))
+    (setq selectrum-highlight-candidates-function #'orderless-highlight-matches)
+
+    :config
+    ;; persist history
+    (savehist-mode)
+    )
+#+END_SRC
+
+*** Prescient
+#+BEGIN_SRC emacs-lisp
+  (use-package selectrum-prescient
+    :demand t
+    :init
+    (setq selectrum-prescient-enable-filtering nil)
+    :config
+    (selectrum-prescient-mode 1)
+    (prescient-persist-mode 1))
+#+END_SRC
+
 ** Movement
 Some misc functions to support moving around.
 
