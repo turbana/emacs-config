@@ -2075,6 +2075,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("f" . zetian-node-find)
            ("a" . zetian-find-author)
            ("b" . zetian-find-book)
+           ("c" . zetian-find-category)
            ("e" . zetian-find-open-event)
            ("l" . zetian-find-link-to)
            ("L" . zetian-find-link-from)
@@ -3492,6 +3493,14 @@ I do some common queries against =Zetian= so save them here.
       (zetian-search-find `(tag ,state)
                           (format "notes with state: %s" state))))
 
+  (defun zetian-find-category ()
+    "Prompt for category and find all nodes matching it."
+    (interactive)
+    (let ((cat (completing-read "Category: "
+                                (zetian-all-categories))))
+      (zetian-search-find `(category ,cat)
+                          (format "notes with category: %s" cat))))
+
   (defun zetian-find-review ()
     "Find all notes that need review."
     (interactive)
@@ -3895,6 +3904,20 @@ Sometimes I want some information about the entire state of =Zetian=.
       (sort (mapcar #'car results)
             #'string-collate-lessp)))
 
+  (defun zetian-all-categories ()
+    "Returns a list of all categories in the zetian database. Note: does a full
+  table search."
+    (let ((results
+           (seq-reduce
+            (lambda (cats node)
+              (let ((cat (assoc-default "CATEGORY"
+                                        (org-roam-node-properties node))))
+                (if (member cat cats)
+                    cats
+                  (cons cat cats))))
+            (org-roam-node-list)
+            '())))
+      (sort results #'string-collate-lessp)))
 #+END_SRC
 
 *** OpenLibrary Book Import
