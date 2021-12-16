@@ -3118,7 +3118,7 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
       "Call `consult-org-heading' when in an `org-mode' buffer, otherwise call
     `consult-outline'."
       (interactive)
-      (if (bound-and-true-p org-mode)
+      (if (eq major-mode 'org-mode)
           (consult-org-heading match scope)
         (consult-outline))))
 #+END_SRC
