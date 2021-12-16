@@ -4036,6 +4036,8 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
     (let* ((candidates
             (mapcar
              (lambda (node)
+               ;; add 'zetian-node to the title's properties so we can reference
+               ;; it later.
                (let ((title (org-roam-node-title node)))
                  (add-text-properties 0 1 `(zetian-node ,node) title)
                  (cons title node)))
@@ -4050,7 +4052,11 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
                      "Zetian Node: "))
            (selection (completing-read prompt completing-func)))
       (if-let ((node (assoc-default selection candidates)))
-          node
+          (prog1 node
+            ;; remove the 'zetian-node property added to the title
+            (remove-text-properties 0 1 '(zetian-node)
+                                    (org-roam-node-title node))
+            )
         (when create
           (zetian-node-create selection)))))
 #+END_SRC
