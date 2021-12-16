@@ -3103,12 +3103,16 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
 *** Embark
 #+BEGIN_SRC emacs-lisp
   (use-package embark
+    :demand t
     :config
     ;; always use completing-read for selecting actions, rather than keybinds
     (setq embark-prompter 'embark-completing-read-prompter)
     ;; setup initial action keybind
     (meow-normal-define-key
-     '("C-." . embark-act)))
+     '("C-." . embark-act))
+  
+    :bind (:map minibuffer-local-map
+           ("C-." . embark-act)))
 #+END_SRC
 
 *** Consult
