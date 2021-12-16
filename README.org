@@ -2080,6 +2080,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("L" . zetian-find-link-from)
            ("o" . zetian-find-task-open-orphaned)
            ("p" . zetian-find-project)
+           ("P" . zetian-find-stuck-projects)
            ("r" . zetian-find-review)
            ("s" . zetian-find-state)
            ("S" . zetian-find-strange)
@@ -3446,6 +3447,26 @@ I do some common queries against =Zetian= so save them here.
     (interactive)
     (zetian-search-find '(category "project")
                         "project"))
+
+  (defun zetian-stuck-projects ()
+    "Return a list of stuck projects as zetian nodes."
+    (seq-filter
+     (lambda (project)
+       (let ((title (org-roam-node-title project)))
+         (not (zetian-query `(and (category "task")
+                                  (todo "NEXT")
+                                  (links-to ,title))))))
+     (zetian-query '(and (category "project")
+                         (not (tag "never-stuck"))))))
+
+  (defun zetian-find-stuck-projects ()
+    "Search zetian for any stuck project."
+    (interactive)
+    (let ((projects (zetian-stuck-projects)))
+      ;; we already found the search results, so override `zetian-query'.
+      (cl-letf (((symbol-function 'zetian-query)
+                 (lambda (&rest args) projects)))
+        (zetian-search-find nil "stuck project"))))
 
   (defun zetian-find-strange ()
     "Find any \"strange\" zetian notes. Strange could be unknown categories or
