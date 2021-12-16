@@ -4077,28 +4077,36 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
   `completing-read'."
     (when-let ((node (get-text-property 0 'zetian-node cand)))
       (let* ((todo (org-roam-node-todo node))
+             (todo-face (if (member todo zetian--org-done-keywords)
+                            'org-done
+                          'org-todo))
              (todo-str (if todo
                            (if (< 4 (length todo))
-                               (concat (substring todo 0 4)
+                               (concat (propertize (substring todo 0 4)
+                                                   'face todo-face)
                                        ".")
-                             todo)
+                             (propertize todo 'face todo-face))
                          ""))
-             (tags (string-join (org-roam-node-tags node) ":"))
+             (tags (seq-filter
+                    (lambda (tag)
+                      (not (string-match-p
+                            org-agenda-hide-tags-regexp tag)))
+                    (org-roam-node-tags node)))
+             (tags-str (string-join tags ":"))
              (pri (org-roam-node-priority node))
              (pri-str (if pri
                           (format "[#%s]" (char-to-string pri))
                         "")))
+        ;; ensure todo string is full width, otherwise the 'org-todo face extends past the tag
+        (setq todo-str (concat todo-str
+                               (make-string (- 5 (length todo-str)) ? )))
         (marginalia--fields
          (pri-str :face (org-get-priority-face pri)
                   :width 4)
-         (todo-str :face (if (member todo zetian--org-done-keywords)
-                             'org-done
-                           'org-todo)
-                   :width 5)
-         (tags :face 'org-tag
-               :width 20
-               :truncate 20)
-         ))))
+         (todo-str :width 5)
+         (tags-str :face 'org-tag
+                   :width 20
+                   :truncate 20)))))
 
   ;; add our annotator to marginalia
   (with-eval-after-load 'marginalia
