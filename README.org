@@ -2178,8 +2178,8 @@ I want a pretty mode-line. Note: most of the configuration happens in the =space
 #+BEGIN_SRC emacs-lisp
   (use-package spaceline
       :config
-      ;; use pretty separators
-      (setq powerline-default-separator 'contour)
+      ;; disable separators
+      (setq powerline-default-separator nil)
 
       ;; change face based on evil state
       ;; TODO add meow state function
@@ -2273,6 +2273,28 @@ Sometimes I use an older Surface Pro 4 tablet. This has a nasty habit of screen 
     )
 #+END_SRC
 
+I want to try having some extra vertical space on the mode-line. Just setting the =:height= property on the =mode-line= face will scale all the text on the line as well, which isn't what I want. [[https://github.com/seagle0128/doom-modeline][doom-modeline]] handles this by making an image scaled to the desired size and displaying that in the mode line.
+
+I made one change: to ignore if we running on graphics or not. I'm always in GUI emacs and the mode-line is set prior to the graphics system being initialized, so we need to generate the image even if we don't have =(display-graphic-p)=.
+#+BEGIN_SRC emacs-lisp
+  ;; taken from: https://github.com/seagle0128/doom-modeline/blob/master/doom-modeline-core.el
+  (defun doom-modeline--create-bar-image (face width height)
+    "Create the bar image.
+  Use FACE1 for the bar, FACE2 for the background.
+  WIDTH and HEIGHT are the image size in pixels."
+    (when (and ;;(display-graphic-p)
+               (image-type-available-p 'pbm))
+      (propertize
+       " " 'display
+       (let ((color (or (face-background face nil t) "None")))
+         (ignore-errors
+           (create-image
+            (concat (format "P1\n%i %i\n" width height)
+                    (make-string (* width height) ?1)
+                    "\n")
+            'pbm t :foreground color :ascent 'center))))))
+#+END_SRC
+
 Set the mode line.
 #+BEGIN_SRC emacs-lisp
   ;; bring in bundled segments
@@ -2316,16 +2338,19 @@ Set the mode line.
        :priority 91)))
 
   ;; and enable it
-  (setq-default mode-line-format '("%e" (:eval (spaceline-ml-main))))
+  (let ((spacing-image (doom-modeline--create-bar-image
+                        'powerline-active1 1 30)))
+    (setq-default mode-line-format `(,(concat spacing-image "%e")
+                                     (:eval (spaceline-ml-main)))))
+
 #+END_SRC
 
 =mode-line-format= is buffer-local and there are some buffers that have set it prior to us generating the mode-line, so we need to reset their values:
 #+BEGIN_SRC emacs-lisp
   (save-excursion
-    (dolist (name '("*Messages*" "*scratch*" "*straight-process*"))
-      (if-let ((buffer (get-buffer name)))
-          (with-current-buffer buffer
-            (setq mode-line-format (default-toplevel-value 'mode-line-format))))))
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (setq mode-line-format (default-toplevel-value 'mode-line-format)))))
 #+END_SRC
 
 ** visual-fill-column
