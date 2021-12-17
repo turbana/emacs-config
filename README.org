@@ -2573,9 +2573,15 @@ Try and keep the =user-emacs-directory= somewhat clean.
 #+BEGIN_SRC emacs-lisp
   ;; cache/ directory
   (setq recentf-save-file (concat user-cache-directory "recentf"))
+  (setq eshell-history-file-name (concat user-cache-directory "eshell-history"))
+  (setq savehist-file (concat user-cache-directory "savehist-history"))
+  (setq request-storage-directory (concat user-cache-directory "request"))
   (setq transient-history-file (concat user-cache-directory "transient-history.el"))
+  (setq transient-values-file (concat user-cache-directory "transient-values.el"))
+  (setq transient-levels-file (concat user-cache-directory "transient-levels.el"))
   (setq bookmark-default-file (concat user-cache-directory "bookmarks"))
   (setq tramp-persistency-file-name (concat user-cache-directory "tramp"))
+  (setq server-auth-dir (concat user-cache-directory "server"))
 
   ;; cache/{backups,auto-saves}
   (let ((backup-dir (concat user-cache-directory "backups/"))
