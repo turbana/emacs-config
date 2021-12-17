@@ -4114,6 +4114,13 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
                  '(zetian zetian--completion-annotator builtin none)))
 #+END_SRC
 
+** Beeping
+Turn off the damn bell!
+#+BEGIN_SRC emacs-lisp
+  (setq visible-bell nil)
+  (setq ring-bell-function #'ignore)
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
