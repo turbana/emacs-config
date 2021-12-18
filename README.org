@@ -664,12 +664,13 @@ Main =magit= config.
   (setq org-default-notes-file
         (if at-home "~/org/home/inbox.org" "~/org/inbox.org"))
   (setq org-agenda-files
-        (append (list org-default-file
+        (append (list ;;org-default-file
                       org-default-notes-file)
                 (if at-home
                     '("~/org/home/mobileinbox.org"
                       "~/org/home/jobs.org"))
-                (directory-files "~/org" t "\\.org$")))
+                ;; (directory-files "~/org" t "\\.org$")
+                ))
   (setq org-archive-location "%s_archive::")
 #+END_SRC
 
