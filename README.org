@@ -3251,6 +3251,7 @@ My personal 2nd brain implemented in =org-roam=.
             ("p" "permanent note" plain "%U\n\n%?"
              :target ,(zetian--capture-target-default "perm")
              :unnarrowed t)
+          
             ;; task note
             ("t" "task" entry
              ,(concat (zetian--capture-node "task" "TODO")
@@ -3258,6 +3259,7 @@ My personal 2nd brain implemented in =org-roam=.
              :target ,(zetian--capture-target tasks-file tasks-title)
              :unnarrowed nil
              :empty-lines-before 1)
+          
             ;; event note
             ("e" "event" entry
              ,(concat (zetian--capture-node "event" "TODO")
@@ -3265,6 +3267,7 @@ My personal 2nd brain implemented in =org-roam=.
              :target ,(zetian--capture-target tasks-file tasks-title)
              :unnarrowed nil
              :empty-lines-before 1)
+          
             ;; lit note
             ("l" "literature note" plain
              ,(concat "%U\n\n%?\n\n"
@@ -3272,6 +3275,7 @@ My personal 2nd brain implemented in =org-roam=.
                       "/Quote from %(zetian-link)/")
              :target ,(zetian--capture-target-default "lit")
              :unnarrowed t)
+          
             ;; person note
             ("P" "person" entry
              ,(concat (zetian--capture-node "person")
@@ -3286,6 +3290,12 @@ My personal 2nd brain implemented in =org-roam=.
              :target ,(zetian--capture-target person-file person-title)
              :unnarrowed nil
              :empty-lines-before 1)
+          
+            ;; movie note
+            ("M" "movie" plain "%U\n\n%?"
+             :target ,(zetian--capture-target-default "movie")
+             :unnarrowed t)
+          
             ;; TODO author note
             ;; TODO idea note
             )))
