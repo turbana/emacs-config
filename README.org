@@ -378,15 +378,6 @@ Load my custom theme early so if we have errors emacs still looks pretty.
            ("M-<f6>" . 'themian--reload-light-theme)))
 #+END_SRC
 
-Let's try a new mode-line look
-#+BEGIN_SRC emacs-lisp
-  (dolist (face '(mode-line mode-line-inactive))
-    (set-face-attribute face nil :height 180))
-
-  (setq powerline-height 25)
-  (setq powerline-default-separator 'bar)
-#+END_SRC
-
 ** Debugging
 *** Tracing
 Some functions to trace the changing of variables.
