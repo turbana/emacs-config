@@ -4099,6 +4099,7 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
                             org-agenda-hide-tags-regexp tag)))
                     (org-roam-node-tags node)))
              (tags-str (string-join tags ":"))
+             (cat (assoc-default "CATEGORY" (org-roam-node-properties node)))
              (pri (org-roam-node-priority node))
              (pri-str (if pri
                           (format "[#%s]" (char-to-string pri))
@@ -4107,6 +4108,8 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
         (setq todo-str (concat todo-str
                                (make-string (- 5 (length todo-str)) ? )))
         (marginalia--fields
+         (cat :face 'org-document-info
+              :width 12)
          (pri-str :face (org-get-priority-face pri)
                   :width 4)
          (todo-str :width 5)
