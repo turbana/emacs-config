@@ -14,5 +14,8 @@
 (setq package-enable-at-startup nil)
 
 (require 'server)
+;; keep the server files under `user-cache-directory'/server
+(setq server-auth-dir (concat (file-name-directory load-file-name)
+                              "cache/server"))
 (unless (server-running-p)
   (server-start))

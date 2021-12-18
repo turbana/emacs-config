@@ -2581,7 +2581,6 @@ Try and keep the =user-emacs-directory= somewhat clean.
   (setq transient-levels-file (concat user-cache-directory "transient-levels.el"))
   (setq bookmark-default-file (concat user-cache-directory "bookmarks"))
   (setq tramp-persistency-file-name (concat user-cache-directory "tramp"))
-  (setq server-auth-dir (concat user-cache-directory "server"))
 
   ;; cache/{backups,auto-saves}
   (let ((backup-dir (concat user-cache-directory "backups/"))
