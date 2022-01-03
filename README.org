@@ -35,8 +35,12 @@ I want my config to be portable between machines. So I'll need some variables to
   (setq at-home (= 0 (shell-command "source ~/.bashrc && at_home")))
   (setq at-work (= 0 (shell-command "source ~/.bashrc && at_work")))
 
-  (setq on-tablet (string-equal (system-name) "DESKTOP-F6Q3GN2"))
-  (setq on-old-imac (string-equal (system-name) "Michaels-iMac.local"))
+  (defun on-host (hostname)
+    "Return non-nil when the current system is `hostname'."
+    (string-equal (system-name) hostname))
+  (setq on-tablet (on-host "DESKTOP-F6Q3GN2"))
+  (setq on-old-imac (on-host "Michaels-iMac.local"))
+  (setq on-home-windows-desktop (on-host "Chetwood"))
 #+END_SRC
 
 * Bootstrap
@@ -623,6 +627,23 @@ Main =magit= config.
     :init
     ;; don't use magit's default key bindings
     (setq magit-define-global-key-bindings nil)
+
+    ;; I run emacs on my home windows desktop under MSYS2, but magit guesses that
+    ;; it's running under CYGWIN, which screws up filename expansion
+    (when on-home-windows-desktop
+      (defun ic-magit-maybe-override-cygwin-paths (f &rest args)
+        "Call `f' with correct binding of `magit-cygwin-mount-points'.
+
+  When running emacs on windows under MSYS2, we need `magit' to rewrite local file
+      paths using `magit-cygwin-mount-points', but ignore it for remote paths."
+        (let ((magit-cygwin-mount-points
+               (and (not (file-remote-p default-directory))
+                    magit-cygwin-mount-points)))
+          (apply f args)))
+      (advice-add 'magit-expand-git-file-name :around
+                  #'ic-magit-maybe-override-cygwin-paths)
+      (advice-add 'magit-convert-filename-for-git :around
+                  #'ic-magit-maybe-override-cygwin-paths))
 
     :general
     (general-define-key
