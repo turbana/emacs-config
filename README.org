@@ -4177,7 +4177,7 @@ Here we copy the spacemacs keybindings, more or less.
   (leader-keys
     "|" 'ic/shell-command-on-region-replace
     "C-|" 'shell-command-on-region
-    ;; "TAB" 'evil-switch-to-windows-last-buffer
+    "TAB" 'mode-line-other-buffer
     "u" 'universal-argument)
 #+END_SRC
 
