@@ -2878,7 +2878,7 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
   (setq browse-url-browser-function 'browse-url-generic)
   (setq browse-url-generic-program
         (cond
-         (on-tablet
+         (on-windows
           "c:/Program Files/Mozilla Firefox/firefox.exe")
          (on-old-imac
           "/Applications/Firefox.app/Contents/MacOS/firefox")
