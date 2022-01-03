@@ -778,7 +778,8 @@ Because =org-mode= is mostly prose use =buffer-face-mode= (along with setting th
 Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]]. See [[*org-bullets][org-bullets]] setup as well.
 #+BEGIN_SRC emacs-lisp
   ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒
-  (setq org-ellipsis (if on-tablet " …" " ⌵"))
+  ;; ⌵
+  (setq org-ellipsis " …")
 
   ;; replace certain org-mode text with symbols
   (defun ic/org-mode-pretty-symbols ()
