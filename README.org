@@ -4152,6 +4152,22 @@ Turn off the damn bell!
   (setq ring-bell-function #'ignore)
 #+END_SRC
 
+** Tramp
+Some tramp specific configurations.
+
+*** Guix
+=tramp= doesn't honor the host's =$PATH= by default, instead searching directories manually for commands (ex =/usr/bin/ls=, =/bin/ls=, etc). As =guix= makes heavy use of =PATH= this doesn't work, so we need to setup =tramp= accordingly.
+#+BEGIN_SRC emacs-lisp
+  ;; only use $PATH on the remote host
+  (connection-local-set-profile-variables
+   'use-remote-path-envvar
+   '((tramp-remote-path . (tramp-own-remote-path))))
+
+  (connection-local-set-profiles
+   '(:application tramp :machine "tornado")
+   'use-remote-path-envvar)
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
