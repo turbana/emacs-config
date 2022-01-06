@@ -2182,10 +2182,12 @@ Keep my toe-nail clippings in balance.
     ;; don't run smartparens in the minibuffer
     (add-hook 'minibuffer-mode-hook 'turn-off-smartparens-strict-mode)
 
-    :general
-    (general-define-key
-     :keymaps 'emacs-lisp-mode-map
-     "^" #'sp-backward-up-sexp))
+    ;; XXX this is shadowing the insert mode binding for some reason
+    ;; :general
+    ;; (general-define-key
+    ;;  :keymaps 'emacs-lisp-mode-map
+    ;;  "^" #'sp-backward-up-sexp)
+    )
 #+END_SRC
 
 ** spaceline
