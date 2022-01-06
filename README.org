@@ -2662,6 +2662,50 @@ Some useful buffer related functions.
               (buffer-list))))))
 #+END_SRC
 
+** ibuffer
+#+BEGIN_SRC emacs-lisp
+  (setq ibuffer-saved-filter-groups
+        '(("default"
+           ("org" (or
+                   (mode . org-mode)
+                   (name . "^\\*Org Src")))
+           ("tramp" (name . "^\\*tramp.*"))
+           ("magit" (or
+                     (mode . magit-mode)
+                     (mode . magit-diff-mode)
+                     (mode . magit-process-mode)
+                     (name . "^magit.*")))
+           ("emacs" (or
+                     (name . "^\\*scratch\\*$")
+                     (name . "^\\*Messages\\*$")
+                     (name . "^\\*Shell Command Output\\*$")
+                     ))
+           ("ediff" (or
+                     (name . "^\\*ediff.*")
+                     (name . "^\\*Ediff.*")
+                     )
+            )
+           ("dired" (mode . dired-mode))
+           ("terminal" (or
+                         (mode . term-mode)
+                         (mode . shell-mode)
+                         (mode . eshell-mode)
+                         ))
+           ("help" (or
+                    (name . "^\\*Help\\*$")
+                    (name . "^\\*info\\*$")
+                    ))
+           )))
+
+  ;; use our custom groupings by default
+  (add-hook 'ibuffer-mode-hook
+            (lambda ()
+              (ibuffer-switch-to-saved-filter-groups "default")))
+
+  ;; don't show empty groups
+  (setq ibuffer-show-empty-filter-groups nil)
+#+END_SRC
+
 ** Files
 Some useful file related functions.
 
