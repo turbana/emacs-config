@@ -2583,6 +2583,11 @@ bar, etc.
   ;; let me use y/n in prompts
   (fset 'yes-or-no-p 'y-or-n-p)
 #+END_SRC
+** Encoding
+I do most of my work in =UTF-8= with =unix= line endings, so set that as the default coding system. Emacs seems to still Do The Right Thing on windows with this set. When it's not set =tramp= from windows into a linux system does not work properly.
+#+BEGIN_SRC emacs-lisp
+  (prefer-coding-system 'utf-8-unix)
+#+END_SRC
 
 ** user-emacs-directory
 Try and keep the =user-emacs-directory= somewhat clean.
