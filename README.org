@@ -3196,7 +3196,15 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
       (interactive)
       (if (eq major-mode 'org-mode)
           (consult-org-heading match scope)
-        (consult-outline))))
+        (consult-outline)))
+
+    (defun ic-consult-bookmark ()
+      "Call `consult-bookmark' without automatic buffer preview.
+  This is to prevent possible `tramp' calls."
+      (interactive)
+      (let ((consult-preview-key 'nil))
+        (call-interactively #'consult-bookmark)))
+    )
 #+END_SRC
 
 ** Movement
@@ -4328,7 +4336,7 @@ Profiler bindings.
   (leader-keys
    :infix "f"
    "" '(nil :which-key "files")
-   "b" 'consult-bookmark
+   "b" 'ic-consult-bookmark
    "c" 'copy-file
    "D" 'ic/delete-current-buffer-file
    "E" 'sudo-edit
