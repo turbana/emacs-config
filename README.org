@@ -2588,6 +2588,17 @@ I do most of my work in =UTF-8= with =unix= line endings, so set that as the def
 #+BEGIN_SRC emacs-lisp
   (prefer-coding-system 'utf-8-unix)
 #+END_SRC
+** Ediff
+#+BEGIN_SRC emacs-lisp
+  ;; don't open ediff controls in a new frame
+  (setq ediff-window-setup-function 'ediff-setup-windows-plain)
+
+  ;; use a more comfortable window split
+  (setq ediff-split-window-function 'split-window-horizontally)
+
+  ;; restore old window configuration on exit
+  (add-hook 'ediff-after-quit-hook-internal 'winner-undo)
+#+END_SRC
 
 ** user-emacs-directory
 Try and keep the =user-emacs-directory= somewhat clean.
