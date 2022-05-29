@@ -170,7 +170,9 @@ Let's give modal editing package a try
     :ensure t
     :demand t
     :config
-    ;; use my local leader key
+    ;; emacs keybind to access local leader map
+    (setq emacs-local-leader-prefix "C-?")
+    ;; meow keybind alias for local leader map
     (setq meow-local-leader-prefix "/")
     (setq meow-local-leader-insert-prefix "C-/")
     ;; keep the expand hints around a while longer
@@ -185,40 +187,21 @@ Let's give modal editing package a try
 #+BEGIN_SRC emacs-lisp
   (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
 
+  (setq global-leader-map
+        (let ((keymap (make-sparse-keymap)))
+          (define-key keymap (kbd "c") 'meow-keypad-start)
+          (define-key keymap (kbd "g") 'meow-keypad-start)
+          (define-key keymap (kbd "h") 'meow-keypad-start)
+          (define-key keymap (kbd "m") 'meow-keypad-start)
+          (define-key keymap (kbd "x") 'meow-keypad-start)
+          keymap))
+
   (meow-motion-overwrite-define-key
    '("j" . meow-next)
    '("k" . meow-prev)
-   ;; local leader
-   '("/" . "C-c C-/"))
-
-  (meow-leader-define-key
-   ;; SPC j/k will run the original command in MOTION state.
-   '("j" . "H-j")
-   '("k" . "H-k")
-   ;; select windows
-   '("1" . winum-select-window-1)
-   '("2" . winum-select-window-2)
-   '("3" . winum-select-window-3)
-   '("4" . winum-select-window-4)
-   '("5" . winum-select-window-5)
-   '("6" . winum-select-window-6)
-   '("7" . winum-select-window-7)
-   '("8" . winum-select-window-8)
-   '("9" . winum-select-window-9)
-   '("0" . winum-select-window-0-or-10)
-   ;; kill windows
-   '("C-1" . ic/winum-delete-window-1)
-   '("C-2" . ic/winum-delete-window-2)
-   '("C-3" . ic/winum-delete-window-3)
-   '("C-4" . ic/winum-delete-window-4)
-   '("C-5" . ic/winum-delete-window-5)
-   '("C-6" . ic/winum-delete-window-6)
-   '("C-7" . ic/winum-delete-window-7)
-   '("C-8" . ic/winum-delete-window-8)
-   '("C-9" . ic/winum-delete-window-9)
-   '("C-0" . ic/winum-delete-window-0-or-10)
-   '("/" . meow-keypad-describe-key)
-   '("?" . meow-cheatsheet))
+   ;; global leader
+   `("SPC" . ,global-leader-map)
+   )
 
   (meow-normal-define-key
    '("1" . meow-1)
@@ -237,8 +220,10 @@ Let's give modal editing package a try
    '("." . meow-bounds-of-thing)
    '("[" . meow-beginning-of-thing)
    '("]" . meow-end-of-thing)
+   ;; global leader
+   `("SPC" . ,global-leader-map)
    ;; local leader
-   '("/" . "C-c C-/")
+   `(,meow-local-leader-prefix . ,emacs-local-leader-prefix)
    '("a" . meow-append)
    '("A" . meow-open-below)
    '("b" . meow-back-word)
@@ -287,7 +272,8 @@ Let's give modal editing package a try
 
   ;; local leader in insert mode
   (define-key meow-insert-state-keymap
-    (kbd meow-local-leader-insert-prefix) (meow--parse-def "C-c C-/"))
+    (kbd meow-local-leader-insert-prefix)
+    (meow--parse-def emacs-local-leader-prefix))
 #+END_SRC
 
 **** Digit Keys
@@ -481,44 +467,21 @@ The package =general.el= makes all of the above rather simple. Here we ensure it
 
 #+BEGIN_SRC emacs-lisp
   (use-package general
-      :demand t
-      :config
-      ;; ensure `general-override-mode-map' is active
-      (general-override-mode 1)
-
-    
-      ;; ;; create leader (SPC) definer
-      ;; (general-create-definer leader-keys
-      ;;   :states '(normal motion insert emacs)
-      ;;   :keymaps 'general-override-mode-map
-      ;;   :prefix "SPC"
-      ;;   :non-normal-prefix "C-SPC")
-
-      ;; ;; create local leader (,) definer
-      ;; (general-create-definer local-leader-keys
-      ;;   :states '(normal motion insert emacs)
-      ;;   :keymaps 'general-override-mode-map
-      ;;   :prefix ","
-      ;;   :non-normal-prefix "C-,")
-
-
-      ;; create leader (SPC) definer
-      (general-create-definer leader-keys
-        :keymaps 'meow-leader-keymap
-        ;; :prefix "SPC"
-        )
-
-      ;; create local leader (,) definer
-      (general-create-definer local-leader-keys
-        :keymaps 'general-override-mode-map
-        :prefix "C-c C-/ "
-        )
-
-    
-      ;; general.el defines `general-define-key' so re-alias it now
-      ;; (defalias 'general-define-key 'ic-general-define-key)
-
+    :demand t
+    :config
+    ;; ensure `general-override-mode-map' is active
+    (general-override-mode 1)
+  
+    ;; create leader (SPC) definer
+    (general-create-definer leader-keys
+      :keymaps 'global-leader-map
+      ;; :prefix "SPC"
       )
+  
+    ;; create local leader (,) definer
+    (general-create-definer local-leader-keys
+      :keymaps 'general-override-mode-map
+      :prefix emacs-local-leader-prefix))
 #+END_SRC
 
 ** which-key
@@ -2072,7 +2035,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (org-roam-setup)
     (require 'org-roam-protocol)
     :bind (("<f2>" . org-roam-capture)
-           :map meow-leader-keymap
+           :map global-leader-map
            :prefix "z"
            :prefix-map zetian
            ("b" . org-roam-buffer-toggle)
