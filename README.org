@@ -555,6 +555,16 @@ Minimal setup for viewing =C#= code.
     :demand t)
 #+END_SRC
 
+** helpful
+#+BEGIN_SRC emacs-lisp
+  (use-package helpful
+    :demand t
+    :bind (:map global-map
+           ([remap describe-function] . #'helpful-callable)
+           ([remap describe-variable] . #'helpful-variable)
+           ([remap describe-key] . #'helpful-key)))
+#+END_SRC
+
 ** lsp
 #+BEGIN_SRC emacs-lisp
   (use-package lsp-mode
