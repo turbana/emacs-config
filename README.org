@@ -628,7 +628,9 @@ Main =magit= config.
     (general-define-key
      :keymaps 'magit-section-mode-map
      "<up>" 'magit-section-backward
-     "<down>" 'magit-section-forward))
+     "<down>" 'magit-section-forward)
+    :bind (:map magit-status-mode-map
+           ("x" . #'magit-discard)))
 #+END_SRC
 
 ** org
