@@ -586,6 +586,11 @@ Minimal setup for viewing =C#= code.
     )
 #+END_SRC
 
+** lsp-ui
+#+BEGIN_SRC emacs-lisp
+  (use-package lsp-ui)
+#+END_SRC
+
 ** magit
 For some reason on the Surface Pro 4 tablet we need to manually load =magit-section= before loading =magit= proper.
 #+BEGIN_SRC emacs-lisp
@@ -3188,6 +3193,15 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
       (let ((consult-preview-key 'nil))
         (call-interactively #'consult-bookmark)))
     )
+#+END_SRC
+
+*** consult-lsp
+#+BEGIN_SRC emacs-lisp
+  (use-package consult-lsp
+    :bind (:map lsp-mode-map
+           ([remap consult-imenu-multi] . #'consult-lsp-symbols)
+           :map lsp-command-map
+           ("GD" . #'consult-lsp-diagnostics)))
 #+END_SRC
 
 ** Movement
