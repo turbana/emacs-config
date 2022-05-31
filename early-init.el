@@ -12,10 +12,13 @@
 
 ;; disable package.el
 (setq package-enable-at-startup nil)
-
-(require 'server)
 ;; keep the server files under `user-cache-directory'/server
 (setq server-auth-dir (concat (file-name-directory load-file-name)
-                              "cache/server"))
+                              "cache/server/"))
+;; keep the (minimal) server eln cache in the same directory
+(setq native-comp-eln-load-path (list server-auth-dir
+                                      (car (last native-comp-eln-load-path))))
+
+(require 'server)
 (unless (server-running-p)
   (server-start))

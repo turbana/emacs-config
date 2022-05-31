@@ -53,7 +53,12 @@ I want to make use of the native compilation system introduced in emacs 28.
          (native-comp-available-p)))
 
   (when have-native-compilation
-    (setq comp-async-jobs-number 4))
+    ;; don't blast me with (mostly) useless warnings
+    (setq native-comp-async-report-warnings-errors nil)
+    ;; keep the eln cache tidy
+    (setq native-comp-eln-load-path
+          (list (concat user-cache-directory "eln-cache/")
+                (car (last native-comp-eln-load-path)))))
 #+END_SRC
 ** straight.el
 I use =straight.el= for package management so install this early.
