@@ -562,13 +562,22 @@ Minimal setup for viewing =C#= code.
     :commands lsp
 
     :init
-    (setq lsp-keymap-prefix "C-c l")
-
+    ;; keep session file tidy
+    (setq lsp-session-file (concat user-cache-directory "lsp-session-v1"))
+    ;; setup which key under local leader
+    (setq lsp-keymap-prefix (concat meow-local-leader-prefix " l"))
     ;; don't show the top breadcrumbs by default
     (setq lsp-headerline-breadcrumb-enable nil)
+    ;; keep more log data
+    (setq lsp-log-max 10000)
+    ;; setup c# lsp server
+    (setq lsp-csharp-server-path
+          (cond (on-home-windows-desktop
+                 (executable-find "OmniSharp.exe"))))
 
     :hook
-    ((lsp-mode . lsp-enable-which-key-integration))
+    ((lsp-mode . lsp-enable-which-key-integration)
+     (csharp-mode . lsp-deferred))
 
     :general
     (local-leader-keys
@@ -4206,6 +4215,28 @@ Some tramp specific configurations.
   (connection-local-set-profiles
    '(:application tramp :machine "tornado")
    'use-remote-path-envvar)
+#+END_SRC
+
+** Directory Locals
+*** lsp ignore Unity directories
+=lsp-mode= should not create file watchers for every directory in a Unity project. I wish there was a way to whitelist directories, but =lsp= only allows for blacklisting. So use =dir-locals= to add some common =Unity= directories.
+#+BEGIN_SRC emacs-lisp
+  ;; setup directory local variables and make them as safe
+  (let* ((ignore-dirs '("Build" "Library" "Logs" "obj" "Packages"
+                        "ProjectSettings" "Temp" "UserSettings"))
+         (ignore-regexes (append (mapcar (lambda (d) (concat "[/\\\\]" d "\\'"))
+                                         ignore-dirs)
+                                 lsp-file-watch-ignored-directories))
+         (vars `((lsp-file-watch-ignored-directories . ,ignore-regexes))))
+    (dir-locals-set-class-variables
+     'unity-project
+     `((nil . ,vars)))
+    (dolist (var vars)
+      (add-to-list 'safe-local-variable-values var)))
+
+  (when on-home-windows-desktop
+    (dir-locals-set-directory-class
+     "c:/Code/Icarus" 'unity-project))
 #+END_SRC
 
 * Keybindings
