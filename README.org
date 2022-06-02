@@ -1593,8 +1593,6 @@ Add some custom =<X= templates.
   (setq org-archive-mark-done nil)
   ;; catch modifying collapsed text
   (setq org-catch-invisible-edits 'error)
-  ;; save id locations in a nicer place
-  (setq org-id-locations-file (concat user-cache-directory "org-id-locations"))
 #+END_SRC
 
 It would be handy to have a function that would handle =org-mode= style time strings such as =+3d=, =-1w=, etc.
@@ -1625,6 +1623,17 @@ It would be handy to have a function that would handle =org-mode= style time str
             (t
              ;; we didn't specify a time and we want to use the *following* day
              (time-add encoded-time (* 24 60 60))))))
+#+END_SRC
+
+**** org-id
+Keep track of =org-mode= items with a guid. This is required by =zeitan= / =org-roam=.
+#+BEGIN_SRC emacs-lisp
+  ;; save id locations in a nicer place
+  (setq org-id-locations-file (concat user-cache-directory "org-id-locations"))
+
+  (setq org-id-files (append (directory-files "~/org" t "\\.org$")
+                             (directory-files "~/org/home" t "\\.org$")
+                             org-id-files))
 #+END_SRC
 
 **** Code Execution
@@ -2052,13 +2061,13 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     :demand t
     :init
     (setq org-roam-v2-ack t)
-
-    :custom
-    (org-roam-directory "~/org/home/roam")
-    (org-roam-db-location
-     (concat user-cache-directory "org-roam.db"))
-    (org-roam-completion-everywhere t)
-
+    (setq org-roam-directory "~/org/home/roam")
+    (setq org-roam-db-location
+          (concat user-cache-directory "org-roam.db"))
+    (setq org-roam-completion-everywhere t)
+    (setq org-id-files (append (directory-files org-roam-directory t "\\.org$")
+                               org-id-files))
+  
     :config
     ;; the org-element cache messes with correct category lookup and seems to
     ;; break org-roam sometimes, so disable it
