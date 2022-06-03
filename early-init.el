@@ -16,8 +16,10 @@
 (setq server-auth-dir (concat (file-name-directory load-file-name)
                               "cache/server/"))
 ;; keep the (minimal) server eln cache in the same directory
-(setq native-comp-eln-load-path (list server-auth-dir
-                                      (car (last native-comp-eln-load-path))))
+(when (boundp 'native-comp-eln-load-path)
+  (setq native-comp-eln-load-path
+        (cons server-auth-dir
+              (last native-comp-eln-load-path))))
 
 (require 'server)
 (unless (server-running-p)
