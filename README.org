@@ -27,20 +27,22 @@ I also want to keep my =user-emacs-directory= somewhat clean, so let's define a 
 I want my config to be portable between machines. So I'll need some variables to key on for various changes
 
 #+BEGIN_SRC emacs-lisp
-  (setq on-linux (string-equal system-type "gnu/linux"))
-  (setq on-windows (string-equal system-type "windows-nt"))
-  (setq on-mac (string-equal system-type "darwin"))
+  (defconst on-linux (string-equal system-type "gnu/linux"))
+  (defconst on-windows (string-equal system-type "windows-nt"))
+  (defconst on-mac (string-equal system-type "darwin"))
 
   ;; at_home/at_work are bash functions defined in ~/.bashrc
-  (setq at-home (= 0 (shell-command "source ~/.bashrc && at_home")))
-  (setq at-work (= 0 (shell-command "source ~/.bashrc && at_work")))
+  (defconst at-home (= 0 (call-process "bash" nil nil nil "-c" "source ~/.bashrc && at_home")))
+  (defconst at-work (= 0 (call-process "bash" nil nil nil "-c" "source ~/.bashrc && at_work")))
 
   (defun on-host (hostname)
     "Return non-nil when the current system is `hostname'."
     (string-equal (system-name) hostname))
-  (setq on-tablet (on-host "DESKTOP-F6Q3GN2"))
-  (setq on-old-imac (on-host "Michaels-iMac.local"))
-  (setq on-home-windows-desktop (on-host "Chetwood"))
+
+  (defconst on-tablet (on-host "DESKTOP-F6Q3GN2"))
+  (defconst on-old-imac (on-host "Michaels-iMac.local"))
+  (defconst on-home-windows-desktop (and on-windows (on-host "Chetwood")))
+  (defconst on-home-windows-desktop-wsl (and on-linux (on-host "Chetwood")))
 #+END_SRC
 
 * Bootstrap
