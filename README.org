@@ -862,6 +862,12 @@ Allow us to execute various languages in =org-src= blocks.
       (shell . t)))
 #+END_SRC
 
+**** org-persist
+Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
+#+BEGIN_SRC emacs-lisp
+  (setq org-persist-directory (concat user-cache-directory "org-persist/"))
+#+END_SRC
+
 **** Agenda
 ***** Setup
 #+BEGIN_SRC emacs-lisp
@@ -3183,6 +3189,7 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
     :demand t
     :init
     (setq selectrum-prescient-enable-filtering nil)
+    (setq prescient-save-file (concat user-cache-directory "prescient-save.el"))
     :config
     (selectrum-prescient-mode 1)
     (prescient-persist-mode 1))
