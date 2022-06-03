@@ -1635,7 +1635,7 @@ Keep track of =org-mode= items with a guid. This is required by =zeitan= / =org-
 
   (setq org-id-files (append (directory-files "~/org" t "\\.org$")
                              (directory-files "~/org/home" t "\\.org$")
-                             org-id-files))
+                             (and (boundp 'org-id-files) org-id-files)))
 #+END_SRC
 
 **** Code Execution
@@ -2061,6 +2061,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
 #+BEGIN_SRC emacs-lisp
   (use-package org-roam
     :demand t
+    :requires org
     :init
     (setq org-roam-v2-ack t)
     (setq org-roam-directory "~/org/home/roam")
@@ -2068,8 +2069,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
     (setq org-id-files (append (directory-files org-roam-directory t "\\.org$")
-                               org-id-files))
-  
+                               (and (boundp 'org-id-files) org-id-files)))
+
     :config
     ;; the org-element cache messes with correct category lookup and seems to
     ;; break org-roam sometimes, so disable it
