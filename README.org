@@ -3441,18 +3441,23 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     (interactive)
     (when-let (node (or node (zetian-search nil t "Find or create note")))
       (if-let ((guid (org-roam-node-id node))
-               (loc (org-id-find guid))
                (title (org-roam-node-title node))
                (buf-name (format "zetian: %s" title)))
-          (let ((buf (get-buffer buf-name)))
-            (if (buffer-live-p buf)
-                (pop-to-buffer-same-window buf)
-              (bury-buffer)
-              (pop-to-buffer-same-window
-               (make-indirect-buffer (find-file (car loc)) buf-name t))
-              (widen)
-              (goto-char (cdr loc))
-              (org-narrow-to-subtree)))
+          (let ((buf (get-buffer buf-name))
+                (loc (org-id-find guid)))
+            (cond ((buffer-live-p buf)
+                   (pop-to-buffer-same-window buf))
+                  (loc
+                   (bury-buffer)
+                   (pop-to-buffer-same-window
+                    (make-indirect-buffer (find-file (car loc)) buf-name t))
+                   (widen)
+                   (goto-char (cdr loc))
+                   (when (org-at-heading-p)
+                     (org-narrow-to-subtree)))
+                  (t
+                   (find-file (org-roam-node-file node))
+                   (rename-buffer buf-name))))
         (error "could not lookup zetian node: %s" (org-id-find (org-roam-node-id node))))))
 #+END_SRC
 
