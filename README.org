@@ -1387,6 +1387,19 @@ Now, make another call to =LibraryThing= and check for =Work= data to add in.
             doc)))
 #+END_SRC
 
+Finally, we can put all that together into one supporting function.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/openlibrary-search (query)
+    "Run QUERY against OpenLibrary and return results as a list of association
+  lists."
+    (ic/openlibrary--parse-search-results
+     (ic/openlibrary--request
+      (concat ic/openlibrary-base-endpoint "/search.json")
+      `(("q" . ,(split-string query " " t))
+        ("limit" . ,ic/openlibrary-max-results)
+        ("mode" . "everything")))))
+#+END_SRC
+
 ****** TODO Helm
 /need to rewrite against completing-read/
 #+BEGIN_SRC emacs-lisp
@@ -1439,6 +1452,70 @@ Finally, we need a function to take the data from =OpenLibrary= and return it in
      doc))
 #+END_SRC
 
+****** completing-read
+Now let's use =completing-read= to lookup a book.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/openlibrary--lookup-work (works olid)
+    "Given a list of association lists in WORKS, return the alist with 'ol-word-id
+  equal to OLID."
+    (when works
+      (if (equal (cdr (assoc 'ol-work-id (car works)))
+                 olid)
+          (car works)
+        (ic/openlibrary--lookup-work (cdr works) olid))))
+
+  (defun ic/openlibrary-find-book (&optional query results)
+    (interactive)
+    (let* ((query (or query (read-from-minibuffer "Search OpenLibrary: ")))
+           (results (or results (ic/openlibrary-search query)))
+           (titles (mapcar (lambda (work) (alist-get 'title work))
+                           results)))
+      (ic/openlibrary--lookup-work
+       results
+       (completing-read
+        (format "Search OpenLibrary (%s): " query)
+        (lambda (str pred action)
+          (if (eq action 'metadata)
+              `(metadata
+                (annotation-function
+                 . ,(lambda (cand)
+                      (let ((work
+                             (ic/openlibrary--lookup-work
+                              results cand)))
+                        (format " by %s [%d] %s {%s %s %s}"
+                                (alist-get 'authors work)
+                                (alist-get 'first-year-published work)
+                                (if-let ((editions (alist-get 'edition-count
+                                                              work)))
+                                    (format "%d editions" editions)
+                                  "")
+                                (alist-get 'ol-work-id work)
+                                (alist-get 'goodreads-id work)
+                                (alist-get 'librarything-id work))))))
+            (complete-with-action action titles str pred)))))))
+
+  (defun ic/openlibrary-find-book (&optional query results)
+    (interactive)
+    (let* ((query (or query (read-from-minibuffer "Search OpenLibrary: ")))
+           (results (or results (ic/openlibrary-search query)))
+           (collection
+            (mapcar
+             (lambda (work)
+               (format "%s by %s [%s] %s"
+                       (alist-get 'title work)
+                       (or (and (alist-get 'authors work)
+                                (string-join (alist-get 'authors work) " & "))
+                           "?")
+                       (or (alist-get 'first-year-published work) "?")
+                       (alist-get 'ol-work-id work)))
+             results))
+           (selected (completing-read
+                      (format "Search OpenLibrary (%s): " query)
+                      collection))
+           (olid (car (last (split-string selected " ")))))
+      (ic/openlibrary--lookup-work results olid)))
+#+END_SRC
+
 ****** Capture
 Now, we need a function that takes the data from =OpenLibrary= and generates an =org-mode= element for us to use.
 #+BEGIN_SRC emacs-lisp
@@ -1447,7 +1524,7 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
   search OpenLibrary against and generate an `org-mode' element from the resulting
     data."
     (let* ((result "")
-           (doc (ic/openlibrary-helm-find-book)))
+           (doc (ic/openlibrary-find-book)))
       (cl-flet* ((add (fmt &rest args)
                       (when (-all? 'identity args)
                         (setq result (concat result
@@ -2095,7 +2172,13 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix "zc"
            :prefix-map zetian-capture
            ("c" . org-roam-capture)
+           :prefix "zcb"
+           :prefix-map zetian-capture-books
            ("b" . zetian-capture-book)
+           ("p" . zetian-capture-book-pleasure-toread)
+           ("P" . zetian-capture-book-pleasure-completed)
+           ("e" . zetian-capture-book-enrichment-toread)
+           ("E" . zetian-capture-book-enrichment-completed)
            :prefix "zf"
            :prefix-map zetian-find
            ("f" . zetian-node-find)
@@ -4116,6 +4199,9 @@ Let's migrate my book importing code to =org-roam=.
                     (-zip (assoc-default 'authors book)
                           (assoc-default 'ol-author-ids book)))
                    "\n"))
+                (maybe-quote
+                 ,(when-let ((desc (assoc-default 'description book)))
+                    (format "#+begin_quote\n%s\n#+end_quote\n\n" desc)))
                 (lt-uri
                  ,(if-let (id (assoc-default 'librarything-id book))
                       (format "/work/%s" id)
@@ -4130,7 +4216,8 @@ Let's migrate my book importing code to =org-roam=.
          (concat
           "\%U\n\n"
           "/`title`/ by `authors-pretty-links`.\n\n"
-          "#+begin_quote\n`description`\n#+end_quote\n\n"
+          "`maybe-quote`"
+          ;; "#+begin_quote\n`description`\n#+end_quote\n\n"
           "- [[https://librarything.com`lt-uri`][LibraryThing]]\n"
           "- [[https://openlibrary.org`ol-work-id`][OpenLibrary - `title`]]\n"
           "`author-ol-links`\n"
@@ -4143,21 +4230,47 @@ Let's migrate my book importing code to =org-roam=.
          snippet-env))
       (buffer-string)))
 
-  (defun zetian-capture-book ()
-    "`org-roam-capture' to import a new book from OpenLibrary."
+  (defun zetian-capture-book (&optional tag)
+    "Import a book from OpenLibrary, optionally applying zetian TAG."
     (interactive)
-    (let* ((book (ic/openlibrary-helm-find-book))
+    (let* ((book (ic/openlibrary-find-book))
            (title (assoc-default 'title book))
            (template `("p" "capture book template" plain
                       ,(zetian--format-book-template-body book)
                       :target (file+head
                                "%<%Y%m%d%H%M%S>-${slug}.org"
                                ,(zetian--format-book-template-header book)))))
-      (message "BOOK: %S\nTITLE: %S\nTEMPLATE:%S" book title template)
-      (cl-letf ((org-roam-capture-templates
-                 (list template)))
-        (if-let ((node (zetian-node-create title)))
-            (find-file (org-roam-node-file node))))))
+      ;; (message "BOOK: %S\nTITLE: %S\nTEMPLATE:%S" book title template)
+      (cl-letf ((org-roam-capture-templates (list template)))
+        (when-let ((node (zetian-node-create title)))
+          (zetian-node-find node)
+          (org-cycle-content)
+          (when tag
+            (if-let ((tag-node (org-roam-node-from-title-or-alias tag)))
+                (progn
+                  (zetian-add-header-link 'tag tag-node)
+                  (save-buffer))
+              (error "Invalid zetian tag: %s" tag)))))))
+
+  (defun zetian-capture-book-pleasure-toread ()
+    "Import a book from OpenLibrary, and apply the 'Read for Pleasure' tag."
+    (interactive)
+    (zetian-capture-book "Read for Pleasure"))
+
+  (defun zetian-capture-book-pleasure-completed ()
+    "Import a book from OpenLibrary, and apply the 'Completed Pleasure Books' tag."
+    (interactive)
+    (zetian-capture-book "Completed Pleasure Books"))
+
+  (defun zetian-capture-book-enrichment-toread ()
+    "Import a book from OpenLibrary, and apply the 'Read for Enrichment' tag."
+    (interactive)
+    (zetian-capture-book "Read for Enrichment"))
+
+  (defun zetian-capture-book-enrichment-completed ()
+    "Import a book from OpenLibrary, and apply the 'Completed Enrichment Books' tag."
+    (interactive)
+    (zetian-capture-book "Completed Enrichment Books"))
 #+END_SRC
 
 *** Integrate with completing-read
