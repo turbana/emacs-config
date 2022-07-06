@@ -567,6 +567,7 @@ Minimal setup for viewing =C#= code.
 #+END_SRC
 
 ** lsp
+*** config
 #+BEGIN_SRC emacs-lisp
   (use-package lsp-mode
     :demand t
@@ -575,26 +576,23 @@ Minimal setup for viewing =C#= code.
     :init
     ;; keep session file tidy
     (setq lsp-session-file (concat user-cache-directory "lsp-session-v1"))
-    ;; setup which key under local leader
-    (setq lsp-keymap-prefix (concat meow-local-leader-prefix " l"))
     ;; don't show the top breadcrumbs by default
     (setq lsp-headerline-breadcrumb-enable nil)
     ;; keep more log data
     (setq lsp-log-max 10000)
     ;; setup c# lsp server
     (setq lsp-csharp-server-path
-          (cond (on-home-windows-desktop
-                 (executable-find "OmniSharp.exe"))))
+          (cond (on-home-windows-desktop-wsl
+                 (executable-find "omnisharp"))))
 
     :hook
     ((lsp-mode . lsp-enable-which-key-integration)
-     (csharp-mode . lsp-deferred))
+     (csharp-mode . lsp))
 
     :general
     (local-leader-keys
       :keymaps 'prog-mode-map
-      "l" lsp-command-map)
-    )
+      "l" lsp-command-map))
 #+END_SRC
 
 ** lsp-ui
