@@ -517,20 +517,15 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
       (auto-dim-other-buffers-mode t))
 #+END_SRC
 
-** company-mode
+** company
 #+BEGIN_SRC emacs-lisp
   (use-package company
     :demand t
     :config
-
-    ;; company-show-location
-    ;; company-show-doc-buffer
-
-    (setq company-tooltip-align-annotations nil)
+    (setq company-tooltip-align-annotations t)
     (setq company-abort-on-unique-match t)
-
-    ;; (company-search-candidates)
-    ;; (company-filter-candidates)
+    (setq company-tooltip-width-grow-only t)
+  
     :general
     (general-define-key
      :keymaps 'company-active-map
@@ -539,8 +534,7 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
      "C-w" 'backward-kill-word
      "C-s" 'company-search-candidates
      "C-f" 'company-filter-candidates
-     )
-    )
+     ))
 #+END_SRC
 
 ** csharp-mode
