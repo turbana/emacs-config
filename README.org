@@ -566,6 +566,11 @@ Minimal setup for viewing =C#= code.
            ([remap describe-key] . #'helpful-key)))
 #+END_SRC
 
+** json
+#+BEGIN_SRC emacs-lisp
+  (use-package json)
+#+END_SRC
+
 ** lsp
 *** config
 #+BEGIN_SRC emacs-lisp
