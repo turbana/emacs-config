@@ -4006,11 +4006,11 @@ I want an easy way to add/update tags and other links on a given zettel. To star
                           :fuzzy-match 1))))
         (org-roam-node-from-title-or-alias (cdr link)))))
 
-  (defun zetian--header-read (type)
+  (defun zetian--header-read (type &optional no-create)
     "Parse the contents of the header of type TYPE. Return a list of links found
-    or NIL if not found."
-    (zetian--move-to-header type)
-    (let ((start (point))
+    or NIL if not found. Creates the header unless NO-CREATE is non-nil."
+    (unless (zetian--move-to-header type no-create)
+      (let ((start (point))
           links
           done)
       (while (not done)
@@ -4037,15 +4037,15 @@ I want an easy way to add/update tags and other links on a given zettel. To star
           (setq done t)))
       ;; move to the start of the links and return
       (goto-char start)
-      links))
+      links)))
 
-  (defun zetian--move-to-header (type)
+  (defun zetian--move-to-header (type &optional no-create)
     "Moves point to and returns the position of the header of TYPE, creating it if
-  necessary."
+  NO-CREATE is nil."
     (goto-char (point-min))
     (let ((re (concat "^" (regexp-quote
                            (assoc-default type zetian-header-formats)))))
-      (unless (re-search-forward re nil t)
+      (unless (or (re-search-forward re nil t) no-create)
         ;; create header
         (re-search-forward "^$" nil 0)
         ;; TODO what if we have other headers, do we want so many newlines?
