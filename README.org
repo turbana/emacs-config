@@ -497,6 +497,18 @@ The package =general.el= makes all of the above rather simple. Here we ensure it
       :config
       (which-key-mode 1))
 #+END_SRC
+** Secrets
+I keep certain information out of source control: email addresses, account information, etc. I have a small python program called =secret= that I use to retrieve these secrets, let's expose that to emacs.
+
+#+BEGIN_SRC emacs-lisp
+  (defvar ic/secret-cmd "secret")
+
+  (defun ic/get-secret (secret)
+    "Retrieve `secret' using the `ic/secret-cmd' program."
+    (nth 0 (process-lines ic/secret-cmd secret)))
+#+END_SRC
+
+
 * Packages
 ** all-the-icons
 #+BEGIN_SRC emacs-lisp
@@ -647,6 +659,293 @@ Main =magit= config.
            ("x" . #'magit-discard)))
 #+END_SRC
 
+** mu4e
+#+BEGIN_SRC emacs-lisp :noweb yes
+  (use-package mu4e
+    :after org
+    :straight ( :type git :host github :repo "djcb/mu"
+		:build "./autogen.sh"
+		;; :build nil
+		;; :build (("./autogen.sh") ("make"))
+		;; :pre-build "./autogen.sh"
+		;; :build "make"
+		:files (:defaults "build/mu4e/*.el"))
+    :config
+    <<mu4e-config>>
+    )
+#+END_SRC
+
+*** config
+:PROPERTIES:
+:header-args: :noweb-ref mu4e-config :tangle no
+:END:
+
+**** Initial setup
+First, setup mu.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq mail-user-agent 'mu4e-user-agent)
+  (setq mu4e-maildir "~/mail")
+  ;; (setq mu4e-mu-binary (concat user-emacs-directory "straight/repos/mu/build/mu/mu"))
+  ;; (setq mu4e-mu-binary (executable-find "mu"))
+  (setq mu4e-get-mail-command "offlineimap -o")
+#+END_SRC
+
+We can only check our gmail accounts once every 10 minutes or we risk a ban.
+#+BEGIN_QUOTE
+Make sure your mail app isn't set to check for new email too frequently. If your mail app checks for new messages more than once every 10 minutes, the app’s access to your account could be blocked.
+#+END_QUOTE
+More information [[https://support.google.com/mail/answer/7126229?p=BadCredentials&visit_id=636868193607658613-796315695&rd=2#cantsignin][here]].
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq mu4e-update-interval 600)
+#+END_SRC
+
+Then, some common variables.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; show images inline
+  (setq mu4e-view-show-images t)
+  (setq mu4e-show-images t)
+  ;; show addresses rather than names
+  (setq mu4e-view-show-addresses t)
+  ;; strip html when viewing emails...
+  (setq mu4e-html2text-command "w3m -dump -T text/html")
+  ;; ... and allow me to open an email in a browser
+  (add-to-list 'mu4e-view-actions '("view in browser" . mu4e-action-view-in-browser) t)
+  ;; don't keep message buffers around
+  (setq message-kill-buffer-on-exit t)
+  ;; quit silently
+  (setq mu4e-confirm-quit nil)
+#+END_SRC
+
+**** Header view
+Have a slightly different layout when showing an inbox.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; different date format
+  (setq mu4e-headers-date-format "%Y-%m-%d %H:%M")
+  (setq mu4e-headers-time-format "%H:%M")
+  ;; set header fields
+  (setq mu4e-headers-fields
+        '((:maildir    . 12)
+          (:flags      . 6)
+          (:human-date . 17)
+          (:from       . 20)
+          (:subject    . nil)))
+#+END_SRC
+
+I like having each section of the header view it's own color. The following code was taken from [[https://github.com/djcb/mu/issues/1355][github]] and modified to my taste.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun mu4e~headers-line-apply-flag-face (msg line)
+    line)
+
+  (defun mu4e~headers-field-apply-basic-properties (msg field val width)
+    (case field
+      (:subject
+       (propertize
+        (concat
+         (mu4e~headers-thread-prefix (mu4e-message-field msg :thread))
+         (truncate-string-to-width val 600))
+        'face
+        (let ((flags (mu4e-message-field msg :flags))
+              (spam (string-suffix-p "spam" (mu4e-message-field msg :maildir)))
+              (trash (string-suffix-p "trash" (mu4e-message-field msg :maildir))))
+          (cond
+           ((or (memq 'trashed flags) spam trash) 'mu4e-trashed-face)
+           ((memq 'draft flags) 'mu4e-draft-face)
+           ((or (memq 'unread flags) (memq 'new flags))
+            'mu4e-unread-face)
+           ((memq 'flagged flags) 'mu4e-flagged-face)
+           ((memq 'replied flags) 'mu4e-replied-face)
+           ((memq 'passed flags) 'mu4e-forwarded-face)
+           (t 'mu4e-header-face)))))
+      (:thread-subject
+       (propertize
+        (mu4e~headers-thread-subject msg)
+        'face 'font-lock-doc-face))
+      ((:maildir :path :message-id)
+       (let* ((parts (split-string val "/")))
+         (concat (propertize "/"
+                             'face 'mu4e-maildirs-extension-maildir-face)
+                 (propertize (cadr parts)
+                             'face 'mu4e-maildirs-extension-maildir-hl-face)
+                 (propertize (concat "/" (mapconcat #'identity (cddr parts) "/"))
+                             'face 'mu4e-maildirs-extension-maildir-face)))
+       )
+      ((:to :from :cc :bcc)
+       (propertize
+        (mu4e~headers-contact-str val)
+        'face 'mu4e-contact-face))
+      (:from-or-to (mu4e~headers-from-or-to msg))
+      (:date
+       (propertize
+        (format-time-string mu4e-headers-date-format val)
+        'face 'org-sexp-date))
+      (:mailing-list (mu4e~headers-mailing-list val))
+      (:human-date
+       (propertize
+        (mu4e~headers-human-date msg)
+        'help-echo (format-time-string
+                    mu4e-headers-long-date-format
+                    (mu4e-msg-field msg :date))
+        'face 'org-sexp-date))
+      (:flags
+       (propertize (mu4e~headers-flags-str val)
+                   'help-echo (format "%S" val)
+                   'face 'mu4e-url-number-face))
+      (:tags
+       (propertize
+        (mapconcat 'identity val ", ")
+        'face 'font-lock-builtin-face))
+      (:size (mu4e-display-size val))
+      (t (mu4e~headers-custom-field msg field))))
+#+END_SRC
+
+**** Contexts
+We need a helper function to determine what context we're in automatically.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; taken from: https://notanumber.io/2016-10-03/better-email-with-mu4e/
+  (defun ic//mu4e-maildir-matches (msg rx)
+    (when rx
+      (if (listp rx)
+            ;; If rx is a list, try each one for a match
+            (or (ic//mu4e-maildir-matches msg (car rx))
+                (ic//mu4e-maildir-matches msg (cdr rx)))
+          ;; Not a list, check rx
+          (string-match rx (mu4e-message-field msg :maildir)))))
+#+END_SRC
+
+Choose the first context when starting =mu4e=.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq mu4e-context-policy 'pick-first)
+#+END_SRC
+
+Now some account specific setup
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; This sets up my two different context for my personal and work emails.
+  (setq mu4e-contexts
+        (let ((professional-address (ic/get-secret "email.professional.address"))
+              (professional-name (ic/get-secret "email.professional.name"))
+              (personal-address (ic/get-secret "email.personal.address"))
+              (personal-name (ic/get-secret "email.personal.name")))
+          `( ,(make-mu4e-context
+               :name "professional-gmail"
+               :enter-func `(lambda () (mu4e-message (concat "Switch to " ,professional-address)))
+               :match-func (lambda (msg)
+                             (when msg
+                               (ic//mu4e-maildir-matches msg "^/pro/")))
+               :leave-func (lambda () (mu4e-clear-caches))
+               :vars `((user-mail-address     . ,professional-address)
+                       (user-full-name        . ,professional-name)
+                       (mu4e-sent-folder      . "/pro/sent")
+                       (mu4e-drafts-folder    . "/pro/drafts")
+                       (mu4e-trash-folder     . "/pro/trash")
+                       (mu4e-refile-folder    . "/pro/archive")
+                       (smtpmail-smtp-user    . ,professional-address)
+                       ))
+              ,(make-mu4e-context
+                :name "home-gmail"
+                :enter-func (lambda () `(mu4e-message (concat "Switch to " ,personal-address)))
+                :match-func (lambda (msg)
+                              (when msg
+                                (ic//mu4e-maildir-matches msg "^/per/")))
+                :leave-func (lambda () (mu4e-clear-caches))
+                :vars `((user-mail-address     . ,personal-address)
+                        (user-full-name        . ,personal-name)
+                        (mu4e-sent-folder      . "/per/sent")
+                        (mu4e-drafts-folder    . "/per/drafts")
+                        (mu4e-trash-folder     . "/per/trash")
+                        (mu4e-refile-folder    . "/per/archive")
+                        (smtpmail-smtp-user    . ,personal-address)
+                        )))))
+#+END_SRC
+
+**** Sending mail
+Some default gmail setup.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (setq message-send-mail-function 'smtpmail-send-it)
+  (setq smtpmail-smtp-server "smtp.gmail.com")
+  (setq smtpmail-smtp-service 587)
+#+END_SRC
+
+For each of our gmail accounts we need an application specific password to use to send email. To create one go [[https://security.google.com/settings/u/1/security/apppasswords][here]]. Be sure and insert a line into =~/.authinfo.gpg= for each account with the following format:
+#+BEGIN_EXAMPLE
+machine smtp.gmail.com port 587 login <user>@gmail.com password <account password>
+#+END_EXAMPLE
+
+**** Composing
+Message composing should be done in =org-mode= format and sent as html.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; compose under the current context
+  (setq mu4e-compose-context-policy nil)
+
+  ;; automatically flow text when sending
+  (setq mu4e-compose-format-flowed t)
+
+  ;; enter org-mode when composing
+  (add-hook 'message-mode-hook 'org-mu4e-compose-org-mode)
+
+  ;; export org-mode into html when sending
+  (setq org-mu4e-convert-to-html t)
+
+  ;; (setq org-mu4e-link-query-in-headers-mode nil)
+#+END_SRC
+
+**** Bookmarks
+Setup some bookmarks
+#+BEGIN_SRC emacs-lisp :tangle yes
+  ;; clear default bookmarks
+  (setq mu4e-bookmarks nil)
+
+  ;; all inboxes
+  (mu4e-bookmark-define
+   "maildir:/per/inbox or maildir:/pro/inbox"
+   "All Inboxes"
+   ?i)
+
+  ;; all unread
+  (mu4e-bookmark-define
+   (concat "flag:unread"
+           " and not maildir:/per/spam"
+           " and not maildir:/per/trash"
+           " and not maildir:/pro/spam"
+           " and not maildir:/pro/trash")
+   "All Unread"
+   ?u)
+
+  ;; sent
+  (mu4e-bookmark-define
+   "maildir:/per/sent or maildir:/pro/sent"
+   "Sent mail"
+   ?s)
+
+  ;; spam
+  (mu4e-bookmark-define
+   "maildir:/per/spam or maildir:/pro/spam"
+   "Spam mail"
+   ?S)
+#+END_SRC
+
+**** Org capture
+I want to be able to save a TODO item for the current email and archive in one swoop.
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (defun ic//org-capture-email ()
+    "For email at point: call `org-capture' and mark for refile."
+    (interactive)
+    (org-store-link nil)
+    (org-capture nil "r")
+    (cond ((eq major-mode 'mu4e-headers-mode)
+           (mu4e-headers-mark-for-refile))
+          ((eq major-mode 'mu4e-view-mode)
+           (mu4e-view-mark-for-refile))))
+#+END_SRC
+
+**** Keybindings
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (define-key mu4e-headers-mode-map "a" #'mu4e-headers-mark-for-refile)
+  (define-key mu4e-headers-mode-map "r" #'ic//org-capture-email)
+
+  (define-key mu4e-view-mode-map "a" #'mu4e-view-mark-for-refile)
+  (define-key mu4e-view-mode-map "r" #'ic//org-capture-email)
+#+END_SRC
 ** org
 =org-mode= is a large part of my daily emacs usage so it takes a large amount of my configuration as well. Let's go...
 
@@ -2891,17 +3190,6 @@ Some functions to manipulate underlying files.
            (window-height . 1.0)
            (reusable-frames . nil))
           ))
-#+END_SRC
-
-** Secrets
-I keep certain information out of source control: email addresses, account information, etc. I have a small python program called =secret= that I use to retrieve these secrets, let's expose that to emacs.
-
-#+BEGIN_SRC emacs-lisp
-  (defvar ic/secret-cmd "secret")
-
-  (defun ic/get-secret (secret)
-    "Retrieve `secret' using the `ic/secret-cmd' program."
-    (nth 0 (process-lines ic/secret-cmd secret)))
 #+END_SRC
 
 ** Customize
