@@ -2163,8 +2163,6 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix-map zetian
            ("b" . org-roam-buffer-toggle)
            ("D" . org-roam-db-diagnose-node)
-           ("i" . zetian-link-insert)
-           ("I" . zetian-link-insert-immediate)
            ("u" . org-roam-ui-open)
            :prefix "zc"
            :prefix-map zetian-capture
@@ -2212,6 +2210,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     "T" #'zetian-remove-tag
     "p" #'zetian-add-project
     "P" #'zetian-remove-project
+    "i" #'zetian-link-insert
+    "I" #'zetian-link-insert-immediate
     )
 #+END_SRC
 
