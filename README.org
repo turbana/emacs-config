@@ -3750,7 +3750,9 @@ I do some common queries against =Zetian= so save them here.
   (defun zetian-link-insert ()
     "Query Zetian for a node and insert a link at point."
     (interactive)
-    (insert (zetian-link)))
+    (if-let ((link (zetian-link)))
+        (insert link)
+      (message "Error: specified zetian does not exist")))
 
   (defun zetian-link-insert-immediate ()
     "Query Zetian for a node and insert a link at point, creating the node if
