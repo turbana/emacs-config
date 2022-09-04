@@ -3730,7 +3730,7 @@ My personal 2nd brain implemented in =org-roam=.
             ("p" "permanent note" plain "%U\n\n%?"
              :target ,(zetian--capture-target-default "perm")
              :unnarrowed t)
-          
+
             ;; task note
             ("t" "task" entry
              ,(concat (zetian--capture-node "task" "TODO")
@@ -3738,7 +3738,7 @@ My personal 2nd brain implemented in =org-roam=.
              :target ,(zetian--capture-target tasks-file tasks-title)
              :unnarrowed nil
              :empty-lines-before 1)
-          
+
             ;; event note
             ("e" "event" entry
              ,(concat (zetian--capture-node "event" "TODO")
@@ -3746,7 +3746,7 @@ My personal 2nd brain implemented in =org-roam=.
              :target ,(zetian--capture-target tasks-file tasks-title)
              :unnarrowed nil
              :empty-lines-before 1)
-          
+
             ;; lit note
             ("l" "literature note" plain
              ,(concat "%U\n\n%?\n\n"
@@ -3754,7 +3754,7 @@ My personal 2nd brain implemented in =org-roam=.
                       "/Quote from %(zetian-link)/")
              :target ,(zetian--capture-target-default "lit")
              :unnarrowed t)
-          
+
             ;; person note
             ("P" "person" entry
              ,(concat (zetian--capture-node "person")
@@ -3769,35 +3769,41 @@ My personal 2nd brain implemented in =org-roam=.
              :target ,(zetian--capture-target person-file person-title)
              :unnarrowed nil
              :empty-lines-before 1)
-          
+
             ;; movie note
             ("M" "movie" plain "%U\n\n%?"
              :target ,(zetian--capture-target-default "movie")
              :unnarrowed t)
-          
+
             ;; TODO author note
             ;; TODO idea note
             )))
-
-  ;; don't need these anymore
-  (fmakunbound #'zetian--capture-node)
-  (fmakunbound #'zetian--capture-target)
-  (fmakunbound #'zetian--capture-target-default)
 #+END_SRC
 
 These templates are used from =org-capture-protocol=.
 #+BEGIN_SRC emacs-lisp
   (setq org-roam-capture-ref-templates
-        `(("W" "web zettel (org-capture)" plain
-           ,(concat "%U\n\n"
-                    "#+begin_quote\n%:initial\n#+end_quote\n"
-                    "/From the webpage [[%:link][${title}]]/\n\n%?"
+        `(("W" "web zettel (org-protocol)" plain
+           ,(concat "\n\nFrom [[%:link][${title}]] on %U:\n"
+                    "#+begin_quote\n${body}\n#+end_quote\n"
+                    "\n%?"
                     )
-           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org)"
-                              ":PROPERTIES:\n\n#+title: ${title}\n#+filetags: :lit:web:")
+           :target ,(zetian--capture-target-default "lit")
            :unnarrowed t
-           :immediate-finish t)))
+           :empty-lines-before 1)))
 
+#+END_SRC
+
+I have a link setup in =firefox= with the following href to integrate into =org-roam-protocol=.
+#+BEGIN_SRC javascript :tangle no
+  javascript:location.href='org-protocol://roam-ref?'+ new URLSearchParams({template: "W", ref: location.href, title: document.title, body: window.getSelection()})
+#+END_SRC
+
+Cleanup some temporary functions.
+#+BEGIN_SRC emacs-lisp
+  ;; (fmakunbound #'zetian--capture-node)
+  ;; (fmakunbound #'zetian--capture-target)
+  ;; (fmakunbound #'zetian--capture-target-default)
 #+END_SRC
 
 *** Opening notes
