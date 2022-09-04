@@ -4752,6 +4752,148 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
                  '(zetian zetian--completion-annotator builtin none)))
 #+END_SRC
 
+*** zetian-mode
+I'd like to have a custom mode to make things a little prettier. I really want using zetian to be a pleasant experience, that should help me make better use of it.
+
+#+BEGIN_SRC emacs-lisp
+  (defvar-local zetian-mode--header-overlay nil)
+  (defvar-local zetian-mode--indirect-buffers nil)
+
+  (defun zetian-mode--update-header ()
+    "Update the overlay `zetian-mode--header-overlay' with header information."
+    (unless zetian-mode--header-overlay
+      (zetian-mode--create-header))
+    (org-roam-db-update-file)
+    (let*
+        ((category (zetian-get-category))
+         (states (zetian-get-states))
+         (title (zetian-get-title))
+         (modified (or (zetian-get-last-modified) "?"))
+         (outbound-links nil)
+         (inbound-links nil)
+         (header
+          (concat
+           (propertize title 'face 'org-document-title)
+           (when category
+             (concat (propertize " [" 'face 'org-drawer)
+                     category
+                     (propertize "]" 'face 'org-drawer)))
+           (when states
+             (concat
+              (propertize " {" 'face 'org-drawer)
+              (s-join (propertize ", " 'face 'org-drawer)
+                      (mapcar (lambda (s)
+                                (propertize s 'face 'org-special-keyword))
+                              states))
+              (propertize "}" 'face 'org-drawer)))
+           "\n"
+           (propertize "Mod:" 'face 'org-drawer)
+           (propertize modified 'face 'org-date)
+           (propertize " In:" 'face 'org-drawer)
+           (propertize (format "%d" (length inbound-links))
+                       'face 'org-special-keyword)
+           (propertize " Out:" 'face 'org-drawer)
+           (propertize (format "%d" (length outbound-links))
+                       'face 'org-special-keyword)
+           ;; (propertize " " 'face 'org-drawer)
+           "\n"
+           )))
+      (overlay-put zetian-mode--header-overlay 'face 'header-line)
+      ;; (overlay-put zetian-mode--header-overlay :family (face-attribute 'header-line :family nil t))
+      ;; (overlay-put zetian-mode--header-overlay 'after-string header)
+      (overlay-put zetian-mode--header-overlay 'display header)
+      ;; (overlay-put zetian-mode--header-overlay 'display "foo")
+      ))
+
+  (defun zetian-mode--maybe-update-header ()
+    "Update `zetian-mode' header, but only when inside a `zetian-mode' buffer."
+    (when (eq major-mode 'zetian-mode)
+      (zetian-mode--update-header)))
+
+  (defun zetian-mode--maybe-set-last-modified ()
+    "Update last modified property, but only if the *buffer* has been modified."
+    (when (buffer-modified-p)
+      (zetian-set-last-modified)))
+
+  (defun zetian-mode--create-header ()
+    "Create the overlay `zetian-mode' uses to display information."
+    (unless zetian-mode--header-overlay
+      (goto-char (point-min))
+      (let ((beg (point))
+            (end (re-search-forward "^$")))
+        (let ((inhibit-read-only t)
+              ;; we want to include the new-line *after* the overlay
+              (end (+ 1 end)))
+          (buffer-disable-undo (buffer-base-buffer))
+          (put-text-property beg end 'front-sticky '(read-only))
+          (put-text-property beg end 'rear-nonsticky '(read-only))
+          (put-text-property beg end 'read-only t)
+          (buffer-enable-undo (buffer-base-buffer)))
+        (setq zetian-mode--header-overlay
+              (make-overlay beg end)))
+      (overlay-put zetian-mode--header-overlay 'invisible t)))
+
+  (defun zetian-mode--remove-header ()
+    "Removes the overlay and any text properties created."
+    (when-let ((ov zetian-mode--header-overlay))
+      (let ((beg (overlay-start ov))
+            (end (overlay-end ov))
+            (inhibit-read-only t))
+        (delete-overlay ov)
+        (buffer-disable-undo (buffer-base-buffer))
+        (remove-list-of-text-properties
+         beg (+ end 1) '(read-only front-sticky rear-nonsticky))
+        (buffer-enable-undo (buffer-base-buffer)))))
+
+  (defun zetian-mode--call-in-context (func)
+    "Call FUNC in the context of the base buffer and any indirect buffers."
+    (apply func nil)
+    (dolist (buf zetian-mode--indirect-buffers)
+      (if (buffer-live-p buf)
+          (with-current-buffer buf
+            (apply func nil))
+        (setq zetian-mode--indirect-buffers
+              (delq buf zetian-mode--indirect-buffers)))))
+
+  (defun zetian-mode--before-save-h ()
+    (zetian-mode--call-in-context #'zetian-mode--maybe-set-last-modified))
+
+  (defun zetian-mode--after-save-h ()
+    (zetian-mode--call-in-context #'zetian-mode--maybe-update-header))
+
+  (defun zetian-mode--cmmh ()
+    "Destroy any changes `zetian-mode' makes to a buffer. Should be run in
+  `change-major-mode-hook'."
+    (zetian-mode--remove-header)
+    (remove-hook 'change-major-mode-hook #'zetian-mode--cmmh)
+    (advice-remove 'before-save-hook #'zetian-mode--before-save-h)
+    (remove-hook 'after-save-hook #'zetian-mode--update-header))
+
+  (define-derived-mode zetian-mode org-mode "zetian-mode"
+    "A variant of org-mode designed to be used with zetian."
+    (let ((base (buffer-base-buffer))
+          (cur (current-buffer)))
+      (if base
+          ;; we're an indirect buffer
+          (progn
+            ;; jit-lock-mode isn't supported in indirect buffers, so disable
+            ;; it.
+            (make-local-variable 'font-lock-support-mode)
+            (setq font-lock-support-mode nil)
+            (with-current-buffer base
+              (unless (memq cur zetian-mode--indirect-buffers)
+                (push cur zetian-mode--indirect-buffers))
+              (add-hook 'before-save-hook #'zetian-mode--before-save-h 0 t)
+              (add-hook 'after-save-hook #'zetian-mode--after-save-h 0 t)))
+        ;; we're a regular buffer
+        (add-hook 'before-save-hook #'zetian-mode--before-save-h 0 t)
+        (add-hook 'after-save-hook #'zetian-mode--after-save-h 0 t)))
+    (add-hook 'kill-buffer-hook #'zetian-mode--remove-header)
+    (add-hook 'change-major-mode-hook #'zetian-mode--cmmh 0 t)
+    (zetian-mode--update-header)
+    (goto-char (+ 1 (overlay-start zetian-mode--header-overlay))))
+#+END_SRC
+
 ** Beeping
 Turn off the damn bell!
 #+BEGIN_SRC emacs-lisp
