@@ -4077,9 +4077,8 @@ I do some common queries against =Zetian= so save them here.
                           template-key)))
 #+END_SRC
 
-*** Set Category / State
-I need an easy way to set either the file category or a node's category.
-
+*** Category
+I use the =CATEGORY= property to denote /what/ a =zetian= node is. I'll need a pair of functions to get/set that.
 #+BEGIN_SRC emacs-lisp
   (defun zetian-set-category (&optional category)
     "Set the category of the node at point. If it's on a file, set the #+category:
@@ -4089,8 +4088,13 @@ I need an easy way to set either the file category or a node's category.
           (cat (or category (completing-read "Category: " nil))))
       (save-excursion
         (org-set-property "CATEGORY" cat))))
+
+  (defun zetian-get-category ()
+    "Return the category of node at point."
+    (org-entry-get nil "CATEGORY"))
 #+END_SRC
 
+*** State
 I use =org-mode= tags for state and =org-roam= provides a pair of functions that work with both file tags and element tags, so let's use those.
 #+BEGIN_SRC emacs-lisp
   (defalias #'zetian-add-state #'org-roam-tag-add
@@ -4098,6 +4102,33 @@ I use =org-mode= tags for state and =org-roam= provides a pair of functions that
 
   (defalias #'zetian-remove-state #'org-roam-tag-remove
     "Remove a state from a zetian node.")
+
+  (defun zetian-get-states ()
+    "Return a list of states of node at point."
+    (org-roam-node-tags (org-roam-node-at-point t)))
+
+  (defun zetian-has-state (state)
+    "Return true if STATE is a current state of node at point."
+    (member state (zetian-get-states)))
+#+END_SRC
+
+*** Last Modified
+Keep track of the last time a node was modified through the =org-mode= property =LAST_MODIFIED=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-get-last-modified ()
+    "Return the `org-mode' timestamp of the last time this node was modified."
+    (cdr (assoc "LAST_MODIFIED"
+                (org-roam-node-properties (org-roam-node-at-point)))))
+
+  (defun zetian-set-last-modified ()
+    "Set the `org-mode' timestamp of the last time this node was modified to now."
+    (save-excursion
+      (goto-char (point-min))
+      (org-set-property "LAST_MODIFIED"
+                        (with-temp-buffer
+                          (org-time-stamp-inactive '(16))
+                          (buffer-string)))))
 #+END_SRC
 
 *** Update Agenda Files
@@ -4345,7 +4376,8 @@ I want an easy way to add/update tags and other links on a given zettel. To star
         ;; TODO what if we have other headers, do we want so many newlines?
         (insert (format "\n%s\n" (assoc-default type zetian-header-formats)))
         ;; move back over the newline
-        (backward-char 1))))
+        (backward-char 1)))
+    (point))
 
   (defun zetian--header-modify (node way links)
     "When WAY is 'add: add the NODE to LINKS. When WAY is 'remove: remove the NODE
@@ -4380,6 +4412,11 @@ I want an easy way to add/update tags and other links on a given zettel. To star
              links
              :initial-value "")))
 
+#+END_SRC
+
+*** Tags
+=zetian= tags are really just plain =org-mode= links that are stored near the top of the file.
+#+BEGIN_SRC emacs-lisp
   (defun zetian-add-tag ()
     "Prompt for a node to add as a tag to the current zettel."
     (interactive)
@@ -4390,6 +4427,14 @@ I want an easy way to add/update tags and other links on a given zettel. To star
     (interactive)
     (zetian-remove-header-link 'tag))
 
+  (defun zetian-get-tags ()
+    "Return the tags of the node at point."
+    (save-excursion (zetian--header-read 'tag t)))
+#+END_SRC
+
+*** Project
+A =zetian= node can have a project associated with it. Like tags a project is simply an =org-mode= link stored near the top of the file.
+#+BEGIN_SRC emacs-lisp
   (defun zetian-add-project ()
     "Prompt for a node to add as a project to the current zettel."
     (interactive)
@@ -4401,6 +4446,18 @@ I want an easy way to add/update tags and other links on a given zettel. To star
     "Prompt for a project of the current note and remove the selected project."
     (interactive)
     (zetian-remove-header-link 'project))
+
+  (defun zetian-get-project ()
+    "Return the project associated with the node at point."
+    (save-excursion (zetian--header-read 'project t))
+    )
+#+END_SRC
+
+*** Title
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-get-title ()
+    "Return the title from the current zetian node."
+    (org-roam-node-title (org-roam-node-at-point)))
 #+END_SRC
 
 *** Meta Information
