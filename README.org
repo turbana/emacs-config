@@ -3833,7 +3833,9 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
               (goto-char (cdr loc))
               (if (not (org-at-heading-p))
                   ;; we're in a file based node
-                  (rename-buffer buf-name)
+                  (progn
+                    (rename-buffer buf-name)
+                    (zetian-mode))
                 ;; or we're in a heading based node
                 (pop-to-buffer-same-window
                  (make-indirect-buffer (current-buffer) buf-name t))
