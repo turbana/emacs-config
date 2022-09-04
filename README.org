@@ -659,7 +659,7 @@ Main =magit= config.
 #+END_SRC
 
 ** mu4e
-#+BEGIN_SRC emacs-lisp :noweb yes
+#+BEGIN_SRC emacs-lisp :noweb yes :tangle no
   (use-package mu4e
     :after org
     :straight ( :type git :host github :repo "djcb/mu"
