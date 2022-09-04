@@ -2767,6 +2767,13 @@ Set the mode line.
         (setq mode-line-format (default-toplevel-value 'mode-line-format)))))
 #+END_SRC
 
+Add icons to any custom modes we've defined
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'all-the-icons-mode-icon-alist
+               '(zetian-mode all-the-icons-material "local_florist"
+                             :height 1.0 :v-adjust -0.1))
+#+END_SRC
+
 ** visual-fill-column
 I want emacs to wrap long lines automatically and refill when modifying text. =visual-fill-column= does just that.
 #+BEGIN_SRC emacs-lisp
