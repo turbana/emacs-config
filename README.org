@@ -3823,19 +3823,28 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
                (buf-name (format "zetian: %s" title)))
           (let ((buf (get-buffer buf-name))
                 (loc (org-id-find guid)))
-            (cond ((buffer-live-p buf)
-                   (pop-to-buffer-same-window buf))
-                  (loc
-                   (bury-buffer)
-                   (pop-to-buffer-same-window
-                    (make-indirect-buffer (find-file (car loc)) buf-name t))
-                   (widen)
-                   (goto-char (cdr loc))
-                   (when (org-at-heading-p)
-                     (org-narrow-to-subtree)))
-                  (t
-                   (find-file (org-roam-node-file node))
-                   (rename-buffer buf-name))))
+            (cond
+             ((buffer-live-p buf)
+              (pop-to-buffer-same-window buf))
+             (loc
+              (find-file (car loc))
+              (widen)
+              (goto-char (cdr loc))
+              (if (not (org-at-heading-p))
+                  ;; we're in a file based node
+                  (rename-buffer buf-name)
+                ;; or we're in a heading based node
+                (pop-to-buffer-same-window
+                 (make-indirect-buffer (current-buffer) buf-name t))
+                ;; jit-lock-mode isn't supported in indirect buffers, so disable
+                ;; it.
+                (make-local-variable 'font-lock-support-mode)
+                (setq font-lock-support-mode nil)
+                (goto-char (cdr loc))
+                (org-narrow-to-subtree)))
+             (t
+              (find-file (org-roam-node-file node))
+              (rename-buffer buf-name))))
         (error "could not lookup zetian node: %s" (org-id-find (org-roam-node-id node))))))
 #+END_SRC
 
