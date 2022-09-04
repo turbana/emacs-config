@@ -2480,6 +2480,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("b" . zetian-find-book)
            ("c" . zetian-find-category)
            ("e" . zetian-find-open-event)
+           ("g" . zetian-find-random-review)
+           ("G" . zetian-find-random-permanent)
            ("l" . zetian-find-link-to)
            ("L" . zetian-find-link-from)
            ("o" . zetian-find-task-open-orphaned)
@@ -2503,14 +2505,16 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
   (local-leader-keys 'org-mode-map
     :infix "z"
     "" '(nil :which-key "zetian")
-    "s" #'zetian-add-state
-    "S" #'zetian-remove-state
-    "t" #'zetian-add-tag
-    "T" #'zetian-remove-tag
-    "p" #'zetian-add-project
-    "P" #'zetian-remove-project
     "i" #'zetian-link-insert
     "I" #'zetian-link-insert-immediate
+    "l" #'zetian-find-link-from-current
+    "L" #'zetian-find-link-to-current
+    "s" #'zetian-add-state
+    "S" #'zetian-remove-state
+    ;; "t" #'zetian-add-tag
+    ;; "T" #'zetian-remove-tag
+    "p" #'zetian-add-project
+    "P" #'zetian-remove-project
     )
 #+END_SRC
 
@@ -3940,12 +3944,22 @@ I do some common queries against =Zetian= so save them here.
         (zetian-search-find `(links-to ,title)
                             (format "nodes that link to %S" title))))
 
+  (defun zetian-find-link-to-current ()
+    "Search zetian for nodes that link the current node."
+    (interactive)
+    (zetian-find-link-to (zetian-get-title)))
+
   (defun zetian-find-link-from (&optional node-name)
     "Search zetian for nodes that NODE-NAME links to, prompt for name if NIL."
     (interactive)
     (if-let ((node (zetian--sub-search node-name nil "linked note")))
         (zetian-search-find `(links-from ,node)
                             (format "nodes that %S links to" node))))
+
+  (defun zetian-find-link-from-current ()
+    "Search zetian for nodes that the current node links to."
+    (interactive)
+    (zetian-find-link-from (zetian-get-title)))
 
   (defun zetian-find-open-event ()
     "Search zetian for open events"
@@ -4013,6 +4027,22 @@ I do some common queries against =Zetian= so save them here.
     (interactive)
     (zetian-search-find '(tag "review")
                         "notes needing review"))
+
+  (defun zetian-find-random-review ()
+    "Open a random node that needs review."
+    (interactive)
+    (zetian-node-find
+     (seq-random-elt
+      (zetian-query '(tag "review")))))
+
+  (defun zetian-find-random-permanent ()
+    "Open a random permanent node."
+    (interactive)
+    (zetian-node-find
+     (seq-random-elt
+      (zetian-query '(or (category "perm")
+                         (category "lit")
+                         (category "idea"))))))
 #+END_SRC
 
 *** Inserting Links
