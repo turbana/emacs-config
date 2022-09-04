@@ -508,7 +508,6 @@ I keep certain information out of source control: email addresses, account infor
     (nth 0 (process-lines ic/secret-cmd secret)))
 #+END_SRC
 
-
 * Packages
 ** all-the-icons
 #+BEGIN_SRC emacs-lisp
@@ -985,6 +984,7 @@ I want to be able to save a TODO item for the current email and archive in one s
                 ;; (directory-files "~/org" t "\\.org$")
                 ))
   (setq org-archive-location "%s_archive::")
+  (add-hook 'org-mode-hook #'turn-on-auto-revert-mode)
 #+END_SRC
 
 **** Refile
