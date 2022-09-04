@@ -2509,6 +2509,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     "I" #'zetian-link-insert-immediate
     "l" #'zetian-find-link-from-current
     "L" #'zetian-find-link-to-current
+    "R" #'zetian-rename-current
     "s" #'zetian-add-state
     "S" #'zetian-remove-state
     ;; "t" #'zetian-add-tag
@@ -4496,7 +4497,8 @@ A =zetian= node can have a project associated with it. Like tags a project is si
 #+BEGIN_SRC emacs-lisp
   (defun zetian-get-title ()
     "Return the title from the current zetian node."
-    (org-roam-node-title (org-roam-node-at-point)))
+    (when-let ((node (org-roam-node-at-point)))
+      (org-roam-node-title node)))
 #+END_SRC
 
 *** Meta Information
@@ -4750,6 +4752,44 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
   (with-eval-after-load 'marginalia
     (add-to-list 'marginalia-annotator-registry
                  '(zetian zetian--completion-annotator builtin none)))
+#+END_SRC
+
+*** Rename note
+I want to be able to rename a =zetian= note. This should not only change the title of the note, but any notes that link to it as well.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-rename-current ()
+    "Rename the current note, updating any linking notes"
+    (interactive)
+    (when-let ((old-title (zetian-get-title)))
+      (let ((new-title (read-from-minibuffer "new name: " old-title))
+            (cur (org-roam-node-at-point))
+            (inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-min))
+          (re-search-forward "^#\\+title: ")
+          (delete-region (point)
+                         (progn (end-of-line) (point)))
+          (insert new-title))
+        (rename-buffer (format "zetian: %s" new-title))
+        (save-buffer)
+        (dolist (node (zetian-query `(links-to ,new-title)))
+          (save-excursion
+            (with-current-buffer
+                (find-file-noselect (org-roam-node-file node))
+              (zetian--update-link-to (org-roam-node-id cur) new-title)
+              (save-buffer)))))))
+
+  (defun zetian--update-link-to (id desc)
+    "In the current buffer: update all `org-mode' links to ID with the description
+    DESC."
+    (when id
+      (goto-char (point-min))
+      (let ((regex (format "\\[\\[id:%s\\]\\[\\(.*\\)\\]\\]" id)))
+        (while (re-search-forward regex nil t)
+          (save-restriction
+            (narrow-to-region (match-beginning 0) (match-end 0))
+            (replace-match desc t t nil 1))))))
 #+END_SRC
 
 *** zetian-mode
