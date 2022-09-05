@@ -4539,34 +4539,8 @@ Sometimes I want some information about the entire state of =Zetian=.
 *** OpenLibrary Book Import
 Let's migrate my book importing code to =org-roam=.
 #+BEGIN_SRC emacs-lisp
-  (defun zetian--format-book-template-header (book)
-    "Create a template header from BOOK suitable for `org-roam-capture-templates'."
-    (with-temp-buffer
-      (unless (yas-minor-mode 1)
-        (error "failed to load yas-minor-mode"))
-      (let ((snippet-env
-             (mapcar (lambda (c)
-                       (list (car c)
-                             (if (listp (cdr c))
-                                 `(quote ,(cdr c))
-                               (cdr c))))
-                     book)))
-        (yas-expand-snippet
-         (concat
-          ":PROPERTIES:\n"
-          ":CATEGORY: book\n"
-          ":TITLE: `title`\n"
-          ":AUTHORS: `(mapcar (lambda (a) (format \"%S\" a)) authors)`\n"
-          ":PAGES_MEDIAN: `pages-median`\n"
-          ":END:\n"
-          "#+title: `title`\n")
-         nil
-         nil
-         snippet-env))
-      (buffer-string)))
-
-  (defun zetian--format-book-template-body (book)
-    "Create a template body from BOOK suitable for `org-roam-capture-templates'."
+  (defun zetian--format-template (book filename)
+    "Load the `yas-snippet' found in FILENAME with the environment from BOOK"
     (with-temp-buffer
       (unless (yas-minor-mode 1)
         (error "failed to load yas-minor-mode"))
@@ -4588,7 +4562,8 @@ Let's migrate my book importing code to =org-roam=.
                                    (zetian-node-create author "P")))
                                 (assoc-default 'authors book))
                                ", and "))
-
+                (authors-emacs-list
+                 (format "%S" (assoc-default 'authors book)))
                 (author-ol-links
                  ,(string-join
                    (mapcar
@@ -4613,18 +4588,10 @@ Let's migrate my book importing code to =org-roam=.
                     (format "/search?q=%s&search_type=books"
                             (assoc-default 'query-title book))))))))
         (yas-expand-snippet
-         (concat
-          "\%U\n\n"
-          "/`title`/ by `authors-pretty-links`.\n\n"
-          "`maybe-quote`"
-          ;; "#+begin_quote\n`description`\n#+end_quote\n\n"
-          "- [[https://librarything.com`lt-uri`][LibraryThing]]\n"
-          "- [[https://openlibrary.org`ol-work-id`][OpenLibrary - `title`]]\n"
-          "`author-ol-links`\n"
-          "- [[https://www.overdrive.com/search?q=`query-title`][Overdrive]]\n"
-          "- [[https://goodreads.com`gr-uri`][Goodreads]]\n"
-          "- [[https://amazon.com/s?k=`query-title`][Amazon]]\n\n"
-          "* TODO `title` :: `authors-pretty` [`first-year-published`]")
+         (with-temp-buffer
+           (insert-file-contents
+            (locate-user-emacs-file filename))
+           (buffer-string))       
          nil
          nil
          snippet-env))
@@ -4636,11 +4603,12 @@ Let's migrate my book importing code to =org-roam=.
     (let* ((book (ic/openlibrary-find-book))
            (title (assoc-default 'title book))
            (template `("p" "capture book template" plain
-                      ,(zetian--format-book-template-body book)
-                      :target (file+head
-                               "%<%Y%m%d%H%M%S>-${slug}.org"
-                               ,(zetian--format-book-template-header book)))))
-      ;; (message "BOOK: %S\nTITLE: %S\nTEMPLATE:%S" book title template)
+                       ,(zetian--format-template
+                         book "data/templates/capture-book-body.org")
+                       :target (file+head
+                                "%<%Y%m%d%H%M%S>-${id}.org"
+                                ,(zetian--format-template
+                                  book "data/templates/capture-book-header.org")))))
       (cl-letf ((org-roam-capture-templates (list template)))
         (when-let ((node (zetian-node-create title)))
           (zetian-node-find node)

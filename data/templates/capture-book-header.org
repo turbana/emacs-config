@@ -1,0 +1,10 @@
+:PROPERTIES:
+:CATEGORY: book
+:TITLE:    `title`
+:AUTHORS: `authors-emacs-list`
+:PAGES_MEDIAN: `pages-median`
+:DATE_CREATED: %U
+:LAST_MODIFIED: %U
+:END:
+#+startup: overview
+#+title: `title` by `authors-pretty` [`first-year-published`]

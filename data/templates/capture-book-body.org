@@ -1,0 +1,29 @@
+%U
+
+/`title`/ is a book by `authors-pretty-links`.
+
+`maybe-quote`- [[https://librarything.com`lt-uri`][LibraryThing]]
+- [[https://openlibrary.org`ol-work-id`][OpenLibrary - `title`]]
+`author-ol-links`
+- [[https://www.overdrive.com/search?q=`query-title`][Overdrive]]
+- [[https://goodreads.com`gr-uri`][Goodreads]]
+- [[https://amazon.com/s?k=`query-title`][Amazon]]
+  
+* Book Review
+** The book in three sentences
+1. 
+2. 
+3. 
+
+** How I discovered it
+
+** Who should read it
+
+** How did it change me
+
+** Top 3 quotes
+1. 
+2. 
+3. 
+   
+* Reading Log
