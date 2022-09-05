@@ -4536,6 +4536,19 @@ Sometimes I want some information about the entire state of =Zetian=.
       (sort results #'string-collate-lessp)))
 #+END_SRC
 
+*** Copy ID
+I'd like a function to copy the current node's id, both to the =kill-ring= and to the system clipboard.
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-kill-id ()
+    "Add the current node's id to the kill ring and system clipboard."
+    (interactive)
+    (when-let ((node (org-roam-node-at-point)))
+      (with-temp-buffer
+        (insert (org-roam-node-id node))
+        (clipboard-kill-ring-save 1 (point))
+        (message "%S" (buffer-string)))))
+#+END_SRC
+
 *** OpenLibrary Book Import
 Let's migrate my book importing code to =org-roam=.
 #+BEGIN_SRC emacs-lisp
