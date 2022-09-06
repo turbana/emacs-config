@@ -1,0 +1,8 @@
+%U
+
+%?`note`
+
+#+begin_quote
+`quoted`
+#+end_quote
+/From [[id:`book-id`][`book-title`]]/
