@@ -5310,6 +5310,26 @@ I would like to start keeping a journal.
     (zetian--journal-link
      (zetian-journal-year)
      (format-time-string "%Y")))
+
+  (defun zetian--add-completed-task-to-journal ()
+    "This hook should run under `org-after-todo-state-change-hook' and will add
+    any completed task to the current day's journal."
+    (when (org-entry-is-done-p)
+      (let ((link (format "[[id:%s][%s]]"
+                          (org-id-get)
+                          (org-get-heading t t t t))))
+        (with-current-buffer (zetian-journal-today)
+          (save-excursion
+            (save-restriction
+              (goto-char (marker-position
+                          (org-find-olp '("Completed Tasks")
+                                        (current-buffer))))
+              (org-narrow-to-subtree)
+              (goto-char (point-max))
+              (insert (format " - [X] %s" link))
+              (save-buffer)))))))
+  (add-hook 'org-after-todo-state-change-hook
+            #'zetian--add-completed-task-to-journal)
 #+END_SRC
 
 ** Beeping
