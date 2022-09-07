@@ -1,0 +1,23 @@
+# -*- mode: snippet -*-
+# name: journal-week
+# key: nil
+# --
+:PROPERTIES:
+:CATEGORY: journal
+:DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:END:
+#+STARTUP: showall
+#+title: Weekly journal for week `(format-time-string "%U, %Y")`
+
+Journal for Week `(format-time-string "%U")` :: `(zetian-journal-month-link)`
+
+* What [[id:c870fdce-5ac6-48e4-addc-b29f9a4c1288][1% improvements]] did I make?
+
+* What was the highlight of the week?
+
+* What I'm proud of
+
+* What I want to work on
+
+* What will I do next week?

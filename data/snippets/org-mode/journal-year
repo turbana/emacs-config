@@ -1,0 +1,15 @@
+# -*- mode: snippet -*-
+# name: journal-year
+# key: nil
+# --
+:PROPERTIES:
+:CATEGORY: journal
+:DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:END:
+#+STARTUP: showall
+#+title: Yearly journal for `(format-time-string "%Y")`
+
+Journal for `(format-time-string "%Y")`
+
+TODO

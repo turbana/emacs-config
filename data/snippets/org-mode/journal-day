@@ -1,0 +1,23 @@
+# -*- mode: snippet -*-
+# name: journal-day
+# key: nil
+# --
+:PROPERTIES:
+:CATEGORY: journal
+:DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:END:
+#+STARTUP: showall
+#+title: Daily journal for `(format-time-string "%Y-%m-%d")`
+
+Journal for `(format-time-string "%A, %e %B %Y")` :: `(zetian-journal-week-link)`
+
+* How did I feel today?
+
+* What went well today?
+
+* What needs improvement?
+
+* Today I learned
+
+* Completed Tasks

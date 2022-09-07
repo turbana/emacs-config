@@ -2443,7 +2443,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     :requires org
     :init
     (setq org-roam-v2-ack t)
-    (setq org-roam-directory "~/org/home/roam")
+    (setq org-roam-directory "~/org/home/roam/")
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
@@ -2503,6 +2503,13 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix "zi"
            :prefix-map zetian-import
            ("m" . zetian-moonreader-import)
+           :prefix "zj"
+           :prefix-map zetian-journal
+           ("j" . zetian-journal-goto-today)
+           ("m" . zetian-journal-goto-month)
+           ("t" . zetian-journal-goto-today)
+           ("w" . zetian-journal-goto-week)
+           ("y" . zetian-journal-goto-year)
            ))
 
   (local-leader-keys 'org-mode-map
@@ -5091,6 +5098,108 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     (add-hook 'change-major-mode-hook #'zetian-mode--cmmh 0 t)
     (zetian-mode--update-header)
     (goto-char (+ 1 (overlay-start zetian-mode--header-overlay))))
+#+END_SRC
+
+*** journal
+I would like to start keeping a journal.
+#+BEGIN_SRC emacs-lisp
+  (defvar zetian-journal-dir
+    (concat org-roam-directory "journal/")
+    "Directory to store daily/weekly/etc journals.")
+
+  (defun zetian--journal-buffer (date-format template-name &optional time)
+    "Return the buffer for today's journal."
+    (let* ((journal
+            (concat zetian-journal-dir
+                    (format-time-string date-format time)
+                    ".org"))
+           (existing (file-exists-p journal)))
+      (if (file-exists-p journal)
+          (find-file-noselect journal)
+        (with-current-buffer (find-file-noselect journal)
+          ;; (find-file journal)
+          (yas-expand-snippet
+           (yas-lookup-snippet template-name 'org-mode))
+          (goto-char (point-min))
+          (org-id-get-create)
+          (save-buffer)
+          (zetian-mode)
+          ;; (re-search-forward "^$")
+          (current-buffer)
+          ))))
+
+  (defun zetian-journal-today ()
+    "Return the buffer for today's journal"
+    (zetian--journal-buffer "%Y-%m-%d" "journal-day"))
+
+  (defun zetian-journal-week ()
+    "Return the buffer for week's journal"
+    (zetian--journal-buffer "%Y-w%U" "journal-week"))
+
+  (defun zetian-journal-month ()
+    "Return the buffer for month's journal"
+    (zetian--journal-buffer "%Y-%m" "journal-month"))
+
+  (defun zetian-journal-year ()
+    "Return the buffer for year's journal"
+    (zetian--journal-buffer "%Y" "journal-year"))
+
+  (defun zetian-journal-goto-today ()
+    "Open today's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-today)))
+
+  (defun zetian-journal-goto-week ()
+    "Open this week's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-week)))
+
+  (defun zetian-journal-goto-month ()
+    "Open this month's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-month)))
+
+  (defun zetian-journal-goto-year ()
+    "Open this year's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-year)))
+
+  (defun zetian--journal-link (buffer title)
+    "Return and org-mode link to BUFFER with TITLE"
+    (format "[[id:%s][%s]]"
+            (with-current-buffer buffer
+              (save-excursion
+                (goto-char (point-min))
+                (org-id-get)))
+            title))
+
+  (defun zetian-journal-today-link ()
+    "Return an org-mode link to today's journal."
+    (zetian--journal-link
+     (zetian-journal-today)
+     (format-time-string "%Y-%m-%d")))
+
+  (defun zetian-journal-week-link ()
+    "Return an org-mode link to this week's journal."
+    (zetian--journal-link
+     (zetian-journal-week)
+     (format-time-string "Week %U")))
+
+  (defun zetian-journal-month-link ()
+    "Return an org-mode link to this month's journal."
+    (zetian--journal-link
+     (zetian-journal-month)
+     (format-time-string "%B")))
+
+  (defun zetian-journal-year-link ()
+    "Return an org-mode link to this year's journal."
+    (zetian--journal-link
+     (zetian-journal-year)
+     (format-time-string "%Y")))
 #+END_SRC
 
 ** Beeping
