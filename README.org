@@ -2476,6 +2476,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix-map zetian-database
            ("c" . org-roam-db-clear-all)
            ("d" . org-roam-db-diagnose-node)
+           ("l" . zetian-lint)
            ("s" . org-roam-db-sync)
            :prefix "zf"
            :prefix-map zetian-find
@@ -4999,6 +5000,101 @@ I want to be able to rename a =zetian= note. This should not only change the tit
           (save-restriction
             (narrow-to-region (match-beginning 0) (match-end 0))
             (replace-match desc t t nil 1))))))
+#+END_SRC
+
+*** Linter
+I want a function to ensure that =zetian= remains healthy.
+#+BEGIN_SRC emacs-lisp
+  (defun zetian--lint-duplicates ()
+    "Return a list of nodes that are duplicates of one another in the form
+    ((NODE-A1 . NODE-A2) ...)"
+    (let* ((results (org-roam-db-query
+                     [:select [file title] :from files
+                      :where (in title [:select title :from files
+                                        :group :by title
+                                        :having (> (funcall count *) 1)])
+                      :order :by title])))
+      (mapcar (lambda (x)
+                (cons (car x)
+                      (mapcar (lambda (n) (zetian--lint-node-from-file (car n)))
+                              (cdr x))))
+              (-group-by 'cadr results))))
+
+  (defun zetian--lint-node-from-file (filename)
+    (with-current-buffer (find-file-noselect filename)
+      (org-roam-node-at-point)))
+
+  (defun zetian--lint-broken-links ()
+    "Return a list of broken links in the form ((NODE1 POS1 POS2) ...)."
+    (let ((results (org-roam-db-query
+                    [:select [source pos]
+                     :from links
+                     :where (and (= type "id")
+                                 (not (in dest
+                                          [:select id :from nodes])))])))
+      (mapcar (lambda (x)
+                (cons (org-roam-node-from-id (car x))
+                      (mapcar 'cadr (cdr x))))
+              (-group-by 'car results))))
+
+  (defun zetian--lint-read-link-at-pos (node pos)
+    "Return the link's description for NODE at POS within buffer."
+    (with-current-buffer
+        (find-file-noselect (org-roam-node-file node))
+      (save-restriction
+        (save-excursion
+          (widen)
+          (goto-char pos)
+          (re-search-forward "\\[\\[.*\\]\\[\\(.*\\)\\]\\]")
+          (buffer-substring-no-properties
+           (match-beginning 1)
+           (match-end 1))))))
+
+  (defun zetian--lint-show-buffer (dups links)
+    "Build and show a buffer with any errors found."
+    (let ((buf (get-buffer-create "*zetian database lint*"))
+          (now (format-time-string "[%Y-%m-%d %a %H:%M]")))
+      (pop-to-buffer-same-window buf)
+      (read-only-mode -1)
+      (erase-buffer)
+      (insert "#+title: zetian database lint\n\n")
+      (insert (format "run at %s\n" now))
+      (when dups
+        (insert (format "\n* %d duplicate titles found\n" (length dups)))
+        (dolist (dup dups)
+          (insert (format "\n** %s\n" (car dup)))
+          (dolist (bad (cdr dup))
+            (insert (format "- [[id:%s][%s]]\n"
+                            (org-roam-node-id bad)
+                            (file-relative-name
+                             (org-roam-node-file bad)
+                             org-roam-directory)))
+            ;; (insert (format "in-links=%d out-links=%d\n"
+            ;;                 (length (zetian-links-to bad))
+            ;;                 (length (zetian-links-from bad))))
+            )))
+      (when links
+        (insert (format "\n* %d nodes with broken links found\n" (length links)))
+        (dolist (link links)
+          (insert (format "\n** %s\n" (zetian-node-link (car link))))
+          (dolist (pos (cdr link))
+            (insert (format "- \"%s\" (pos:%d)\n"
+                            (zetian--lint-read-link-at-pos (car link) pos)
+                            pos)))))
+      (org-mode)
+      (read-only-mode 1)))
+
+  (defun zetian-lint ()
+    "Check zetian for any inconsistencies and open a buffer containing the
+  faults."
+    (interactive)
+    (org-roam-db-sync)
+    (let ((dups (zetian--lint-duplicates))
+          (links (zetian--lint-broken-links)))
+      (if (or dups links)
+          (zetian--lint-show-buffer dups links)
+        (message "no errors found in zetian"))))
+
 #+END_SRC
 
 *** zetian-mode
