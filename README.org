@@ -945,7 +945,7 @@ I want to be able to save a TODO item for the current email and archive in one s
   (define-key mu4e-view-mode-map "a" #'mu4e-view-mark-for-refile)
   (define-key mu4e-view-mode-map "r" #'ic//org-capture-email)
 #+END_SRC
-** org
+** org-mode
 =org-mode= is a large part of my daily emacs usage so it takes a large amount of my configuration as well. Let's go...
 
 #+BEGIN_SRC emacs-lisp :noweb yes
@@ -2554,6 +2554,22 @@ Let's try having a nice search interface for =org-mode=.
   (use-package org-ql)
 #+END_SRC
 
+** org-transclusion
+#+BEGIN_SRC emacs-lisp
+  (use-package org-transclusion
+    :config
+    (setq org-transclusion-exclude-elements '(keyword property-drawer))
+
+    ;; (defun ic/org-transclusion-add-background-face (beg end)
+    ;;   (put-text-property beg end 'face 'org-block))
+
+    ;; (add-hook 'org-transclusion-after-add-functions
+    ;;           #'ic/org-transclusion-add-background-face)
+    ;; (remove-hook 'org-transclusion-after-add-functions
+    ;;              #'ic/org-transclusion-add-background-face)
+    )
+#+END_SRC
+
 ** projectile
 This used to be much more involved, but I found a lot of my project specific code just wasn't all that useful and I'm trying to pare down my config as much as possible, so let's see what a more or less default =projectile= can look like.
 
@@ -3869,7 +3885,8 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
                 (org-narrow-to-subtree)))
              (t
               (find-file (org-roam-node-file node))
-              (rename-buffer buf-name))))
+              (rename-buffer buf-name)
+              (zetian-mode))))
         (error "could not lookup zetian node: %s" (org-id-find (org-roam-node-id node))))))
 #+END_SRC
 
