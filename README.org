@@ -4797,160 +4797,170 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
 
 **** extract backup
 #+BEGIN_SRC emacs-lisp
-  (defvar zetian-moonreader-backup-dir
-    "~/sync/moonreader/"
-    "The directory to search for moonreader backup files.")
+    (defvar zetian-moonreader-backup-dir
+      "~/sync/moonreader/"
+      "The directory to search for moonreader backup files.")
 
-  (defun zetian--moonreader-backup-file ()
-    "Return the filename of the moonreader backup file to process."
-    (interactive)
-    (when-let ((files (file-expand-wildcards
-                       (concat zetian-moonreader-backup-dir "*.mrpro"))))
-      (if (= 1 (length files))
-          (car files)
-        (completing-read "moonreader backup to process: " files))))
+    (defun zetian--moonreader-backup-file ()
+      "Return the filename of the moonreader backup file to process."
+      (interactive)
+      (when-let ((files (file-expand-wildcards
+                         (concat zetian-moonreader-backup-dir "*.mrpro"))))
+        (if (= 1 (length files))
+            (car files)
+          (completing-read "moonreader backup to process: " files))))
 
-  (defun zetian--moonreader-extract (file)
-    "Extract the moonreader zip backup FILE to a temporary directory, return the
-  directory."
-    (let ((tmpdir (concat temporary-file-directory "moonreader-extract/")))
-      (when (file-exists-p tmpdir)
-        (delete-directory tmpdir t))
-      (make-directory tmpdir)
-      (shell-command (format "unzip -q %s -d %s" file tmpdir))
-      tmpdir))
+    (defun zetian--moonreader-extract (file)
+      "Extract the moonreader zip backup FILE to a temporary directory, return the
+    directory."
+      (let ((tmpdir (concat temporary-file-directory "moonreader-extract/")))
+        (when (file-exists-p tmpdir)
+          (delete-directory tmpdir t))
+        (make-directory tmpdir)
+        (shell-command (format "unzip -q %s -d %s" file tmpdir))
+        tmpdir))
 
-  (defun zetian--moonreader-database-file (dir)
-    "Return the sqlite database file under the extracted backup DIR."
-    (let* ((base (concat dir "com.flyersoft.moonreaderp/"))
-           (metadata
-            (with-temp-buffer
-              (insert-file-contents (concat base "_names.list"))
-              (split-string (buffer-string) "\n")))
-           (idx (-elem-index
-                 "com.flyersoft.moonreaderp/databases/mrbooks.db"
-                 metadata))
-           (file (format "%s%d.tag" base (+ idx 1))))
-      (if (file-exists-p file)
-          file
-        (error "Could not find database file under %s" dir))))
+    (defun zetian--moonreader-database-file (dir)
+      "Return the sqlite database file under the extracted backup DIR."
+      (let* ((base (concat dir "com.flyersoft.moonreaderp/"))
+             (metadata
+              (with-temp-buffer
+                (insert-file-contents (concat base "_names.list"))
+                (split-string (buffer-string) "\n")))
+             (idx (-elem-index
+                   "com.flyersoft.moonreaderp/databases/mrbooks.db"
+                   metadata))
+             (file (format "%s%d.tag" base (+ idx 1))))
+        (if (file-exists-p file)
+            file
+          (error "Could not find database file under %s" dir))))
 
-  (defun zetian--moonreader-highlights (db-file)
-    "Given a sqlite db at DB-FILE: return a list of moonreader highlights in the
-  form: ((ebook quoted-text note) ...)."
-    (with-temp-buffer
-      (call-process "sqlite3" nil t nil "-line" db-file
-                    "select filename, original, note from notes")
-      (goto-char (point-min))
-      (let (result filename quoted note)
-        (while (re-search-forward "^filename = " nil t)
-          (setq filename (buffer-substring-no-properties
+    (defun zetian--moonreader-highlights (db-file)
+      "Given a sqlite db at DB-FILE: return a list of moonreader highlights in the
+    form: ((ebook quoted-text note) ...)."
+      (with-temp-buffer
+        (call-process "sqlite3" nil t nil "-line" db-file
+                      "select filename, original, note, time from notes")
+        (goto-char (point-min))
+        (let (result filename quoted note time)
+          (while (re-search-forward "^filename = " nil t)
+            (setq filename (buffer-substring-no-properties
+                            (point) (line-end-position)))
+            (re-search-forward "^original = ")
+            (setq quoted (buffer-substring-no-properties
                           (point) (line-end-position)))
-          (re-search-forward "^original = ")
-          (setq quoted (buffer-substring-no-properties
+            (re-search-forward "^    note = ")
+            (setq note (buffer-substring-no-properties
                         (point) (line-end-position)))
-          (re-search-forward "^    note = ")
-          (setq note (buffer-substring-no-properties
-                      (point) (line-end-position)))
-          (push `((ebook . ,filename)
-                  (quoted . ,quoted)
-                  (note . ,note)
-                  (checksum . ,(md5 (concat quoted note))))
-                result))
-        result)))
+            (re-search-forward "^    time = ")
+            (setq time (buffer-substring-no-properties
+                        (point) (line-end-position)))
+            (setq timestamp
+                  (format-time-string "[%Y-%m-%d %a %H:%M]"
+                                      (seconds-to-time
+                                       (/ (string-to-number time) 1000))))
+            (push `((ebook . ,filename)
+                    (quoted . ,quoted)
+                    (note . ,note)
+                    (timestamp . ,timestamp)
+                    (checksum . ,(md5 (concat quoted note))))
+                  result))
+          result)))
 
-  (defun zetian--format-template-ebook (highlight filename)
-    "Load the `yas-snippet' found in FILENAME with the environment from
-  HIGHLIGHT."
-    (with-temp-buffer
-      (unless (yas-minor-mode 1)
-        (error "failed to load yas-minor-mode"))
-      (yas-expand-snippet
-       (with-temp-buffer
-         (insert-file-contents
-          (locate-user-emacs-file filename))
-         (buffer-string))       
-       nil
-       nil
-       (mapcar (lambda (c)
-                 (list (car c)
-                       (if (listp (cdr c))
-                           `(quote ,(cdr c))
-                         (cdr c))))
-               highlight))
-      (buffer-string)))
+    (defun zetian--format-template-ebook (highlight filename)
+      "Load the `yas-snippet' found in FILENAME with the environment from
+    HIGHLIGHT."
+      (with-temp-buffer
+        (unless (yas-minor-mode 1)
+          (error "failed to load yas-minor-mode"))
+        (yas-expand-snippet
+         (with-temp-buffer
+           (insert-file-contents
+            (locate-user-emacs-file filename))
+           (buffer-string))       
+         nil
+         nil
+         (mapcar (lambda (c)
+                   (list (car c)
+                         (if (listp (cdr c))
+                             `(quote ,(cdr c))
+                           (cdr c))))
+                 highlight))
+        (buffer-string)))
 
-  (defun zetian--moonreader-import-highlight (highlight)
-    "Import HIGHLIGHT into zetian if it's not already imported."
-    (interactive)
-    (unless (org-roam-node-from-title-or-alias
-             (format "litnote %s" (assoc-default 'checksum highlight)))
-      (when-let ((node (zetian-node-from-ebook (assoc-default 'ebook highlight))))
-        (push `(book-id . ,(org-roam-node-id node)) highlight)
-        (push `(book-title . ,(org-roam-node-title node)) highlight)
-        (let ((template `("l" "literature note" plain
-                          ,(zetian--format-template-ebook
-                            highlight "data/templates/capture-litnote-body.org")
-                          :target (file+head
-                                   "%<%Y%m%d%H%M%S>-${id}.org"
-                                   ,(zetian--format-template-ebook
-                                     highlight "data/templates/capture-litnote-header.org"))))
-              (title (format "litnote %s" (assoc-default 'checksum highlight))))
+    (defun zetian--moonreader-import-highlight (highlight)
+      "Import HIGHLIGHT into zetian if it's not already imported."
+      (interactive)
+      (unless (org-roam-node-from-title-or-alias
+               (format "litnote %s" (assoc-default 'checksum highlight)))
+        (when-let ((node (zetian-node-from-ebook (assoc-default 'ebook highlight))))
+          (push `(book-id . ,(org-roam-node-id node)) highlight)
+          (push `(book-title . ,(org-roam-node-title node)) highlight)
+          (let ((template `("l" "literature note" plain
+                            ,(zetian--format-template-ebook
+                              highlight "data/templates/capture-litnote-body.org")
+                            :target (file+head
+                                     "%<%Y%m%d%H%M%S>-${id}.org"
+                                     ,(zetian--format-template-ebook
+                                       highlight "data/templates/capture-litnote-header.org"))))
+                (title (format "litnote %s" (assoc-default 'checksum highlight))))
+            (cl-letf ((org-roam-capture-templates (list template)))
+              (zetian-node-create title "l"))))))
+
+    (defun zetian--moonreader-import-summary (imported)
+      "Generate a summary note from highlights in the list IMPORTED"
+      (interactive)
+      (when imported
+        (let* ((parent-node (org-roam-node-from-title-or-alias
+                             "automated moonreader import"))
+               (body
+                (concat "%U\n\n%?"
+                        (format "[[id:%s][%s]] "
+                                (org-roam-node-id parent-node)
+                                (org-roam-node-title parent-node))
+                        (format "added %d literature notes:\n\n"
+                                (length imported))
+                        (mapconcat
+                         (lambda (node)
+                           (let ((link (format "[[id:%s][%s]]"
+                                               (org-roam-node-id node)
+                                               (org-roam-node-title node))))
+                             (format "* %s\n#+transclude: %s\n\n" link link)))
+                         imported)))
+               (header-template
+                "data/templates/capture-moonreader-import-summary-header.org")
+               (title (format "litnote import for %s"
+                              (format-time-string "[%Y-%m-%d %a %H:%M]")))
+               (template `("s" "moonreader import summary" plain
+                           ,body
+                           :target (file+head
+                                    "%<%Y%m%d%H%M%S>-${id}.org"
+                                    ,(zetian--format-template-ebook
+                                      `((title . ,title))
+                                      header-template)))))
           (cl-letf ((org-roam-capture-templates (list template)))
-            (zetian-node-create title "l"))))))
+            (message "creating with %s" title)
+            (zetian-node-create title "s")))))
 
-  (defun zetian--moonreader-import-summary (imported)
-    "Generate a summary note from highlights in the list IMPORTED"
-    (interactive)
-    (when imported
-      (let* ((parent-node (org-roam-node-from-title-or-alias
-                           "automated moonreader import"))
-             (body
-              (concat "%U\n\n%?"
-                      (format "[[id:%s][%s]] "
-                              (org-roam-node-id parent-node)
-                              (org-roam-node-title parent-node))
-                      (format "added %d literature notes:\n\n"
-                              (length imported))
-                      (mapconcat
-                       (lambda (node)
-                         (let ((link (format "[[id:%s][%s]]"
-                                             (org-roam-node-id node)
-                                             (org-roam-node-title node))))
-                           (format "* %s\n#+transclude: %s\n\n" link link)))
-                       imported)))
-             (header-template
-              "data/templates/capture-moonreader-import-summary-header.org")
-             (title (format "litnote import for %s"
-                            (format-time-string "%Y-%m-%d %H:%M")))
-             (template `("s" "moonreader import summary" plain
-                         ,body
-                         :target (file+head
-                                  "%<%Y%m%d%H%M%S>-${id}.org"
-                                  ,(zetian--format-template-ebook
-                                    `((title . ,title))
-                                    header-template)))))
-        (cl-letf ((org-roam-capture-templates (list template)))
-          (message "creating with %s" title)
-          (zetian-node-create title "s")))))
-
-  (defun zetian-moonreader-import ()
-    "Import any highlights from a moonreader backup in
-  `zetian-moonreader-backup-dir'."
-    (interactive)
-    (when-let ((backup (zetian--moonreader-backup-file)))
-      (let* ((tmpdir (zetian--moonreader-extract backup))
-             (highlights (zetian--moonreader-highlights
-                          (zetian--moonreader-database-file tmpdir)))
-             imported)
-        (delete-directory tmpdir t)
-        (dolist (highlight highlights)
-          (when-let ((node (zetian--moonreader-import-highlight highlight)))
-            (push node imported)))
-        (if imported
-            (zetian-node-find
-             (zetian--moonreader-import-summary imported))
-          (message "imported 0 new zetian notes")))))
+    (defun zetian-moonreader-import ()
+      "Import any highlights from a moonreader backup in
+    `zetian-moonreader-backup-dir'."
+      (interactive)
+      (if-let ((backup (zetian--moonreader-backup-file)))
+          (let* ((tmpdir (zetian--moonreader-extract backup))
+                 (db-file (zetian--moonreader-database-file tmpdir))
+                 (highlights (zetian--moonreader-highlights db-file))
+                 imported)
+            (dolist (highlight highlights)
+              (when-let ((node (zetian--moonreader-import-highlight highlight)))
+                (push node imported)))
+            (if imported
+                (zetian-node-find
+                 (zetian--moonreader-import-summary imported))
+              (message "imported 0 new zetian notes"))
+            (delete-directory tmpdir t)
+            (delete-file backup))
+        (message "no moonreader backup file found")))
 #+END_SRC
 
 *** Rename note
