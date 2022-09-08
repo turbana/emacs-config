@@ -3129,6 +3129,7 @@ Some useful buffer related functions.
            ("emacs" (or
                      (name . "^\\*scratch\\*$")
                      (name . "^\\*Messages\\*$")
+                     (name . "^\\*Warnings\\*$")
                      (name . "^\\*Shell Command Output\\*$")
                      (name . "^\\*Async-native-compile-log\\*$")
                      (name . "^\\*straight-")))
