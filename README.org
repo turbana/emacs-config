@@ -3111,9 +3111,15 @@ Some useful buffer related functions.
 #+BEGIN_SRC emacs-lisp
   (setq ibuffer-saved-filter-groups
         '(("default"
+           ("zetian" (or
+                      (mode . zetian-mode)
+                      (name . "^zetian:")
+                      (name . "^\\*zetian")
+                      (filename . "org/home/roam")))
            ("org" (or
                    (mode . org-mode)
-                   (name . "^\\*Org Src")))
+                   (name . "^\\*Org Src")
+                   (name . "^\\*Org Agenda\\*$")))
            ("tramp" (name . "^\\*tramp.*"))
            ("magit" (or
                      (mode . magit-mode)
@@ -3124,23 +3130,20 @@ Some useful buffer related functions.
                      (name . "^\\*scratch\\*$")
                      (name . "^\\*Messages\\*$")
                      (name . "^\\*Shell Command Output\\*$")
-                     ))
+                     (name . "^\\*Async-native-compile-log\\*$")
+                     (name . "^\\*straight-")))
            ("ediff" (or
                      (name . "^\\*ediff.*")
-                     (name . "^\\*Ediff.*")
-                     )
-            )
+                     (name . "^\\*Ediff.*")))
            ("dired" (mode . dired-mode))
            ("terminal" (or
                          (mode . term-mode)
                          (mode . shell-mode)
-                         (mode . eshell-mode)
-                         ))
+                         (mode . eshell-mode)))
            ("help" (or
                     (name . "^\\*Help\\*$")
                     (name . "^\\*info\\*$")
-                    ))
-           )))
+                    (name . "^\\*helpful"))))))
 
   ;; use our custom groupings by default
   (add-hook 'ibuffer-mode-hook
