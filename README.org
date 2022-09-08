@@ -4756,19 +4756,42 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
              (pri (org-roam-node-priority node))
              (pri-str (if pri
                           (format "[#%s]" (char-to-string pri))
-                        "")))
+                        ""))
+             (contents (zetian--completion-get-contents node)))
         ;; ensure todo string is full width, otherwise the 'org-todo face extends past the tag
         (setq todo-str (concat todo-str
                                (make-string (- 5 (length todo-str)) ? )))
         (marginalia--fields
          (cat :face 'org-document-info
-              :width 12)
+              ;; :width 8
+              :truncate 8
+              )
          (pri-str :face (org-get-priority-face pri)
-                  :width 4)
-         (todo-str :width 5)
+                  :truncate 4
+                  ;; :width 4
+                  )
+         (todo-str :truncate 5)
          (tags-str :face 'org-tag
-                   :width 20
-                   :truncate 20)))))
+                   ;; :width 10
+                   :truncate 10
+                   )
+         ;; ("|" :width 1 :truncate 1)
+         (contents :face 'org-footnote
+                   :truncate 200)
+         ))))
+
+  (defun zetian--completion-get-contents (node)
+    "Return the formatted contents of NODE as a string."
+    (with-temp-buffer
+      (insert (zetian-get-contents node))
+      (goto-char (point-min))
+      (re-search-forward "^$")
+      (s-replace-regexp
+       "\\[\\[.*\\]\\[\\(.*\\)\\]\\]"
+       "\\1"
+       (string-replace
+        "\n" " "
+        (buffer-substring-no-properties (point) (point-max))))))
 
   ;; add our annotator to marginalia
   (with-eval-after-load 'marginalia
@@ -4979,6 +5002,23 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
           (delete-directory tmpdir t)
           (delete-file backup))
       (message "no moonreader backup file found")))
+#+END_SRC
+
+*** Contents
+I'd like a way to open a buffer with a node's text without having too many open buffers in emacs.
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-get-contents (&optional node)
+    "Return the content of NODE as a string. If NODE is nil: use the node at
+  point."
+    (let ((node (or node (org-roam-node-at-point))))
+      (with-temp-buffer
+        (insert-file-contents
+         (org-roam-node-file node))
+        (goto-char (org-roam-node-point node))
+        (org-mode)
+        (when (org-at-heading-p)
+          (org-narrow-to-element))
+        (buffer-substring-no-properties (point) (point-max)))))
 #+END_SRC
 
 *** Rename note
