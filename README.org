@@ -3758,13 +3758,13 @@ My personal 2nd brain implemented in =org-roam=.
             ":END:\n"
             "%U"))
 
-  (let ((tasks-file "zetian-tasks.org")
+  (let ((tasks-file "special/zetian-tasks.org")
         (tasks-title (concat "#+title: All My Tasks\n"
                              "#+category: task\n"
                              "#+filetags: "
                              ":%(if at-home \"HOME\" \"WORK\"):agenda:\n"
                              "#+startup: content"))
-        (person-file "zetian-people.org")
+        (person-file "special/zetian-people.org")
         (person-title (concat "#+title: All My Contacts\n"
                               "#+category: person\n"
                               "#+filetags: "
