@@ -3741,7 +3741,7 @@ My personal 2nd brain implemented in =org-roam=.
     `(file+head ,file ,title))
 
   (defun zetian--capture-target-default (&optional cat file-name title)
-    (let ((default-file "%<%Y%m%d%H%M%S>-${slug}.org")
+    (let ((default-file "%<%Y%m%d%H%M%S>-${id}.org")
           (default-title (concat "#+filetags: review\n"
                                  "#+title: ${title}"))
           (cat-s (format ":PROPERTIES:\n:CATEGORY: %s\n:END:\n" cat)))
