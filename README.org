@@ -4216,6 +4216,8 @@ Keep track of the last time a node was modified through the =org-mode= property 
 Ensure that =org-agenda= can find the relevant notes.
 #+BEGIN_SRC emacs-lisp
   (defun zetian-refresh-agenda-list ()
+    "Search zetian for any files with an 'agenda' tag and add them to
+  `org-agenda-files'."
     (interactive)
     (mapc (lambda (node)
             (add-to-list 'org-agenda-files
