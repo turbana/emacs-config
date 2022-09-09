@@ -3738,119 +3738,106 @@ My personal 2nd brain implemented in =org-roam=.
 *** Capture Templates
 =org-roam= defines its own syntax for capture templates separate from =org-mode= so we'll define them here.
 #+BEGIN_SRC emacs-lisp
-  (defun zetian--capture-target (file title)
-    `(file+head ,file ,title))
+  (cl-defun zetian--capture-template
+      (&key file-name title file-tags file-cat prop-cat prop-id other is-element
+            todo suppress-prop-drawer)
+    (let ((default-file-name "%<%Y%m%d%H%M%S>-${id}.org")
+          (body
+           (concat
+            (when is-element
+              (concat "* "
+                      (when todo (concat todo " "))
+                      (or title "${title}")
+                      "\n"))
+            (unless suppress-prop-drawer
+              (concat
+               ":PROPERTIES:\n"
+               ":CREATED: %U\n"
+               ":LAST_MODIFIED: %U\n"
+               (format ":ID: %s\n" (or prop-id "${id}"))
+               (when prop-cat (format ":CATEGORY: %s\n" prop-cat))
+               ":END:\n"))
+            (when file-cat (format "#+category: %s\n" file-cat))
+            (when file-tags (format "#+filetags: %s\n" file-tags))
+            (when other (concat other "\n"))
+            (unless is-element
+              (format "#+title: %s" (or title "${title}"))))))
+      (if is-element
+          body
+        `(file+head ,(or file-name default-file-name)
+                    ,body))))
 
-  (defun zetian--capture-target-default (&optional cat file-name title)
-    (let ((default-file "%<%Y%m%d%H%M%S>-${id}.org")
-          (default-title (concat "#+filetags: review\n"
-                                 "#+title: ${title}"))
-          (cat-s (format ":PROPERTIES:\n:CATEGORY: %s\n:END:\n" cat)))
-      (zetian--capture-target
-       (or file-name default-file)
-       (concat (when cat cat-s)
-               (or title default-title)))))
-
-  (defun zetian--capture-node (cat &optional todo)
-    (concat "* " (when todo (concat todo " ")) "${title}\n"
-            ":PROPERTIES:\n"
-            ":ID: %(org-id-new)\n"
-            ":CATEGORY: " cat " \n"
-            ":END:\n"
-            "%U"))
-
-  (let ((tasks-file "special/zetian-tasks.org")
-        (tasks-title (concat "#+title: All My Tasks\n"
-                             "#+category: task\n"
-                             "#+filetags: "
-                             ":%(if at-home \"HOME\" \"WORK\"):agenda:\n"
-                             "#+startup: content"))
-        (person-file "special/zetian-people.org")
-        (person-title (concat "#+title: All My Contacts\n"
-                              "#+category: person\n"
-                              "#+filetags: "
-                              ":%(if at-home \"HOME\" \"WORK\"):agenda:\n"
-                              "#+startup: content")))
+  (let* ((zetian-tasks-file "special/zetian-tasks.org")
+         (zetian-people-file "special/zetian-people.org")
+         (default-template "%U\n\n%?")
+         (task-target
+          (zetian--capture-template
+           :file-name zetian-tasks-file :title "All My Tasks"
+           :file-cat "task" :other "#+startup: contents"
+           :suppress-prop-drawer t
+           :file-tags ":%(if at-home \"HOME\" \"WORK\"):agenda:"))
+         (people-target
+          (zetian--capture-template
+           :file-name zetian-people-file :title "All My Contacts"
+           :file-cat "person" :other "#+startup: contents"
+           :suppress-prop-drawer t
+           :file-tags ":%(if at-home \"HOME\" \"WORK\"):agenda:")))
     (setq org-roam-capture-templates
-          `(
-            ;; permanent note
-            ("p" "permanent note" plain "%U\n\n%?"
-             :target ,(zetian--capture-target-default "perm")
-             :unnarrowed t)
+        `(("p" "permanent note" plain ,default-template
+           :target ,(zetian--capture-template
+                     :file-cat "perm" :file-tags "review")
+           :unnarrowed t)
 
-            ;; task note
-            ("t" "task" entry
-             ,(concat (zetian--capture-node "task" "TODO")
-                      "\n\n%?")
-             :target ,(zetian--capture-target tasks-file tasks-title)
-             :unnarrowed nil
-             :empty-lines-before 1)
+          ("i" "idea" plain ,default-template
+           :target ,(zetian--capture-template
+                     :file-cat "idea" :file-tags "review")
+           :unnarrowed t)
 
-            ;; event note
-            ("e" "event" entry
-             ,(concat (zetian--capture-node "event" "TODO")
-                      "\n\n%?")
-             :target ,(zetian--capture-target tasks-file tasks-title)
-             :unnarrowed nil
-             :empty-lines-before 1)
+          ("t" "task" entry
+           ,(concat (zetian--capture-template
+                     :is-element t :todo "TODO" :prop-cat "task")
+                    default-template)
+           :target ,task-target
+           :empty-lines-before 1)
 
-            ;; lit note
-            ("l" "literature note" plain
-             ,(concat "%U\n\n%?\n\n"
-                      "#+begin_quote\n%i#+end_quote\n"
-                      "/Quote from %(zetian-link)/")
-             :target ,(zetian--capture-target-default "lit")
-             :unnarrowed t)
+          ("e" "event" entry
+           ,(concat (zetian--capture-template
+                     :is-element t :todo "TODO" :prop-cat "event")
+                    default-template)
+           :target ,task-target
+           :empty-lines-before 1)
 
-            ;; person note
-            ("P" "person" entry
-             ,(concat (zetian--capture-node "person")
-                      "\n\n"
-                      "- organization ::\n"
-                      "- birthday ::\n"
-                      "FIXME %\\%(org-anniversary yyyy mm dd) "
-                      "${title}'s %d%s birthday\n"
-                      "- phone ::\n"
-                      "- address ::"
-                      "\n\n%?")
-             :target ,(zetian--capture-target person-file person-title)
-             :unnarrowed nil
-             :empty-lines-before 1)
-
-            ;; movie note
-            ("M" "movie" plain "%U\n\n%?"
-             :target ,(zetian--capture-target-default "movie")
-             :unnarrowed t)
-
-            ;; TODO author note
-            ;; TODO idea note
-            )))
+          ("P" "person" entry
+           ,(zetian--capture-template
+             :is-element t :prop-cat "person"
+             :other (concat
+                     "%U\n\n"
+                     "- organization ::\n"
+                     "- birthday ::\n"
+                     "%% FIXME(org-anniversary yyyy mm dd) "
+                     "${title}'s %d%s birthday\n"
+                     "- phone ::\n"
+                     "- address ::\n"
+                     "\n%?"))
+           :target ,people-target
+           :empty-lines-before 1)
+          )))
 #+END_SRC
 
 These templates are used from =org-capture-protocol=.
 #+BEGIN_SRC emacs-lisp
   (setq org-roam-capture-ref-templates
         `(("W" "web zettel (org-protocol)" plain
-           ,(concat "\n\nFrom [[%:link][${title}]] on %U:\n"
-                    "#+begin_quote\n${body}\n#+end_quote\n"
-                    "\n%?"
-                    )
-           :target ,(zetian--capture-target-default "lit")
-           :unnarrowed t
-           :empty-lines-before 1)))
-
+           ,(concat "%U\n\n%?\n\nFrom [[%:link][${title}]] on %U:\n"
+                    "#+begin_quote\n${body}\n#+end_quote")
+           :target ,(zetian--capture-template
+                     :file-cat "lit" :title "litnote ${id}")
+           :unnarrowed t)))
 #+END_SRC
 
 I have a link setup in =firefox= with the following href to integrate into =org-roam-protocol=.
 #+BEGIN_SRC javascript :tangle no
   javascript:location.href='org-protocol://roam-ref?'+ new URLSearchParams({template: "W", ref: location.href, title: document.title, body: window.getSelection()})
-#+END_SRC
-
-Cleanup some temporary functions.
-#+BEGIN_SRC emacs-lisp
-  ;; (fmakunbound #'zetian--capture-node)
-  ;; (fmakunbound #'zetian--capture-target)
-  ;; (fmakunbound #'zetian--capture-target-default)
 #+END_SRC
 
 *** Opening notes
