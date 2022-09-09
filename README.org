@@ -3894,210 +3894,102 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
         (error "could not lookup zetian node: %s" (org-id-find (org-roam-node-id node))))))
 #+END_SRC
 
-*** Saved searches
-I do some common queries against =Zetian= so save them here.
+*** Saved Searches
+
 #+BEGIN_SRC emacs-lisp
-  (defconst zetian--open-state
-    '(or (todo "TODO")
-         (todo "NEXT"))
-    "Zetian sub-query for an \"open\" item.")
+  (defmacro def-zetian-query (sym query)
+    (declare (indent 1))
+    (let* ((name (symbol-name sym))
+           (pretty-name (string-replace "-" " " name))
+           (q-sym (intern (format "zetian-query-%s" name)))
+           (f-sym (intern (format "zetian-find-%s" name))))
+      `(progn
+         (setq ,q-sym ,query)
+         (defun ,q-sym ()
+           ,(format "Return a list of all %s zetian nodes." pretty-name)
+           (zetian-query ,q-sym))
+         (defun ,f-sym ()
+           ,(format "Search zetian for any %s, prompting the user for which to navigate to." pretty-name)
+           (interactive)
+           (zetian-search-find ,q-sym ,pretty-name)))))
 
-  (defun zetian-find-book ()
-    "Search zetian for a book and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(category "book")
-                        "books"))
+  ;; things
+  (def-zetian-query project
+    '(category "project"))
 
-  (defun zetian-find-author ()
-    "Search zetian for a book and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(category "author")
-                        "authors"))
+  (def-zetian-query book
+    '(category "book"))
 
-  (defun zetian-find-task ()
-    "Search zetian for a task and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(category "task")
-                        "tasks"))
+  (def-zetian-query author
+    '(category "author"))
 
-  (defun zetian-find-task-next ()
-    "Search zetian for a task and navigate to buffer."
-    (interactive)
-    (zetian-search-find '(and (category "task")
-                              (todo "NEXT"))
-                        "next tasks"))
+  (def-zetian-query task
+    '(category "task"))
 
-  (defun zetian-find-task-open ()
-    "Search zetian for a book and navigate to buffer."
-    (interactive)
-    (zetian-search-find `(and (category "task")
-                              ,zetian--open-state)
-                        "open tasks"))
+  (def-zetian-query event
+    '(category "event"))
 
-  (defun zetian--sub-search (name query query-name)
-    "Return NAME if non-nil, otherwise call `(zetian-search QUERY nil NAME)' and
-  if non-nil return the title."
-    (if name
-        name
-      (if-let ((node (zetian-search query nil query-name)))
-          (org-roam-node-title node))))
+  (def-zetian-query permanent
+    '(category "perm"))
 
-  (defun zetian-find-task-next-project (&optional project-name)
-    "Find all NEXT tasks that link to PROJECT-NAME. Prompt user if NIL."
-    (interactive)
-    (if-let ((project (zetian--sub-search project-name
-                                          '(category "project")
-                                          "projects")))
-        (zetian-search-find
-         `(and (category "task")
-               (todo "NEXT")
-               (links-to ,project))
-         (format "NEXT tasks that link to %S" project))))
+  (def-zetian-query open
+    '(or (todo "NEXT") (todo "TODO")))
 
-  (defun zetian-find-task-open-project (&optional project-name)
-    "Find all open tasks that link to PROJECT-NAME. Prompt user if NIL."
-    (interactive)
-    (if-let ((project (zetian--sub-search project-name
-                                          '(category "project")
-                                          "projects")))
-        (zetian-search-find
-         `(and (category "task")
-               ,zetian--open-state
-               (links-to ,project))
-         (format "open tasks that link to %S" project))))
+  ;; tasks
+  (def-zetian-query next-task
+    `(and ,zetian-query-task
+          (todo "NEXT")))
 
-  (defun zetian-find-task-open-link (&optional node-name)
-    "Find all open tasks that link to NODE-NAME. Prompt user if NIL."
-    (interactive)
-    (if-let ((title (zetian--sub-search node-name
-                                        nil
-                                        "linked note")))
-        (zetian-search-find
-         `(and (category "task")
-               ,zetian--open-state
-               (links-to ,title))
-         (format "open tasks that link to %S" title))))
+  (def-zetian-query open-task
+    `(and ,zetian-query-task
+          ,zetian-query-open))
 
-  (defun zetian-find-task-open-orphaned ()
-    "Find all open tasks that are not linked to any project."
-    (interactive)
-    (let ((no-project
-           `(not ,(append '(or)
-                          (mapcar
-                           (lambda (node)
-                             `(links-to ,(org-roam-node-title node)))
-                           (zetian-query '(category "project")))))))
-      (zetian-search-find `(and (category "task")
-                                ,zetian--open-state
-                                ,no-project)
-                          "orphaned tasks")))
+  (def-zetian-query next-project-task
+    `(and ,zetian-query-next-task
+          (links-to (eval (zetian-search zetian-query-project
+                                         nil "next tasks for project")))))
 
-  (defun zetian-find-link-to (&optional node-name)
-    "Search zetian for nodes that link to NODE-NAME, prompt for name if NIL."
-    (interactive)
-    (if-let ((title (zetian--sub-search node-name nil "linked note")))
-        (zetian-search-find `(links-to ,title)
-                            (format "nodes that link to %S" title))))
+  (def-zetian-query open-project-task
+    `(and ,zetian-query-open-task
+          (links-to (eval (zetian-search zetian-query-project
+                                         nil "open tasks for project")))))
 
-  (defun zetian-find-link-to-current ()
-    "Search zetian for nodes that link the current node."
-    (interactive)
-    (zetian-find-link-to (zetian-get-title)))
+  ;; links
+  (def-zetian-query link-to
+    '(links-to (eval (zetian-search))))
 
-  (defun zetian-find-link-from (&optional node-name)
-    "Search zetian for nodes that NODE-NAME links to, prompt for name if NIL."
-    (interactive)
-    (if-let ((node (zetian--sub-search node-name nil "linked note")))
-        (zetian-search-find `(links-from ,node)
-                            (format "nodes that %S links to" node))))
+  (def-zetian-query link-to-current
+    '(links-to (eval (org-roam-node-at-point))))
 
-  (defun zetian-find-link-from-current ()
-    "Search zetian for nodes that the current node links to."
-    (interactive)
-    (zetian-find-link-from (zetian-get-title)))
+  (def-zetian-query link-from
+    '(links-from (eval (zetian-search))))
 
-  (defun zetian-find-open-event ()
-    "Search zetian for open events"
-    (interactive)
-    (zetian-search-find `(and (category "event")
-                              ,zetian--open-state)
-                        "open events"))
+  (def-zetian-query link-from-current
+    '(links-from (eval (org-roam-node-at-point))))
 
-  (defun zetian-find-project ()
-    "Search zetian for projects"
-    (interactive)
-    (zetian-search-find '(category "project")
-                        "project"))
+  ;; misc
+  (def-zetian-query open-events
+    `(and ,zetian-query-event
+          ,zetian-query-open))
 
-  (defun zetian-stuck-projects ()
-    "Return a list of stuck projects as zetian nodes."
-    (seq-filter
-     (lambda (project)
-       (let ((title (org-roam-node-title project)))
-         (not (zetian-query `(and (category "task")
-                                  (todo "NEXT")
-                                  (links-to ,title))))))
-     (zetian-query '(and (category "project")
-                         (not (tag "never-stuck"))))))
+  (def-zetian-query kind
+    '(tag (eval (completing-read "Kind: " (zetian-all-categories)))))
 
-  (defun zetian-find-stuck-projects ()
-    "Search zetian for any stuck project."
-    (interactive)
-    (let ((projects (zetian-stuck-projects)))
-      ;; we already found the search results, so override `zetian-query'.
-      (cl-letf (((symbol-function 'zetian-query)
-                 (lambda (&rest args) projects)))
-        (zetian-search-find nil "stuck project"))))
+  (def-zetian-query state
+    '(tag (eval (completing-read "State: " (zetian-all-states)))))
 
-  (defun zetian-find-strange ()
-    "Find any \"strange\" zetian notes. Strange could be unknown categories or
-    weird tags."
-    (interactive)
-    (let* ((cats '("task" "event" "book" "author" "project" "perm" "lit"
-                   "book" "web" "recipe" "video" "idea"))
-           (good-cat (append '(or)
-                             (mapcar
-                              (lambda (c) `(category ,c))
-                              cats))))
-      (zetian-search-find `(not ,good-cat))))
-
-  (defun zetian-find-state ()
-    "Prompt for state and find all nodes matching it."
-    (interactive)
-    (let ((state (completing-read "State: "
-                                  (zetian-all-states))))
-      (zetian-search-find `(tag ,state)
-                          (format "notes with state: %s" state))))
-
-  (defun zetian-find-category ()
-    "Prompt for category and find all nodes matching it."
-    (interactive)
-    (let ((cat (completing-read "Category: "
-                                (zetian-all-categories))))
-      (zetian-search-find `(category ,cat)
-                          (format "notes with category: %s" cat))))
-
-  (defun zetian-find-review ()
-    "Find all notes that need review."
-    (interactive)
-    (zetian-search-find '(tag "review")
-                        "notes needing review"))
+  (def-zetian-query review
+    '(tag "review"))
 
   (defun zetian-find-random-review ()
-    "Open a random node that needs review."
+    "Open a random note that needs review."
     (interactive)
-    (zetian-node-find
-     (seq-random-elt
-      (zetian-query '(tag "review")))))
+    (zetian-node-find (seq-random-elt (zetian-query-review))))
 
   (defun zetian-find-random-permanent ()
-    "Open a random permanent node."
+    "Open a random permanent note."
     (interactive)
-    (zetian-node-find
-     (seq-random-elt
-      (zetian-query '(or (category "perm")
-                         (category "lit")
-                         (category "idea"))))))
+    (zetian-node-find (seq-random-elt (zetian-query-permanent))))
 #+END_SRC
 
 *** Inserting Links
@@ -4348,8 +4240,13 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                         ;; TODO this could be a sql sub-query
                         :and (= ,col2
                                 ,(org-roam-node-id
-                                  (org-roam-node-from-title-or-alias
-                                   (cadr query))))])))
+                                  (if (stringp (cadr query))
+                                      (org-roam-node-from-title-or-alias
+                                       (cadr query))
+                                    (zetian--unroll-query-impl (cadr query)))))])))
+      ('eval
+       (message "eval: %S" (cadr query))
+       (eval (cadr query)))
       (_
        (error "invalid search key: %S" (car query)))))
 
