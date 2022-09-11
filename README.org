@@ -3993,10 +3993,11 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     "Query Zetian for a node and return an `org-mode' link as a string, creating
   the node if IMMEDIATE is non-nil."
     (interactive)
-    (when-let ((node (zetian-search nil immediate
+    (when-let ((node (zetian-search nil
                                     (concat "node to link"
                                             (when immediate
-                                              " (create if needed)")))))
+                                              " (create if needed)"))
+                                    immediate)))
         (zetian-node-link node)))
 
   (defun zetian-link-immediate ()
@@ -4594,8 +4595,7 @@ Let's migrate my book importing code to =org-roam=.
 *** Integrate with completing-read
 Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll also annotate each item as ='zetian= so further packages (=marginalia= / =embark=) can key off the category.
 #+BEGIN_SRC emacs-lisp
-
-  (defun zetian-search (&optional query create query-name)
+  (defun zetian-search (&optional query query-name create)
     (interactive)
     (let* ((candidates
             (mapcar
