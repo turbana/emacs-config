@@ -3889,18 +3889,29 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     (let* ((name (symbol-name sym))
            (pretty-name (string-replace "-" " " name))
            (q-sym (intern (format "zetian-query-%s" name)))
-           (f-sym (intern (format "zetian-find-%s" name))))
+           (f-sym (intern (format "zetian-find-%s" name)))
+           (s-sym (intern (format "zetian-search-%s" name))))
       `(progn
          (setq ,q-sym ,query)
          (defun ,q-sym ()
            ,(format "Return a list of all %s zetian nodes." pretty-name)
            (zetian-query ,q-sym))
-         (defun ,f-sym ()
-           ,(format "Search zetian for any %s, prompting the user for which to navigate to." pretty-name)
+         (defun ,s-sym ()
+           ,(format "Search zetian for any %s, return user selected node"
+                    pretty-name)
            (interactive)
-           (zetian-search-find ,q-sym ,pretty-name)))))
+           (zetian-search ,q-sym ,pretty-name))
+         (defun ,f-sym ()
+           ,(format "Search zetian for any %s, prompt user for selection and"
+                    "navigate to the buffer" pretty-name)
+           (interactive)
+           (when-let ((node (,s-sym)))
+             (zetian-node-find node))))))
 
   ;; things
+  (def-zetian-query category
+    '(category (eval (completing-read "Category: " (zetian-all-categories)))))
+
   (def-zetian-query project
     '(category "project"))
 
@@ -3919,10 +3930,10 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
   (def-zetian-query permanent
     '(category "perm"))
 
+  ;; tasks
   (def-zetian-query open
     '(or (todo "NEXT") (todo "TODO")))
 
-  ;; tasks
   (def-zetian-query next-task
     `(and ,zetian-query-task
           (todo "NEXT")))
@@ -3933,13 +3944,11 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
 
   (def-zetian-query next-project-task
     `(and ,zetian-query-next-task
-          (links-to (eval (zetian-search zetian-query-project
-                                         nil "next tasks for project")))))
+          (links-to (eval (zetian-search-project)))))
 
   (def-zetian-query open-project-task
     `(and ,zetian-query-open-task
-          (links-to (eval (zetian-search zetian-query-project
-                                         nil "open tasks for project")))))
+          (links-to (eval (zetian-search-project)))))
 
   ;; links
   (def-zetian-query link-to
@@ -3958,9 +3967,6 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
   (def-zetian-query open-events
     `(and ,zetian-query-event
           ,zetian-query-open))
-
-  (def-zetian-query kind
-    '(tag (eval (completing-read "Kind: " (zetian-all-categories)))))
 
   (def-zetian-query state
     '(tag (eval (completing-read "State: " (zetian-all-states)))))
