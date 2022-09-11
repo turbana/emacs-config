@@ -4168,76 +4168,80 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
       :where ,(zetian--unroll-query-impl query)])
 
   (defun zetian--unroll-query-impl (query)
-    (unless (and (listp query) query)
-      (error "QUERY must be an sexp, received: %S" query))
-    (pcase (car query)
-      ('and
-       (cons 'and (mapcar #'zetian--unroll-query-impl (cdr query))))
-      ('or
-       (cons 'or (mapcar #'zetian--unroll-query-impl (cdr query))))
-      ('not
-       (list 'not (zetian--unroll-query-impl (cadr query))))
-      ('tag
-       `(in nodes:id [:select [tags:node-id]
-                      :from tags
-                      :where (= tags:node-id nodes:id)
-                      :and (= tags:tag ,(cadr query))]))
-      ('title
-       `(like title ,(zetian--query-quote-like (cadr query) t)))
-      ('title-like
-       `(like title ,(zetian--query-quote-like (cadr query))))
-      ('todo
-       `(like todo ,(zetian--query-quote-like (cadr query))))
-      ('priority
-       `(= priority ,(string-to-char (upcase (cadr query)))))
-      ((or 'scheduled 'deadline)
-       (let ((col (make-symbol (format "nodes:%s" (car query)))))
-         (pcase (cadr query)
-           ('after
-            `(> ,col ,(zetian--query-parse-date (caddr query))))
-           ('before
-            `(< ,col ,(zetian--query-parse-date (caddr query))))
-           ;; ('on-or-after
-           ;;  `(>= ,col ,(zetian--query-parse-date (caddr query))))
-           ;; ('on-or-before
-           ;;  `(<= ,col ,(zetian--query-parse-date (caddr query))))
-           (' on
-              `(<= ,(zetian--query-parse-date (caddr query))
-                   ,col
-                   ,(zetian--query-parse-date (caddr query) t)))
-           ('between
-            `(<= ,(zetian--query-parse-date (caddr query))
-                 ,col
-                 ,(zetian--query-parse-date (cadddr query) t)))
-           (_
-            (error "invalid operation for %S: %S" (car query) (cadr query))))))
-      ('prop
-       `(like
-         nodes:properties
-         ,(zetian--query-quote-like (cons (cadr query) (caddr query)))))
-      ('category
-       (zetian--unroll-query-impl `(prop "CATEGORY" ,(cadr query))))
-      ((or 'links-to 'links-from)
-       (let ((col1 (if (eq 'links-to (car query)) 'links:source 'links:dest))
-             (col2 (if (eq 'links-to (car query)) 'links:dest 'links:source)))
-         `(in nodes:id [:select [,col1]
-                        :from links
-                        :where (= ,col1 nodes:id)
-                        :and (= links:type "id")
-                        ;; TODO this could be a sql sub-query
-                        :and (= ,col2
-                                ,(org-roam-node-id
-                                  (if (stringp (cadr query))
-                                      (org-roam-node-from-title-or-alias
-                                       (cadr query))
-                                    (zetian--unroll-query-impl (cadr query)))))])))
-      ('eval
-       (message "eval: %S" (cadr query))
-       (eval (cadr query)))
-      (_
-       (error "invalid search key: %S" (car query)))))
+    (cl-flet ((parse #'zetian--unroll-query-impl)
+              (parse-like #'zetian--query-quote-like)
+              (parse-date #'zetian--query-parse-date)
+              (parse-id #'zetian--query-parse-id))
+      (let ((atom (and (consp query) (car query)))
+            (args (and (consp query) (cdr query)))
+            (first (and (consp query) (cadr query)))
+            (second (and (consp query) (caddr query))))
+        (pcase (type-of query)
+          ('string
+           query)
+          ('cons
+           (pcase atom
+             ('and
+              `(and ,@(mapcar #'parse args)))
+             ('or
+              `(or ,@(mapcar #'parse args)))
+             ('not
+              `(not ,(parse first)))
+             ('tag
+              `(in nodes:id [:select [tags:node-id]
+                             :from tags
+                             :where (= tags:node-id nodes:id)
+                             :and (= tags:tag ,(parse first))]))
+             ('title
+              `(like title ,(parse-like t (parse first))))
+             ('title-like
+              `(like title ,(parse-like nil (parse first))))
+             ('todo
+              `(like todo ,(parse-like t (parse first))))
+             ('priority
+              `(= priority ,(string-to-char (upcase (parse first)))))
+             ((or 'scheduled 'deadline)
+              (let ((col (make-symbol (format "nodes:%s" atom))))
+                (pcase first
+                  ('after
+                   `(> ,col ,(parse-date (parse second))))
+                  ('before
+                   `(< ,col ,(parse-date (parse second))))
+                  ;; ('on-or-after
+                  ;;  `(>= ,col ,(zetian--query-parse-date (caddr query))))
+                  ;; ('on-or-before
+                  ;;  `(<= ,col ,(zetian--query-parse-date (caddr query))))
+                  ('on
+                   (let ((date (parse-date (parse second))))
+                     `(<= ,date ,col ,date)))
+                  ('between
+                   `(<= ,(parse-date (parse second))
+                        ,col
+                        ,(parse-date (parse (cadddr query)) t)))
+                  (_
+                   (error "invalid operation for %S: %S" atom first)))))
+             ('prop
+              `(like
+                nodes:properties
+                ,(parse-like nil (cons (parse first) (parse second)))))
+             ('category
+              (parse `(prop "CATEGORY" ,first)))
+             ((or 'links-to 'links-from)
+              (let ((col1 (if (eq 'links-to atom) 'links:source 'links:dest))
+                    (col2 (if (eq 'links-to atom) 'links:dest 'links:source)))
+                `(in nodes:id [:select [,col1]
+                               :from links
+                               :where (= ,col1 nodes:id)
+                               :and (= links:type "id")
+                               :and (= ,col2 ,(parse-id (parse first)))])))
+             ('eval
+              (eval first))
+             (_
+              (error "invalid search key: %S" atom))))
+          (_
+           (error "invalid query: %S" query))))))
 
-  (defun zetian--query-quote-like (obj &optional exact)
+  (defun zetian--query-quote-like (exact obj)
     "Return quoted OBJ in a form for `emacsql' query: (like column
   ,(zetian--query-quote-like (cons 'a 'b)))"
     (let ((double-quote "\"")
@@ -4255,6 +4259,17 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                         (ic-parse-org-date-string
                          date
                          next-day-when-no-time)))
+
+  (defun zetian--query-parse-id (obj)
+    (cond
+     ((org-roam-node-p obj)
+      (org-roam-node-id obj))
+     ((stringp obj)
+      (org-roam-node-id
+       (or (org-roam-node-from-id obj)
+           (org-roam-node-from-title-or-alias obj))))
+     (t
+      (error "invalid zetian id: %S" obj))))
 #+END_SRC
 
 *** Modifying Header Links
