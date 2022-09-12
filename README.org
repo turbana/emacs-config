@@ -3754,7 +3754,13 @@ My personal 2nd brain implemented in =org-roam=.
                ":PROPERTIES:\n"
                ":CREATED: %U\n"
                ":LAST_MODIFIED: %U\n"
-               (format ":ID: %s\n" (or prop-id "${id}"))
+               ;; XXX for some reason org-roam is inserting the file's id for
+               ;; "${id}" when capturing an element (task, event, etc) rather than
+               ;; creating a new id.
+               (format ":ID: %s\n" (or prop-id
+                                       (if is-element
+                                           "%(org-id-new)"
+                                         "${id}")))
                (when prop-cat (format ":CATEGORY: %s\n" prop-cat))
                ":END:\n"))
             (when file-cat (format "#+category: %s\n" file-cat))
