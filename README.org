@@ -3847,7 +3847,7 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     "Act like `org-roam-node-find', but create a narrowed indirect buffer when
     visiting an element (as opposed to a file)."
     (interactive)
-    (when-let (node (or node (zetian-search nil t "Find or create note")))
+    (when-let (node (or node (zetian-search nil "Find or create note" t)))
       (if-let ((guid (org-roam-node-id node))
                (title (org-roam-node-title node))
                (buf-name (format "zetian: %s" title)))
@@ -4603,34 +4603,38 @@ Let's migrate my book importing code to =org-roam=.
 *** Integrate with completing-read
 Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll also annotate each item as ='zetian= so further packages (=marginalia= / =embark=) can key off the category.
 #+BEGIN_SRC emacs-lisp
-  (defun zetian-search (&optional query query-name create)
+  (defun zetian-completing-read (&optional nodes query-name create)
     (interactive)
-    (let* ((candidates
-            (mapcar
-             (lambda (node)
-               ;; add 'zetian-node to the title's properties so we can reference
-               ;; it later.
-               (let ((title (org-roam-node-title node)))
-                 (add-text-properties 0 1 `(zetian-node ,node) title)
-                 (cons title node)))
-             (zetian-query query)))
-           (completing-func
-            (lambda (input predicate action)
-              (if (eq action 'metadata)
-                  '(metadata (category . zetian))
-                (complete-with-action action candidates input predicate))))
-           (prompt (if query-name
-                       (format "[%s]: " query-name)
-                     "Zetian Node: "))
-           (selection (completing-read prompt completing-func)))
+    (let*
+        ((candidates
+          (mapcar
+           (lambda (node)
+             ;; add 'zetian-node to the title's properties so we can reference
+             ;; it later.
+             (let ((title (org-roam-node-title node)))
+               (add-text-properties 0 1 `(zetian-node ,node) title)
+               (cons title node)))
+           nodes))
+         (completing-func
+          (lambda (input predicate action)
+            (if (eq action 'metadata)
+                '(metadata (category . zetian))
+              (complete-with-action action candidates input predicate))))
+         (prompt (if query-name
+                     (format "[%s]: " query-name)
+                   "Zetian Node: "))
+         (selection (completing-read prompt completing-func)))
       (if-let ((node (assoc-default selection candidates)))
           (prog1 node
             ;; remove the 'zetian-node property added to the title
-            (remove-text-properties 0 1 '(zetian-node)
-                                    (org-roam-node-title node))
-            )
+            (remove-text-properties
+             0 1 '(zetian-node) (org-roam-node-title node)))
         (when create
           (zetian-node-create selection)))))
+
+  (defun zetian-search (&optional query prompt create)
+    (interactive)
+    (zetian-completing-read (zetian-query query) prompt create))
 #+END_SRC
 
 *** Integrate with marginalia
