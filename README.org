@@ -4709,7 +4709,8 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
              (pri-str (if pri
                           (format "[#%s]" (char-to-string pri))
                         ""))
-             (contents (zetian--completion-get-contents node)))
+             ;; (contents (zetian--completion-get-contents node))
+             )
         ;; ensure todo string is full width, otherwise the 'org-todo face extends past the tag
         (setq todo-str (concat todo-str
                                (make-string (- 5 (length todo-str)) ? )))
@@ -4728,8 +4729,8 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
                    :truncate 10
                    )
          ;; ("|" :width 1 :truncate 1)
-         (contents :face 'org-footnote
-                   :truncate 200)
+         ;; (contents :face 'org-footnote
+         ;;           :truncate 200)
          ))))
 
   (defun zetian--completion-get-contents (node)
@@ -5117,7 +5118,7 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     "Update the overlay `zetian-mode--header-overlay' with header information."
     (unless zetian-mode--header-overlay
       (zetian-mode--create-header))
-    (org-roam-db-update-file)
+    ;; (org-roam-db-update-file)
     (let*
         ((category (zetian-get-category))
          (states (zetian-get-states))
@@ -5151,15 +5152,9 @@ I'd like to have a custom mode to make things a little prettier. I really want u
            (propertize " In:" 'face 'org-drawer)
            (propertize (format "%d" num-inbound-links)
                        'face 'org-special-keyword)
-           ;; (propertize " " 'face 'org-drawer)
-           "\n"
-           )))
+           "\n")))
       (overlay-put zetian-mode--header-overlay 'face 'header-line)
-      ;; (overlay-put zetian-mode--header-overlay :family (face-attribute 'header-line :family nil t))
-      ;; (overlay-put zetian-mode--header-overlay 'after-string header)
-      (overlay-put zetian-mode--header-overlay 'display header)
-      ;; (overlay-put zetian-mode--header-overlay 'display "foo")
-      ))
+      (overlay-put zetian-mode--header-overlay 'display header)))
 
   (defun zetian-mode--create-header ()
     "Create the overlay `zetian-mode' uses to display information."
@@ -5206,8 +5201,7 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     (zetian-mode--remove-header)
     (remove-hook 'after-save-hook #'zetian-mode--after-save-h)
     (remove-hook 'before-save-hook #'zetian-mode--before-save-h)
-    (remove-hook 'change-major-mode-hook #'zetian-mode--cmmh)
-    )
+    (remove-hook 'change-major-mode-hook #'zetian-mode--cmmh))
 
   (define-derived-mode zetian-mode org-mode "zetian-mode"
     "A variant of org-mode designed to be used with zetian."
