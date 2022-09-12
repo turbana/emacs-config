@@ -2527,10 +2527,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     "R" #'zetian-rename-current
     "s" #'zetian-add-state
     "S" #'zetian-remove-state
-    ;; "t" #'zetian-add-tag
-    ;; "T" #'zetian-remove-tag
-    "p" #'zetian-add-project
-    "P" #'zetian-remove-project
+    "t" #'zetian-set-tag
+    "p" #'zetian-set-project
     )
 #+END_SRC
 
@@ -4324,169 +4322,114 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
 *** Modifying Header Links
 I want an easy way to add/update tags and other links on a given zettel. To start I'm probably just going to use /Tags/, but I could see myself using other forms as well, (maybe /Depends/ for moving my emacs config into zettels?). So I'll call them =header-links=.
+
 #+BEGIN_SRC emacs-lisp
-  (defvar zetian-header-formats '((tag . "/tags/ - ")
-                                  (project . "/project/ - ")))
+  (defvar zetian-header-formats '((tags . "- tags :: ")
+                                  (project . "- project :: ")))
   (defvar zetian-header-seperator ", ")
 
-  (defun zetian-add-header-link (type &optional node)
-    "Add a link to NODE within the header line for TYPE."
-    (interactive)
+
+  (defun zetian-set-header-links (type links)
+    "Set the LINKS for zetian header TYPE."
     (save-excursion
-      (zetian--header-write
-       type
-       (zetian--header-modify
-        (or node (zetian-node-create))
-        'add
-        (zetian--header-read type)))))
+      (goto-char (zetian--header-pos type))
+      (when (zetian--looking-at-header type)
+        (delete-region (point) (1+ (line-end-position))))
+      (setq links (seq-uniq links))
+      (sort links (lambda (n1 n2)
+                    (string< (org-roam-node-title n1)
+                             (org-roam-node-title n2))))
+      (insert
+       (concat (assoc-default type zetian-header-formats))
+       (mapconcat #'zetian-node-link links zetian-header-seperator)
+       "\n")))
 
-  (defun zetian-remove-header-link (type &optional node)
-    "Add a link to NODE within the header line for TYPE."
-    (interactive)
+  (defun zetian-get-header-links (type)
+    "Return list of nodes contained in zetian header TYPE."
     (save-excursion
-      (zetian--header-write
-       type
-       (zetian--header-modify
-        (or node (zetian-header-link-read type (format "Remove %s: " type)))
-        'remove
-        (zetian--header-read type)))))
-
-  (defun zetian-header-link-read (type &optional prompt)
-    "Show a list of header links of TYPE and return the user selected node."
-    (interactive)
-    (error "helm not installed")
-    (when-let ((links (zetian--header-read type)))
-      (when-let ((link (helm
-                        :sources
-                        (helm-build-sync-source
-                            (or prompt (format "%s: " type))
-                          :candidates
-                          (mapcar (lambda (link)
-                                    (cons (cdr link) link))
-                                  links)
-                          :fuzzy-match 1))))
-        (org-roam-node-from-title-or-alias (cdr link)))))
-
-  (defun zetian--header-read (type &optional no-create)
-    "Parse the contents of the header of type TYPE. Return a list of links found
-    or NIL if not found. Creates the header unless NO-CREATE is non-nil."
-    (unless (zetian--move-to-header type no-create)
+      (goto-char (+ (zetian--header-pos type)
+                    (length (assoc-default type zetian-header-formats))))
       (let ((start (point))
-          links
-          done)
-      (while (not done)
-        ;; is the point on an org link?
-        (if-let ((elem (org-element-link-parser)))
-            (let* ((link (cadr elem))
-                   (tgt (plist-get link :raw-link))
-                   (desc (buffer-substring-no-properties
-                          (plist-get link :contents-begin)
-                          (plist-get link :contents-end)))
-                   (end (plist-get link :end)))
-              ;; add the found org link
-              (setq links (append links (list (cons tgt desc))))
-              ;; move to the end of the link
-              (goto-char end)
-              ;; try and move over `zetian-header-seperator'
-              (re-search-forward
-               (regexp-quote zetian-header-seperator)
-               (+ (point) (length zetian-header-seperator))
-               t)
-              ;; keep going if we're looking at another org link
-              (setq done (not (looking-at (regexp-quote "[[")))))
-          ;; point was not on an org link, so we're done
-          (setq done t)))
-      ;; move to the start of the links and return
-      (goto-char start)
-      links)))
+            links done)
+        (while (not done)
+          ;; is the point on an org link?
+          (if-let ((elem (org-element-link-parser)))
+              (let* ((link (cadr elem))
+                     (id (plist-get link :path))
+                     (tgt (plist-get link :raw-link))
+                     (desc (buffer-substring-no-properties
+                            (plist-get link :contents-begin)
+                            (plist-get link :contents-end)))
+                     (end (plist-get link :end)))
+                ;; add the found node
+                (setq links (cons (org-roam-node-from-id id) links))
+                ;; move to the end of the link
+                (goto-char end)
+                ;; try and move over `zetian-header-seperator'
+                (re-search-forward
+                 (regexp-quote zetian-header-seperator)
+                 (+ (point) (length zetian-header-seperator))
+                 t)
+                ;; keep going if we're looking at another org link
+                (setq done (not (looking-at (regexp-quote "[[")))))
+            ;; point was not on an org link, so we're done
+            (setq done t)))
+        links)))
 
-  (defun zetian--move-to-header (type &optional no-create)
-    "Moves point to and returns the position of the header of TYPE, creating it if
-  NO-CREATE is nil."
-    (goto-char (point-min))
-    (let ((re (concat "^" (regexp-quote
-                           (assoc-default type zetian-header-formats)))))
-      (unless (or (re-search-forward re nil t) no-create)
-        ;; create header
-        (re-search-forward "^$" nil 0)
-        ;; TODO what if we have other headers, do we want so many newlines?
-        (insert (format "\n%s\n" (assoc-default type zetian-header-formats)))
-        ;; move back over the newline
-        (backward-char 1)))
-    (point))
+  (defun zetian--header-pos (type)
+    "Return start position of header TYPE.
+  If header TYPE doesn't exist: return the position it would have if it existed."
+    (save-excursion
+      (goto-char (point-min))
+      (condition-case err
+          (progn
+            (re-search-forward
+             (regexp-quote (assoc-default type zetian-header-formats)))
+            (match-beginning 0))
+        (search-failed
+         (+ 1 (re-search-forward "^$"))))))
 
-  (defun zetian--header-modify (node way links)
-    "When WAY is 'add: add the NODE to LINKS. When WAY is 'remove: remove the NODE
-  from LINKS."
-    (let ((link (cons (concat "id:" (org-roam-node-id node))
-                      (org-roam-node-title node))))
-      (pcase way
-        ('add
-         (setq links (if links
-                         (add-to-list 'links link)
-                       (list link))))
-        ('remove
-         (when links
-           (setq links (delete link links))))
-        (_
-         (error "invalid WAY: %S" way))))
-    ;; return the (sorted) links
-    (sort links (lambda (left right)
-                  (string-collate-lessp (cdr left) (cdr right)))))
-
-  (defun zetian--header-write (type links)
-    "Write the header of type TYPE with LINKS. Overwrite current header if it
-  exists or create it if necessary."
-    ;; delete the current links
-    (delete-region (point) (line-end-position))
-    ;; insert the current links
-    (insert (cl-reduce
-             (lambda (s link)
-               (concat s
-                       (when (not (equal s "")) zetian-header-seperator)
-                       (format "[[%s][%s]]" (car link) (cdr link))))
-             links
-             :initial-value "")))
-
+  (defun zetian--looking-at-header (type)
+    "Return non-nil when POINT is on header TYPE."
+    (looking-at (regexp-quote (assoc-default type zetian-header-formats))))
 #+END_SRC
 
 *** Tags
 =zetian= tags are really just plain =org-mode= links that are stored near the top of the file.
 #+BEGIN_SRC emacs-lisp
-  (defun zetian-add-tag ()
-    "Prompt for a node to add as a tag to the current zettel."
-    (interactive)
-    (zetian-add-header-link 'tag))
-
-  (defun zetian-remove-tag ()
-    "Prompt for a tag of the current note and remove the selected tag."
-    (interactive)
-    (zetian-remove-header-link 'tag))
-
   (defun zetian-get-tags ()
     "Return the tags of the node at point."
-    (save-excursion (zetian--header-read 'tag t)))
+    (save-excursion (zetian-get-header-links 'tags)))
+
+  (defun zetian-set-tag (&optional arg)
+    "Set a tag on the current node.
+  Removes a tag when the universal argument is set."
+    (interactive "P")
+    (let ((tags (zetian-get-header-links 'tags))
+          (removing (equal arg '(4))))
+      (when-let ((node (if removing
+                           (zetian-completing-read tags)
+                         (zetian-search nil "add tag"))))
+        (setq tags (if removing
+                       (delete node tags)
+                     (cons node tags)))
+        (zetian-set-header-links 'tags tags))))
 #+END_SRC
 
 *** Project
 A =zetian= node can have a project associated with it. Like tags a project is simply an =org-mode= link stored near the top of the file.
 #+BEGIN_SRC emacs-lisp
-  (defun zetian-add-project ()
-    "Prompt for a node to add as a project to the current zettel."
-    (interactive)
-    (zetian-add-header-link 'project
-                            (zetian-search '(category "project")
-                                           "Add Zetian project: ")))
-
-  (defun zetian-remove-project ()
-    "Prompt for a project of the current note and remove the selected project."
-    (interactive)
-    (zetian-remove-header-link 'project))
-
   (defun zetian-get-project ()
     "Return the project associated with the node at point."
-    (save-excursion (zetian--header-read 'project t))
-    )
+    (car (zetian-get-header-links 'project)))
+
+  (defun zetian-set-project (&optional arg)
+    "Set the project for the current node."
+    (interactive "P")
+    (zetian-set-header-links
+     'project
+     (unless (equal arg '(4))
+       (list (zetian-search-project)))))
 #+END_SRC
 
 *** Title
@@ -4616,7 +4559,7 @@ Let's migrate my book importing code to =org-roam=.
           (when tag
             (if-let ((tag-node (org-roam-node-from-title-or-alias tag)))
                 (progn
-                  (zetian-add-header-link 'tag tag-node)
+                  (zetian-set-header-links 'tags (list tag-node))
                   (save-buffer))
               (error "Invalid zetian tag: %s" tag)))))))
 
