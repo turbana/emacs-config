@@ -5066,7 +5066,8 @@ I want a function to ensure that =zetian= remains healthy.
            (match-beginning 1)
            (match-end 1))))))
 
-  (defun zetian--lint-show-buffer (dups links)
+
+  (defun zetian--lint-show-buffer (dups links stuck-projects stuck-areas)
     "Build and show a buffer with any errors found."
     (let ((buf (get-buffer-create "*zetian database lint*"))
           (now (format-time-string "[%Y-%m-%d %a %H:%M]")))
@@ -5074,9 +5075,17 @@ I want a function to ensure that =zetian= remains healthy.
       (read-only-mode -1)
       (erase-buffer)
       (insert "#+title: zetian database lint\n\n")
-      (insert (format "run at %s\n" now))
+      (insert (format "linting was run at %s\n" now))
+      (when stuck-areas
+        (insert (format "\n* %d stuck areas found\n" (length stuck-areas)))
+        (dolist (area stuck-areas)
+          (insert (format "- %s\n" (zetian-node-link area)))))
+      (when stuck-projects
+        (insert (format "\n* %d stuck projects found\n" (length stuck-projects)))
+        (dolist (project stuck-projects)
+          (insert (format "- %s\n" (zetian-node-link project)))))
       (when dups
-        (insert (format "\n* %d duplicate titles found\n" (length dups)))
+        (insert (format "\n* %d duplicate titles found" (length dups)))
         (dolist (dup dups)
           (insert (format "\n** %s\n" (car dup)))
           (dolist (bad (cdr dup))
@@ -5090,7 +5099,7 @@ I want a function to ensure that =zetian= remains healthy.
             ;;                 (length (zetian-links-from bad))))
             )))
       (when links
-        (insert (format "\n* %d nodes with broken links found\n" (length links)))
+        (insert (format "\n* %d nodes with broken links found" (length links)))
         (dolist (link links)
           (insert (format "\n** %s\n" (zetian-node-link (car link))))
           (dolist (pos (cdr link))
@@ -5105,12 +5114,17 @@ I want a function to ensure that =zetian= remains healthy.
   faults."
     (interactive)
     (org-roam-db-sync)
-    (let ((dups (zetian--lint-duplicates))
-          (links (zetian--lint-broken-links)))
-      (if (or dups links)
-          (zetian--lint-show-buffer dups links)
+    (let ((found (list
+                  (zetian--lint-duplicates)
+                  (zetian--lint-broken-links)
+                  (zetian-query-stuck-project)
+                  (zetian-query-stuck-area))))
+      (if (-any 'identity found)
+          (apply #'zetian--lint-show-buffer found)
         (message "no errors found in zetian"))))
 
+  ;; strange categories
+  ;; orphaned nodes
 #+END_SRC
 
 *** zetian-mode
