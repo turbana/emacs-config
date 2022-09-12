@@ -4811,7 +4811,11 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
       (when (file-exists-p tmpdir)
         (delete-directory tmpdir t))
       (make-directory tmpdir)
-      (shell-command (format "unzip -q %s -d %s" file tmpdir))
+      (let ((ret (call-process "unzip" nil nil nil
+                               "-q" (expand-file-name file)
+                               "-d" (expand-file-name tmpdir))))
+        (unless (= ret 0)
+          (error "received exit %d from unzip" ret)))
       tmpdir))
 
   (defun zetian--moonreader-database-file (dir)
@@ -4948,12 +4952,14 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
           (dolist (highlight highlights)
             (when-let ((node (zetian--moonreader-import-highlight highlight)))
               (push node imported)))
-          (if imported
-              (zetian-node-find
-               (zetian--moonreader-import-summary imported))
-            (message "imported 0 new zetian notes"))
-          (delete-directory tmpdir t)
-          (delete-file backup))
+          (prog1
+              (when imported
+                (zetian-node-find
+                 (zetian--moonreader-import-summary imported)))
+            (message "imported %d new notes (%d total moonreader notes)"
+                     (length imported) (length highlights))
+            (delete-directory tmpdir t)
+            (delete-file backup)))
       (message "no moonreader backup file found")))
 #+END_SRC
 
