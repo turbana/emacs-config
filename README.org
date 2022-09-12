@@ -4186,6 +4186,8 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
         (pcase (type-of query)
           ('string
            query)
+          ('org-roam-node
+           (org-roam-node-id query))
           ('cons
            (pcase atom
              ('and
