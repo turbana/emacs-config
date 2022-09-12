@@ -2489,21 +2489,21 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("G" . zetian-find-random-permanent)
            ("l" . zetian-find-link-to)
            ("L" . zetian-find-link-from)
-           ("o" . zetian-find-task-open-orphaned)
+           ;; ("o" . zetian-find-task-open-orphaned)
            ("p" . zetian-find-project)
-           ("P" . zetian-find-stuck-projects)
+           ("P" . zetian-find-stuck-project)
            ("r" . zetian-find-review)
            ("s" . zetian-find-state)
-           ("S" . zetian-find-strange)
-           ("t" . zetian-find-task-next)
+           ;; ("S" . zetian-find-strange)
+           ("t" . zetian-find-next-task)
            :prefix "zfT"
            :prefix-map zetian-find-tasks
            ("a" . zetian-find-task)
-           ("l" . zetian-find-task-open-link)
-           ("n" . zetian-find-task-next)
-           ("o" . zetian-find-task-open)
-           ("p" . zetian-find-task-next-project)
-           ("P" . zetian-find-task-open-project)
+           ;; ("l" . zetian-find-task-open-link)
+           ("n" . zetian-find-next-task)
+           ("o" . zetian-find-open-task)
+           ("p" . zetian-find-next-project-task)
+           ("P" . zetian-find-open-project-task)
            ("T" . zetian-find-task)
            :prefix "zi"
            :prefix-map zetian-import
@@ -3884,7 +3884,7 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
 *** Saved Searches
 
 #+BEGIN_SRC emacs-lisp
-  (defmacro def-zetian-query (sym query)
+  (defmacro def-zetian-query (sym query &optional form skip-completing-read)
     (declare (indent 1))
     (let* ((name (symbol-name sym))
            (pretty-name (string-replace "-" " " name))
@@ -3892,15 +3892,20 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
            (f-sym (intern (format "zetian-find-%s" name)))
            (s-sym (intern (format "zetian-search-%s" name))))
       `(progn
-         (setq ,q-sym ,query)
+         ,(when query
+            `(setq ,q-sym ,query))
          (defun ,q-sym ()
            ,(format "Return a list of all %s zetian nodes." pretty-name)
-           (zetian-query ,q-sym))
+           ,(if query
+                `(zetian-query ,q-sym)
+              form))
          (defun ,s-sym ()
            ,(format "Search zetian for any %s, return user selected node"
                     pretty-name)
            (interactive)
-           (zetian-search ,q-sym ,pretty-name))
+           ,(if skip-completing-read
+                `(,q-sym)
+              `(zetian-completing-read (,q-sym) ,pretty-name)))
          (defun ,f-sym ()
            ,(format "Search zetian for any %s, prompt user for selection and"
                     "navigate to the buffer" pretty-name)
@@ -3908,12 +3913,19 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
            (when-let ((node (,s-sym)))
              (zetian-node-find node))))))
 
+  (defmacro def-zetian-query-function (sym &rest body)
+    (declare (indent 1))
+    `(def-zetian-query ,sym nil ,@body))
+
   ;; things
   (def-zetian-query category
     '(category (eval (completing-read "Category: " (zetian-all-categories)))))
 
   (def-zetian-query project
     '(category "project"))
+
+  (def-zetian-query area
+    '(category "area"))
 
   (def-zetian-query book
     '(category "book"))
@@ -3950,6 +3962,14 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     `(and ,zetian-query-open-task
           (links-to (eval (zetian-search-project)))))
 
+  (def-zetian-query-function task-without-project
+    (seq-filter
+     (lambda (task)
+       (not (zetian-query
+             `(and ,zetian-query-project
+                   (links-from ,task)))))
+     (zetian-query-task)))
+
   ;; links
   (def-zetian-query link-to
     '(links-to (eval (zetian-search))))
@@ -3964,7 +3984,7 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     '(links-from (eval (org-roam-node-at-point))))
 
   ;; misc
-  (def-zetian-query open-events
+  (def-zetian-query open-event
     `(and ,zetian-query-event
           ,zetian-query-open))
 
@@ -3974,15 +3994,30 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
   (def-zetian-query review
     '(tag "review"))
 
-  (defun zetian-find-random-review ()
-    "Open a random note that needs review."
-    (interactive)
-    (zetian-node-find (seq-random-elt (zetian-query-review))))
+  (def-zetian-query-function random-review
+    (seq-random-elt (zetian-query-review))
+    'skip-completing-read)
 
-  (defun zetian-find-random-permanent ()
-    "Open a random permanent note."
-    (interactive)
-    (zetian-node-find (seq-random-elt (zetian-query-permanent))))
+  (def-zetian-query-function random-permanent
+    (seq-random-elt (zetian-query-permanent))
+    'skip-completing-read)
+
+  ;; linting searches
+  (def-zetian-query-function stuck-project
+    (seq-filter
+     (lambda (project)
+       (not (zetian-query
+             `(and ,zetian-query-open-task
+                   (links-to ,project)))))
+     (zetian-query-project)))
+
+  (def-zetian-query-function stuck-area
+    (seq-filter
+     (lambda (area)
+       (not (zetian-query
+             `(and ,zetian-query-project
+                   (links-to ,area)))))
+     (zetian-query-area)))
 #+END_SRC
 
 *** Inserting Links
