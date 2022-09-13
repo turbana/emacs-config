@@ -4283,7 +4283,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                                :and (= links:type "id")
                                :and (= ,col2 ,(parse-id (parse first)))])))
              ('eval
-              (eval first))
+              (parse (eval first)))
              (_
               (error "invalid search key: %S" atom))))
           (_
