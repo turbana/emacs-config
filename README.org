@@ -2481,7 +2481,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix "zf"
            :prefix-map zetian-find
            ("f" . zetian-node-find)
-           ("a" . zetian-find-author)
+           ("a" . zetian-find-area)
+           ("A" . zetian-find-author)
            ("b" . zetian-find-book)
            ("c" . zetian-find-category)
            ("e" . zetian-find-open-event)
@@ -3966,13 +3967,21 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     `(and ,zetian-query-open-task
           (links-to (eval (zetian-search-project)))))
 
-  (def-zetian-query-function task-without-project
-    (seq-filter
-     (lambda (task)
-       (not (zetian-query
-             `(and ,zetian-query-project
-                   (links-from ,task)))))
-     (zetian-query-task)))
+  (def-zetian-query nodes-without-project
+    '(not (eval `(or ,@(mapcar (lambda (p) `(links-to ,p))
+                               (zetian-query-project))))))
+
+  (def-zetian-query nodes-without-project
+    '(not (eval `(or ,@(mapcar (lambda (p) `(links-to ,(org-roam-node-id p)))
+                               (zetian-query-project))))))
+
+  (def-zetian-query tasks-without-project
+    `(and ,zetian-query-task
+          ,zetian-query-nodes-without-project))
+
+  (def-zetian-query open-tasks-without-project
+    `(and ,zetian-query-open-task
+          ,zetian-query-nodes-without-project))
 
   ;; links
   (def-zetian-query link-to
