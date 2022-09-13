@@ -2526,8 +2526,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     "l" #'zetian-find-link-from-current
     "L" #'zetian-find-link-to-current
     "R" #'zetian-rename-current
-    "s" #'zetian-add-state
-    "S" #'zetian-remove-state
+    "s" #'zetian-set-state
     "t" #'zetian-set-tag
     "p" #'zetian-set-project
     )
@@ -3887,7 +3886,6 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
 #+END_SRC
 
 *** Saved Searches
-
 #+BEGIN_SRC emacs-lisp
   (defmacro def-zetian-query (sym query &optional form skip-completing-read)
     (declare (indent 1))
@@ -4121,6 +4119,15 @@ I use =org-mode= tags for state and =org-roam= provides a pair of functions that
 
   (defalias #'zetian-remove-state #'org-roam-tag-remove
     "Remove a state from a zetian node.")
+
+  (defun zetian-set-state (&optional arg)
+    "Prompt user for a state to set, when given a universal-argument: remove
+  instead."
+    (interactive "P")
+    (if (equal arg '(4))
+        (org-roam-tag-remove)
+      (org-roam-tag-add
+       (list (completing-read "state:" (zetian-all-states))))))
 
   (defun zetian-get-states ()
     "Return a list of states of node at point."
@@ -4418,7 +4425,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
           (removing (equal arg '(4))))
       (when-let ((node (if removing
                            (zetian-completing-read tags)
-                         (zetian-search nil "add tag"))))
+                         (zetian-search nil "add tag" t))))
         (setq tags (if removing
                        (delete node tags)
                      (cons node tags)))
