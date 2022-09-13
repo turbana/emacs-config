@@ -5025,7 +5025,8 @@ I want a function to ensure that =zetian= remains healthy.
            (match-end 1))))))
 
 
-  (defun zetian--lint-show-buffer (dups links stuck-projects stuck-areas)
+  (defun zetian--lint-show-buffer (dups links stuck-projects stuck-areas
+                                        tasks-without-project)
     "Build and show a buffer with any errors found."
     (let ((buf (get-buffer-create "*zetian database lint*"))
           (now (format-time-string "[%Y-%m-%d %a %H:%M]")))
@@ -5064,8 +5065,14 @@ I want a function to ensure that =zetian= remains healthy.
             (insert (format "- \"%s\" (pos:%d)\n"
                             (zetian--lint-read-link-at-pos (car link) pos)
                             pos)))))
+      (when tasks-without-project
+        (insert (format "\n* %d open tasks with missing projects"
+                        (length tasks-without-project)))
+        (dolist (task tasks-without-project)
+          (insert (format "\n- %s" (zetian-node-link task)))))
       (org-mode)
-      (read-only-mode 1)))
+      (read-only-mode 1)
+      (goto-char (point-min))))
 
   (defun zetian-lint ()
     "Check zetian for any inconsistencies and open a buffer containing the
@@ -5076,7 +5083,8 @@ I want a function to ensure that =zetian= remains healthy.
                   (zetian--lint-duplicates)
                   (zetian--lint-broken-links)
                   (zetian-query-stuck-project)
-                  (zetian-query-stuck-area))))
+                  (zetian-query-stuck-area)
+                  (zetian-query-open-tasks-without-project))))
       (if (-any 'identity found)
           (apply #'zetian--lint-show-buffer found)
         (message "no errors found in zetian"))))
