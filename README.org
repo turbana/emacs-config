@@ -979,7 +979,7 @@ I want to be able to save a TODO item for the current email and archive in one s
         (append (list ;;org-default-file
                       org-default-notes-file)
                 (if at-home
-                    '("~/org/home/mobileinbox.org"
+                    '("~/org/home/mobile/inbox.org"
                       "~/org/home/jobs.org"))
                 ;; (directory-files "~/org" t "\\.org$")
                 ))
