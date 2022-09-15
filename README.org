@@ -4737,7 +4737,7 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
   (defun zetian--add-ebook-mapping (ebook)
     "Prompt the user for the zetian note that EBOOK should be associated with."
     (interactive)
-    (when-let ((node (zetian-search '(category "book") nil
+    (when-let ((node (zetian-search '(category "book")
                                     (format "associate (%s) with book" ebook))))
       (push (cons ebook (org-roam-node-id node)) zetian--ebook-mapping)
       (with-temp-file zetian-ebook-mapping-file
