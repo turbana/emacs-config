@@ -2447,10 +2447,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
-    (setq org-id-files
-          (seq-uniq (append (org-roam-list-files)
-                            (and (boundp 'org-id-files) org-id-files))))
-
+  
     ;; org-id doesn't play well with symlinks, it resolves them by calling
     ;; `file-truename'. This breaks org-roam since files can now live in two
     ;; places: the symlink'd location and the true location. So I want to disable
@@ -2470,6 +2467,9 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (org-roam-setup)
     (org-roam-db-autosync-mode 1)
     (require 'org-roam-protocol)
+    (setq org-id-files
+          (seq-uniq (append (org-roam-list-files)
+                            (and (boundp 'org-id-files) org-id-files))))
 
     :bind (("<f2>" . org-roam-capture)
            :map global-leader-map
