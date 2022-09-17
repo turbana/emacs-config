@@ -3748,6 +3748,134 @@ I want every frame to start maximized by default.
 ** Zetian
 My personal 2nd brain implemented in =org-roam=.
 
+*** zetian-mode
+I'd like to have a custom mode to make things a little prettier. I really want using zetian to be a pleasant experience, that should help me make better use of it.
+
+#+BEGIN_SRC emacs-lisp
+  (defvar-local zetian-mode--header-overlay nil)
+  (defvar-local zetian-mode-inhibit-header-update nil)
+
+  (defun zetian-mode--update-header ()
+    "Update the overlay `zetian-mode--header-overlay' with header information."
+    (unless zetian-mode-inhibit-header-update
+      (unless zetian-mode--header-overlay
+        (zetian-mode--create-header))
+      (org-roam-db-update-file)
+      (org-set-regexps-and-options)
+      (zetian-mode--update-header-1)))
+
+  (defun zetian-mode--update-header-1 ()
+    (let*
+        ((category (zetian-get-category))
+         (states (zetian-get-states))
+         (title (zetian-get-title))
+         (modified (or (zetian-get-last-modified) "?"))
+         (num-outbound-links
+          (length (zetian-query `(links-from ,(org-roam-node-at-point)))))
+         (num-inbound-links
+          (length (zetian-query `(links-to ,(org-roam-node-at-point)))))
+         (header
+          (concat
+           (propertize title 'face 'org-document-title)
+           (when category
+             (concat (propertize " [" 'face 'org-drawer)
+                     category
+                     (propertize "]" 'face 'org-drawer)))
+           (when states
+             (concat
+              (propertize " {" 'face 'org-drawer)
+              (s-join (propertize ", " 'face 'org-drawer)
+                      (mapcar (lambda (s)
+                                (propertize s 'face 'org-special-keyword))
+                              states))
+              (propertize "}" 'face 'org-drawer)))
+           "\n"
+           (propertize "Mod:" 'face 'org-drawer)
+           (propertize modified 'face 'org-date)
+           (propertize " Out:" 'face 'org-drawer)
+           (propertize (format "%d" num-outbound-links)
+                       'face 'org-special-keyword)
+           (propertize " In:" 'face 'org-drawer)
+           (propertize (format "%d" num-inbound-links)
+                       'face 'org-special-keyword)
+           "\n"
+           (propertize "\n" 'face '(:inherit default :extend t)))))
+      (overlay-put zetian-mode--header-overlay 'face 'header-line)
+      (overlay-put zetian-mode--header-overlay 'display header)
+      (overlay-put zetian-mode--header-overlay 'cursor (length header))))
+
+  (defvar-local zetian-mode--modification-hook-save nil)
+  (defvar-local zetian-mode--modification-hook-save-state nil)
+  (defun zetian-mode--modification-hook
+      (ov after beg end &optional replaced-length)
+    ;; (message "%s: (%d %d) %S %S"
+    ;;          (if after "after" "begin") beg end replaced-length
+    ;;          zetian-mode--modification-hook-save-pos)
+    (if after
+        (progn
+          (if (not (equal end (overlay-end ov)))
+              (add-hook 'post-command-hook #'zetian--post-command-hook)
+            (insert zetian-mode--modification-hook-save)
+            (move-overlay ov
+                          (overlay-start zetian-mode--header-overlay)
+                          (+ end (length zetian-mode--modification-hook-save)))
+            (set-buffer-modified-p zetian-mode--modification-hook-save-state)))
+      (setq zetian-mode--modification-hook-save (buffer-substring beg end))
+      (setq zetian-mode--modification-hook-save-state (buffer-modified-p))))
+
+  (defun zetian--post-command-hook ()
+    "update zetian header once after a command completes"
+    (remove-hook 'post-command-hook #'zetian--post-command-hook)
+    (zetian-mode--update-header))
+
+  (defun zetian-mode--move-cursor-out-of-header (window old-pos action)
+    (when (eq action 'entered)
+      (goto-char (overlay-end zetian-mode--header-overlay))))
+
+  (defun zetian-mode--create-header ()
+    "Create the overlay `zetian-mode' uses to display information."
+    (unless zetian-mode--header-overlay
+      (goto-char (point-min))
+      (let* ((beg (point))
+             (end (re-search-forward "^$"))
+             (ov (make-overlay beg (+ 1 end))))
+        (overlay-put ov 'cursor-sensor-functions
+                     (list #'zetian-mode--move-cursor-out-of-header))
+        (overlay-put ov 'modification-hooks
+                     (list #'zetian-mode--modification-hook))
+        (setq zetian-mode--header-overlay ov))))
+
+  (defun zetian-mode--remove-header ()
+    "Removes the overlay and any text properties created."
+    (when-let ((ov zetian-mode--header-overlay))
+      (delete-overlay ov)))
+
+  (defun zetian-mode--before-save-h ()
+    (let ((zetian-mode-inhibit-header-update t))
+      (zetian-set-last-modified)))
+
+  (defun zetian-mode--after-save-h ()
+    (zetian-mode--update-header))
+
+  (defun zetian-mode--cmmh ()
+    "Destroy any changes `zetian-mode' makes to a buffer. Should be run in
+  `change-major-mode-hook'."
+    (zetian-mode--remove-header)
+    (remove-hook 'after-save-hook #'zetian-mode--after-save-h)
+    (remove-hook 'before-save-hook #'zetian-mode--before-save-h)
+    (remove-hook 'change-major-mode-hook #'zetian-mode--cmmh))
+
+  (define-derived-mode zetian-mode org-mode "zetian-mode"
+    "A variant of org-mode designed to be used with zetian."
+    (add-hook 'after-save-hook #'zetian-mode--after-save-h 0 t)
+    (add-hook 'before-save-hook #'zetian-mode--before-save-h 0 t)
+    ;; (add-hook 'kill-buffer-hook #'zetian-mode--remove-header)
+    (add-hook 'change-major-mode-hook #'zetian-mode--cmmh 0 t)
+    (cursor-sensor-mode 1)
+    (zetian-mode--update-header)
+    (goto-char (overlay-end zetian-mode--header-overlay)))
+#+END_SRC
+
 *** Capture Templates
 =org-roam= defines its own syntax for capture templates separate from =org-mode= so we'll define them here.
 #+BEGIN_SRC emacs-lisp
@@ -4139,14 +4267,16 @@ I use =org-mode= tags for state and =org-roam= provides a pair of functions that
     "Prompt user for a state to set, when given a universal-argument: remove
   instead."
     (interactive "P")
-    (if (equal arg '(4))
-        (org-roam-tag-remove)
-      (org-roam-tag-add
-       (list (completing-read "state:" (zetian-all-states))))))
+    (let* ((remove (equal arg '(4)))
+           (states (if remove (zetian-get-states) (zetian-all-states)))
+           (state (completing-read "state: " states)))
+      (if remove
+          (org-roam-tag-remove (list state))
+        (org-roam-tag-add (list state)))))
 
   (defun zetian-get-states ()
     "Return a list of states of node at point."
-    (org-roam-node-tags (org-roam-node-at-point t)))
+    (org-get-tags))
 
   (defun zetian-has-state (state)
     "Return true if STATE is a current state of node at point."
@@ -4159,17 +4289,17 @@ Keep track of the last time a node was modified through the =org-mode= property 
 #+BEGIN_SRC emacs-lisp
   (defun zetian-get-last-modified ()
     "Return the `org-mode' timestamp of the last time this node was modified."
-    (cdr (assoc "LAST_MODIFIED"
-                (org-roam-node-properties (org-roam-node-at-point)))))
+    (org-entry-get nil "LAST_MODIFIED"))
 
   (defun zetian-set-last-modified ()
     "Set the `org-mode' timestamp of the last time this node was modified to now."
     (save-excursion
       (goto-char (point-min))
-      (org-set-property "LAST_MODIFIED"
-                        (with-temp-buffer
-                          (org-time-stamp-inactive '(16))
-                          (buffer-string)))))
+      (org-entry-put nil
+                     "LAST_MODIFIED"
+                     (with-temp-buffer
+                       (org-time-stamp-inactive '(16))
+                       (buffer-string)))))
 #+END_SRC
 
 *** Update Agenda Files
@@ -5113,112 +5243,6 @@ I want a function to ensure that =zetian= remains healthy.
 
   ;; strange categories
   ;; orphaned nodes
-#+END_SRC
-
-*** zetian-mode
-I'd like to have a custom mode to make things a little prettier. I really want using zetian to be a pleasant experience, that should help me make better use of it.
-
-#+BEGIN_SRC emacs-lisp
-  (defvar-local zetian-mode--header-overlay nil)
-  (defvar-local zetian-mode--indirect-buffers nil)
-
-  (defun zetian-mode--update-header ()
-    "Update the overlay `zetian-mode--header-overlay' with header information."
-    (unless zetian-mode--header-overlay
-      (zetian-mode--create-header))
-    ;; (org-roam-db-update-file)
-    (let*
-        ((category (zetian-get-category))
-         (states (zetian-get-states))
-         (title (zetian-get-title))
-         (modified (or (zetian-get-last-modified) "?"))
-         (num-outbound-links (length (zetian-query
-                                      `(links-from ,(zetian-get-title)))))
-         (num-inbound-links (length (zetian-query
-                                      `(links-to ,(zetian-get-title)))))
-         (header
-          (concat
-           (propertize title 'face 'org-document-title)
-           (when category
-             (concat (propertize " [" 'face 'org-drawer)
-                     category
-                     (propertize "]" 'face 'org-drawer)))
-           (when states
-             (concat
-              (propertize " {" 'face 'org-drawer)
-              (s-join (propertize ", " 'face 'org-drawer)
-                      (mapcar (lambda (s)
-                                (propertize s 'face 'org-special-keyword))
-                              states))
-              (propertize "}" 'face 'org-drawer)))
-           "\n"
-           (propertize "Mod:" 'face 'org-drawer)
-           (propertize modified 'face 'org-date)
-           (propertize " Out:" 'face 'org-drawer)
-           (propertize (format "%d" num-outbound-links)
-                       'face 'org-special-keyword)
-           (propertize " In:" 'face 'org-drawer)
-           (propertize (format "%d" num-inbound-links)
-                       'face 'org-special-keyword)
-           "\n")))
-      (overlay-put zetian-mode--header-overlay 'face 'header-line)
-      (overlay-put zetian-mode--header-overlay 'display header)))
-
-  (defun zetian-mode--create-header ()
-    "Create the overlay `zetian-mode' uses to display information."
-    (unless zetian-mode--header-overlay
-      (goto-char (point-min))
-      (let* ((beg (point))
-             (end (re-search-forward "^$"))
-             (pend (+ 1 end))
-             (inhibit-read-only t)
-             (started-modified (buffer-modified-p)))
-        (buffer-disable-undo (buffer-base-buffer))
-        (put-text-property beg pend 'front-sticky '(read-only))
-        (put-text-property beg pend 'rear-nonsticky '(read-only))
-        (put-text-property beg pend 'read-only t)
-        (buffer-enable-undo (buffer-base-buffer))
-        ;; put-text-property sets the buffer as modified, but we don't want that
-        ;; as we don't actually change any text
-        (set-buffer-modified-p started-modified)
-        (setq zetian-mode--header-overlay
-              (make-overlay beg end)))
-      (overlay-put zetian-mode--header-overlay 'invisible t)))
-
-  (defun zetian-mode--remove-header ()
-    "Removes the overlay and any text properties created."
-    (when-let ((ov zetian-mode--header-overlay))
-      (let ((beg (overlay-start ov))
-            (end (overlay-end ov))
-            (inhibit-read-only t))
-        (delete-overlay ov)
-        (buffer-disable-undo (buffer-base-buffer))
-        (remove-list-of-text-properties
-         beg (+ end 1) '(read-only front-sticky rear-nonsticky))
-        (buffer-enable-undo (buffer-base-buffer)))))
-
-  (defun zetian-mode--before-save-h ()
-    (zetian-set-last-modified))
-
-  (defun zetian-mode--after-save-h ()
-    (zetian-mode--update-header))
-
-  (defun zetian-mode--cmmh ()
-    "Destroy any changes `zetian-mode' makes to a buffer. Should be run in
-  `change-major-mode-hook'."
-    (zetian-mode--remove-header)
-    (remove-hook 'after-save-hook #'zetian-mode--after-save-h)
-    (remove-hook 'before-save-hook #'zetian-mode--before-save-h)
-    (remove-hook 'change-major-mode-hook #'zetian-mode--cmmh))
-
-  (define-derived-mode zetian-mode org-mode "zetian-mode"
-    "A variant of org-mode designed to be used with zetian."
-    (add-hook 'after-save-hook #'zetian-mode--after-save-h 0 t)
-    (add-hook 'before-save-hook #'zetian-mode--before-save-h 0 t)
-    ;; (add-hook 'kill-buffer-hook #'zetian-mode--remove-header)
-    (add-hook 'change-major-mode-hook #'zetian-mode--cmmh 0 t)
-    (zetian-mode--update-header)
-    (goto-char (+ 1 (overlay-start zetian-mode--header-overlay))))
 #+END_SRC
 
 *** journal
