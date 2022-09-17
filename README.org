@@ -2447,8 +2447,21 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
-    (setq org-id-files (append (directory-files org-roam-directory t "\\.org$")
-                               (and (boundp 'org-id-files) org-id-files)))
+    (setq org-id-files
+          (seq-uniq (append (org-roam-list-files)
+                            (and (boundp 'org-id-files) org-id-files))))
+
+    ;; org-id doesn't play well with symlinks, it resolves them by calling
+    ;; `file-truename'. This breaks org-roam since files can now live in two
+    ;; places: the symlink'd location and the true location. So I want to disable
+    ;; following the directory symlinks in `org-id-update-id-locations'. It will
+    ;; still resolve file symlinks, but ignore directory symlinks.
+    (defun ic/dont-follow-directory-symlinks (fn &rest args)
+      "Don't call `file-truename' to resolve symlinks."
+      (cl-letf (((symbol-function 'file-truename) #'file-chase-links))
+        (apply fn args)))
+    (advice-add 'org-id-update-id-locations
+                :around #'ic/dont-follow-directory-symlinks)
 
     :config
     ;; the org-element cache messes with correct category lookup and seems to
