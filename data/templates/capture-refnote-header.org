@@ -1,6 +1,6 @@
 :PROPERTIES:
-:CATEGORY: lit
+:CATEGORY: ref
 :DATE_CREATED: `timestamp`
 :LAST_MODIFIED: %U
 :END:
-#+title: litnote `checksum`
+#+title: refnote `checksum`

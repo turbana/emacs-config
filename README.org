@@ -3748,6 +3748,13 @@ I want every frame to start maximized by default.
 ** Zetian
 My personal 2nd brain implemented in =org-roam=.
 
+*** Initial Config
+#+BEGIN_SRC emacs-lisp
+  (setq zetian-special-dir (concat org-roam-directory "special/"))
+  (setq zetian-journal-dir (concat org-roam-directory "journal/"))
+  (setq zetian-refnote-dir (concat org-roam-directory "ref/"))
+#+END_SRC
+
 *** zetian-mode
 I'd like to have a custom mode to make things a little prettier. I really want using zetian to be a pleasant experience, that should help me make better use of it.
 
@@ -3879,11 +3886,12 @@ I'd like to have a custom mode to make things a little prettier. I really want u
 *** Capture Templates
 =org-roam= defines its own syntax for capture templates separate from =org-mode= so we'll define them here.
 #+BEGIN_SRC emacs-lisp
+  (setq zetian-capture-default-filename "%<%Y%m%d%H%M%S>-${id}.org")
+
   (cl-defun zetian--capture-template
       (&key file-name title file-tags file-cat prop-cat prop-id other is-element
             todo suppress-prop-drawer)
-    (let ((default-file-name "%<%Y%m%d%H%M%S>-${id}.org")
-          (body
+    (let ((default-file-name "%<%Y%m%d%H%M%S>-${id}.org")(body
            (concat
             (when is-element
               (concat "* "
@@ -3911,7 +3919,7 @@ I'd like to have a custom mode to make things a little prettier. I really want u
               (format "#+title: %s" (or title "${title}"))))))
       (if is-element
           body
-        `(file+head ,(or file-name default-file-name)
+        `(file+head ,(or file-name zetian-capture-default-filename)
                     ,body))))
 
   (let* ((zetian-tasks-file "special/zetian-tasks.org")
@@ -3978,7 +3986,9 @@ These templates are used from =org-capture-protocol=.
            ,(concat "%U\n\n%?\n\nFrom [[%:link][${title}]] on %U:\n"
                     "#+begin_quote\n${body}\n#+end_quote")
            :target ,(zetian--capture-template
-                     :file-cat "lit" :title "litnote ${id}")
+                     :file-name (concat zetian-refnote-dir
+                                        zetian-capture-default-filename)
+                     :file-cat "ref" :title "refnote ${id}")
            :unnarrowed t)))
 #+END_SRC
 
@@ -5000,18 +5010,19 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
     "Import HIGHLIGHT into zetian if it's not already imported."
     (interactive)
     (unless (org-roam-node-from-title-or-alias
-             (format "litnote %s" (assoc-default 'checksum highlight)))
+             (format "refnote %s" (assoc-default 'checksum highlight)))
       (when-let ((node (zetian-node-from-ebook (assoc-default 'ebook highlight))))
         (push `(book-id . ,(org-roam-node-id node)) highlight)
         (push `(book-title . ,(org-roam-node-title node)) highlight)
         (let ((template `("l" "literature note" plain
                           ,(zetian--format-template-ebook
-                            highlight "data/templates/capture-litnote-body.org")
+                            highlight "data/templates/capture-refnote-body.org")
                           :target (file+head
-                                   "%<%Y%m%d%H%M%S>-${id}.org"
+                                   ,(concat zetian-refnote-dir
+                                           zetian-capture-default-filename)
                                    ,(zetian--format-template-ebook
-                                     highlight "data/templates/capture-litnote-header.org"))))
-              (title (format "litnote %s" (assoc-default 'checksum highlight))))
+                                     highlight "data/templates/capture-refnote-header.org"))))
+              (title (format "refnote %s" (assoc-default 'checksum highlight))))
           (cl-letf ((org-roam-capture-templates (list template)))
             (zetian-node-create title "l"))))))
 
@@ -5037,7 +5048,7 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
                        imported)))
              (header-template
               "data/templates/capture-moonreader-import-summary-header.org")
-             (title (format "litnote import for %s"
+             (title (format "refnote import for %s"
                             (format-time-string "[%Y-%m-%d %a %H:%M]")))
              (template `("s" "moonreader import summary" plain
                          ,body
@@ -5248,10 +5259,6 @@ I want a function to ensure that =zetian= remains healthy.
 *** journal
 I would like to start keeping a journal.
 #+BEGIN_SRC emacs-lisp
-  (defvar zetian-journal-dir
-    (concat org-roam-directory "journal/")
-    "Directory to store daily/weekly/etc journals.")
-
   (defun zetian--journal-buffer (date-format template-name &optional time)
     "Return the buffer for today's journal."
     (let* ((journal
