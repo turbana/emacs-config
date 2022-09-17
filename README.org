@@ -2536,8 +2536,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
   (local-leader-keys 'org-mode-map
     :infix "z"
     "" '(nil :which-key "zetian")
-    "i" #'zetian-link-insert
-    "I" #'zetian-link-insert-immediate
+    "i" #'zetian-link-insert-immediate
+    "I" #'zetian-link-insert
     "l" #'zetian-find-link-from-current
     "L" #'zetian-find-link-to-current
     "R" #'zetian-rename-current
