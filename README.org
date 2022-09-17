@@ -2443,7 +2443,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     :requires org
     :init
     (setq org-roam-v2-ack t)
-    (setq org-roam-directory "~/org/home/roam/")
+    (setq org-roam-directory (expand-file-name "~/org/home/roam/"))
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
