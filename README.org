@@ -2468,7 +2468,9 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     ;; break org-roam sometimes, so disable it
     (setq org-element-use-cache nil)
     (org-roam-setup)
+    (org-roam-db-autosync-mode 1)
     (require 'org-roam-protocol)
+
     :bind (("<f2>" . org-roam-capture)
            :map global-leader-map
            :prefix "z"
