@@ -4358,15 +4358,8 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
   (defun zetian-query (&optional query)
     "Run QUERY against `org-roam' database."
-    (if (eq query nil)
-        ;; when query is nil don't call into the db
-        (org-roam-node-list)
-      (mapcar
-       (lambda (id)
-         ;; XXX should this be a bulk operation?
-         (org-roam-populate (org-roam-node-create :id (car id))))
-       (org-roam-db-query
-        (zetian--unroll-query query)))))
+    (zetian-bulk-node-populate
+     (and query (zetian--unroll-query query))))
 
   (defun zetian-query-1 (query)
     "Run QUERY against zetian and return the first result. Signal an error when
@@ -4464,7 +4457,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     "Return quoted OBJ in a form for `emacsql' query: (like column
   ,(zetian--query-quote-like (cons 'a 'b)))"
     (let ((double-quote "\"")
-          (maybe-percent (unless exact "%")))
+          (maybe-percent (unless exact "%%")))
       `(quote ,(if (stringp obj)
                    (concat double-quote maybe-percent
                            obj
@@ -4489,6 +4482,132 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
            (org-roam-node-from-title-or-alias obj))))
      (t
       (error "invalid zetian id: %S" obj))))
+#+END_SRC
+
+*** Bulk org-roam node searching and creation
+=org-roam= does not expose a way to create multiple nodes at once. As most of zetian's search functions return a list of nodes I need an efficient way to create those nodes. I've tried calling =org-roam-node-populate= for each node: that "works", but is getting to be too slow to use. I'll use a modified version of =org-roam-node-list= to base it off of.
+
+#+BEGIN_SRC emacs-lisp
+  (setq zetian-sql-query-all
+        "SELECT
+    id,
+    file,
+    filetitle,
+    \"level\",
+    todo,
+    pos,
+    priority ,
+    scheduled ,
+    deadline ,
+    title,
+    properties ,
+    olp,
+    atime,
+    mtime,
+    '(' || group_concat(tags, ' ') || ')' as tags,
+    aliases,
+    refs
+  FROM
+    (
+    SELECT
+      id,
+      file,
+      filetitle,
+      \"level\",
+      todo,
+      pos,
+      priority ,
+      scheduled ,
+      deadline ,
+      title,
+      properties ,
+      olp,
+      atime,
+      mtime,
+      tags,
+      '(' || group_concat(aliases, ' ') || ')' as aliases,
+      refs
+    FROM
+      (
+      SELECT
+        nodes.id as id,
+        nodes.file as file,
+        nodes.\"level\" as \"level\",
+        nodes.todo as todo,
+        nodes.pos as pos,
+        nodes.priority as priority,
+        nodes.scheduled as scheduled,
+        nodes.deadline as deadline,
+        nodes.title as title,
+        nodes.properties as properties,
+        nodes.olp as olp,
+        files.atime as atime,
+        files.mtime as mtime,
+        files.title as filetitle,
+        tags.tag as tags,
+        aliases.alias as aliases,
+        '(' || group_concat(RTRIM (refs.\"type\", '\"') || ':' || LTRIM(refs.ref, '\"'), ' ') || ')' as refs
+      FROM nodes
+      LEFT JOIN files ON files.file = nodes.file
+      LEFT JOIN tags ON tags.node_id = nodes.id
+      LEFT JOIN aliases ON aliases.node_id = nodes.id
+      LEFT JOIN refs ON refs.node_id = nodes.id
+      GROUP BY nodes.id, tags.tag, aliases.alias )
+    GROUP BY id, tags )
+  GROUP BY id")
+
+  (defun zetian--bulk-node-query (&optional ids)
+    (cond
+     ;; no ids: run bare query
+     ((null ids)
+      zetian-sql-query-all)
+     ;; list of ids: filter based on bare ids
+     ((listp ids)
+      (emacsql-format
+       (emacsql-prepare
+        (format "SELECT * FROM (%s) WHERE id IN $v1"
+                zetian-sql-query-all))
+       (apply #'vector ids)))
+     ;; vector found: filter based on sub-query
+     ((vectorp ids)
+      (emacsql-format
+       (emacsql-prepare
+        (format "SELECT * FROM (%s) WHERE id IN (%s)"
+                zetian-sql-query-all
+                (string-replace
+                 "%" "%%"
+                 (emacsql-format
+                  (emacsql-prepare ids)))))))))
+
+  (defun zetian-bulk-node-populate (&optional ids)
+    "Return a list of org-roam-nodes that match IDS.
+  IDS can either be an `emacsql' query selecting a list of ids or a vector of
+    string ids or NIL to return the entire database."
+    (let ((rows (org-roam-db-query (zetian--bulk-node-query ids))))
+      (cl-loop for row in rows
+               append (pcase-let* ((`(,id ,file ,file-title ,level ,todo ,pos ,priority ,scheduled ,deadline
+                                          ,title ,properties ,olp ,atime ,mtime ,tags ,aliases ,refs)
+                                    row)
+                                   (all-titles (cons title aliases)))
+                        (mapcar (lambda (temp-title)
+                                  (org-roam-node-create :id id
+                                                        :file file
+                                                        :file-title file-title
+                                                        :file-atime atime
+                                                        :file-mtime mtime
+                                                        :level level
+                                                        :point pos
+                                                        :todo todo
+                                                        :priority priority
+                                                        :scheduled scheduled
+                                                        :deadline deadline
+                                                        :title temp-title
+                                                        :aliases aliases
+                                                        :properties properties
+                                                        :olp olp
+                                                        :tags tags
+                                                        :refs refs))
+                                all-titles)))))
 #+END_SRC
 
 *** Modifying Header Links
