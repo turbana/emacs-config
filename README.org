@@ -3821,7 +3821,8 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     (if after
         (progn
           (if (not (equal end (overlay-end ov)))
-              (add-hook 'post-command-hook #'zetian--post-command-hook)
+              (when (get-buffer-window (current-buffer))
+                (add-hook 'post-command-hook #'zetian--post-command-hook))
             (insert zetian-mode--modification-hook-save)
             (move-overlay ov
                           (overlay-start zetian-mode--header-overlay)
