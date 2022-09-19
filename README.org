@@ -2447,7 +2447,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
-  
+
     ;; org-id doesn't play well with symlinks, it resolves them by calling
     ;; `file-truename'. This breaks org-roam since files can now live in two
     ;; places: the symlink'd location and the true location. So I want to disable
@@ -2495,7 +2495,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("s" . org-roam-db-sync)
            :prefix "zf"
            :prefix-map zetian-find
-           ("f" . zetian-node-find)
+           ("f" . zetian-find-all)
            ("a" . zetian-find-area)
            ("A" . zetian-find-author)
            ("b" . zetian-find-book)
@@ -4051,28 +4051,56 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
       `(progn
          ,(when query
             `(setq ,q-sym ,query))
-         (defun ,q-sym ()
-           ,(format "Return a list of all %s zetian nodes." pretty-name)
+         (defun ,q-sym (&optional include-archive)
+           ,(format
+             (concat "Return a list of all %s zetian nodes.\nIgnore archive notes "
+                     "unless INCLUDE-ARCHIVE is non-nil.")
+             pretty-name)
            ,(if query
-                `(zetian-query ,q-sym)
+                `(zetian-query (if include-archive
+                                   ,q-sym
+                                 `(and ,,q-sym (not ,zetian-query-archive))))
               form))
-         (defun ,s-sym ()
-           ,(format "Search zetian for any %s, return user selected node"
-                    pretty-name)
-           (interactive)
+         (defun ,s-sym (&optional arg)
+           ,(format
+             (concat "Search zetian for any %s note, return user selected node.\n"
+                     "Ignore archive notes unless universal argument given.")
+             pretty-name)
+           (interactive "P")
            ,(if skip-completing-read
-                `(,q-sym)
-              `(zetian-completing-read (,q-sym) ,pretty-name)))
-         (defun ,f-sym ()
-           ,(format "Search zetian for any %s, prompt user for selection and"
-                    "navigate to the buffer" pretty-name)
-           (interactive)
-           (when-let ((node (,s-sym)))
+                `(,q-sym (equal arg '(4)))
+              `(zetian-completing-read (,q-sym (equal arg '(4)))
+                                       (concat ,pretty-name " notes"
+                                               (when (equal arg '(4))
+                                                 " (include archive)")))))
+         (defun ,f-sym (&optional arg)
+           ,(format
+             (concat "Search zetian for any %s note, prompt user for selection and "
+                     "navigate to the buffer.\nIgnore archive tags unless"
+                     "universal argument given.")
+             pretty-name)
+           (interactive "P")
+           (when-let ((node (,s-sym arg)))
              (zetian-node-find node))))))
 
   (defmacro def-zetian-query-function (sym &rest body)
     (declare (indent 1))
     `(def-zetian-query ,sym nil ,@body))
+
+  ;; needs to come first as the macros use it
+  (def-zetian-query archive
+    '(tag "archive"))
+
+  (defun zetian--fix-archive-query (func &rest _)
+    "Fix `zetian-query-archive' filtering out the notes we want to see.
+  Zetian filters out archive notes by default, which fails when we want to view
+  only archive notes."
+    (funcall func t))
+  (advice-add 'zetian-query-archive :around #'zetian--fix-archive-query)
+
+  ;; all notes
+  (def-zetian-query all
+    '(title-like ""))
 
   ;; things
   (def-zetian-query category
