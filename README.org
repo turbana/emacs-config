@@ -4295,11 +4295,13 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
           (let ((template (append
                            (assoc (or template-key zetian-new-note-template-key)
                                   org-roam-capture-templates)
-                           '(:immediate-finish t))))
+                           '(:immediate-finish t)))
+                (node (org-roam-node-create :title title)))
             (when (org-roam-capture-
-                   :node (org-roam-node-create :title title)
+                   :node node
                    :templates (list template))
-              (org-roam-node-from-title-or-alias title))))
+              (or (org-roam-node-from-title-or-alias (org-roam-node-title node))
+                  (org-roam-node-from-id (org-roam-node-id node))))))
       ;; we don't have a title, so prompt for one and retry
       (zetian-node-create (org-roam-node-title
                            (zetian-search nil "Zetian note: "))
