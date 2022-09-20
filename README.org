@@ -4519,6 +4519,16 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                                :where (= ,col1 nodes:id)
                                :and (= links:type "id")
                                :and (= ,col2 ,(parse-id (parse first)))])))
+             ('has
+              (let* ((col (cond ((eq 'links-to first)
+                                 'links:dest)
+                                ((eq 'links-from first)
+                                 'links:source)
+                                (_
+                                 (error "invalid option for 'has: %S" first)))))
+                `(in nodes:id [:select [,col]
+                               :from links
+                               :where (= links:type "id")])))
              ('eval
               (parse (eval first)))
              (_
