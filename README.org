@@ -4234,6 +4234,20 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
                    (links-to ,area)))))
      (zetian-query-area)))
 
+  (def-zetian-query missing-outbound-links
+    `(and ,zetian-query-permanent
+          (not ,zetian-query-review)
+          (not (has links-from))))
+
+  (def-zetian-query missing-inbound-links
+    `(and ,zetian-query-permanent
+          (not ,zetian-query-review)
+          (not (has links-to))))
+
+  (def-zetian-query isolated
+    `(and ,zetian-query-missing-inbound-links
+          ,zetian-query-missing-outbound-links))
+
   (def-zetian-query permanent-created-today
     `(and ,zetian-query-permanent
           (created-on ".")))
@@ -5456,7 +5470,7 @@ I want a function to ensure that =zetian= remains healthy.
 
 
   (defun zetian--lint-show-buffer (dups links stuck-projects stuck-areas
-                                        tasks-without-project)
+                                        tasks-without-project isolated)
     "Build and show a buffer with any errors found."
     (let ((buf (get-buffer-create "*zetian database lint*"))
           (now (format-time-string "[%Y-%m-%d %a %H:%M]")))
@@ -5500,6 +5514,11 @@ I want a function to ensure that =zetian= remains healthy.
                         (length tasks-without-project)))
         (dolist (task tasks-without-project)
           (insert (format "\n- %s" (zetian-node-link task)))))
+      (when isolated
+        (insert (format "\n* %d isolated tasks (no in-bound or out-bound links)"
+                        (length isolated)))
+        (dolist (task isolated)
+          (insert (format "\n- %s" (zetian-node-link task)))))
       (org-mode)
       (read-only-mode 1)
       (goto-char (point-min))))
@@ -5514,7 +5533,8 @@ I want a function to ensure that =zetian= remains healthy.
                   (zetian--lint-broken-links)
                   (zetian-query-stuck-project)
                   (zetian-query-stuck-area)
-                  (zetian-query-open-tasks-without-project))))
+                  (zetian-query-open-tasks-without-project)
+                  (zetian-query-isolated))))
       (if (-any 'identity found)
           (apply #'zetian--lint-show-buffer found)
         (message "no errors found in zetian"))))
