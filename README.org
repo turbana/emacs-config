@@ -2103,6 +2103,13 @@ I want to hit =M-RET= from either insert or normal mode and insert a new list it
              (evil-insert 0)))))
 #+END_SRC
 
+**** Recurring tasks with checkboxes
+When I complete a recurring task that contains checkboxes I want those checkboxes to be reset for the next time.
+
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'org-todo-repeat-hook #'org-reset-checkbox-state-subtree)
+#+END_SRC
+
 **** Weekly Review
 #+BEGIN_SRC emacs-lisp
   (defvar ic/weekly-reviews-directory "~/org/home/weekly-reviews")
