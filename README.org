@@ -4226,6 +4226,14 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
              `(and ,zetian-query-project
                    (links-to ,area)))))
      (zetian-query-area)))
+
+  (def-zetian-query permanent-created-today
+    `(and ,zetian-query-permanent
+          (created-on ".")))
+
+  (def-zetian-query permanent-modified-today
+    `(and ,zetian-query-permanent
+          (last-modified-on ".")))
 #+END_SRC
 
 *** Inserting Links
@@ -4482,6 +4490,18 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                 ,(parse-like nil (cons (parse first) (parse second)))))
              ('category
               (parse `(prop "CATEGORY" ,first)))
+             ('created-on
+              `(like
+                nodes:properties
+                ,(parse-like nil (cons "CREATED"
+                                       (zetian--query-parse-date-like
+                                        (parse first))))))
+             ('last-modified-on
+              `(like
+                nodes:properties
+                ,(parse-like nil (cons "LAST_MODIFIED"
+                                       (zetian--query-parse-date-like
+                                        (parse first))))))
              ((or 'links-to 'links-from)
               (let ((col1 (if (eq 'links-to atom) 'links:source 'links:dest))
                     (col2 (if (eq 'links-to atom) 'links:dest 'links:source)))
@@ -4512,6 +4532,12 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
   (defun zetian--query-parse-date (date &optional next-day-when-no-time)
     (format-time-string "%Y-%m-%dT%H:%M:%S%z"
+                        (ic-parse-org-date-string
+                         date
+                         next-day-when-no-time)))
+
+  (defun zetian--query-parse-date-like (date &optional next-day-when-no-time)
+    (format-time-string "[%Y-%m-%d%%%%]"
                         (ic-parse-org-date-string
                          date
                          next-day-when-no-time)))
