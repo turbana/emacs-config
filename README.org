@@ -4700,16 +4700,33 @@ I want an easy way to add/update tags and other links on a given zettel. To star
     "Set the LINKS for zetian header TYPE."
     (save-excursion
       (goto-char (zetian--header-pos type))
-      (when (zetian--looking-at-header type)
-        (delete-region (point) (1+ (line-end-position))))
+      (when (or (zetian--looking-at-header type)
+                (looking-at "^$"))
+        ;; remove the current header and all following newlines
+        (delete-region (point)
+                       (save-excursion
+                         (goto-char (line-end-position))
+                         (while (equal (following-char) ?\n)
+                           (forward-char 1))
+                         (point))))
       (setq links (seq-uniq links))
       (sort links (lambda (n1 n2)
                     (string< (org-roam-node-title n1)
                              (org-roam-node-title n2))))
-      (insert
-       (concat (assoc-default type zetian-header-formats))
-       (mapconcat #'zetian-node-link links zetian-header-seperator)
-       "\n")))
+      (if (not links)
+          ;; we removed a header and need to move the content down
+          (when (save-excursion
+                  (forward-line -1)
+                  (zetian--looking-at-header))
+            (insert "\n"))
+        ;; insert the header line
+        (insert
+         (concat (assoc-default type zetian-header-formats))
+         (mapconcat #'zetian-node-link links zetian-header-seperator)
+         "\n")
+        ;; we inserted a header and need to move the content down
+        (unless (zetian--looking-at-header)
+          (insert "\n")))))
 
   (defun zetian-get-header-links (type)
     "Return list of nodes contained in zetian header TYPE."
@@ -4756,9 +4773,15 @@ I want an easy way to add/update tags and other links on a given zettel. To star
         (search-failed
          (+ 1 (re-search-forward "^$"))))))
 
-  (defun zetian--looking-at-header (type)
-    "Return non-nil when POINT is on header TYPE."
-    (looking-at (regexp-quote (assoc-default type zetian-header-formats))))
+  (defun zetian--looking-at-header (&optional type)
+    "Return non-nil when POINT is on header TYPE.
+  When TYPE is nil check for any type."
+    (let ((types (if type (list type)
+                   (mapcar #'car zetian-header-formats))))
+      (-any? (lambda (type)
+               (looking-at
+                (regexp-quote (assoc-default type zetian-header-formats)))) 
+             types)))
 #+END_SRC
 
 *** Tags
