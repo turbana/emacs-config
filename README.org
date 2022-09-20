@@ -3753,6 +3753,11 @@ My personal 2nd brain implemented in =org-roam=.
   (setq zetian-special-dir (concat org-roam-directory "special/"))
   (setq zetian-journal-dir (concat org-roam-directory "journal/"))
   (setq zetian-refnote-dir (concat org-roam-directory "ref/"))
+  (setq zetian-archive-dir (concat org-roam-directory "archive/"))
+
+  (setq zetian-tasks-file (concat zetian-special-dir "zetian-tasks.org"))
+  (setq zetian-people-file (concat zetian-special-dir "zetian-people.org"))
+  (setq zetian-tasks-archive-file (concat zetian-special-dir "zetian-tasks-archive.org"))
 #+END_SRC
 
 *** zetian-mode
@@ -4180,6 +4185,16 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
   (def-zetian-query open-event
     `(and ,zetian-query-event
           ,zetian-query-open))
+
+  (def-zetian-query open-task-or-event
+    `(and (or ,zetian-query-task
+              ,zetian-query-event)
+          ,zetian-query-open))
+
+  (def-zetian-query closed-task-or-event
+    `(and (or ,zetian-query-task
+              ,zetian-query-event)
+          (not ,zetian-query-open)))
 
   (def-zetian-query state
     '(tag (eval (completing-read "State: " (zetian-all-states)))))
@@ -5285,6 +5300,42 @@ I want to be able to rename a =zetian= note. This should not only change the tit
           (save-restriction
             (narrow-to-region (match-beginning 0) (match-end 0))
             (replace-match desc t t nil 1))))))
+#+END_SRC
+
+*** Archive old tasks
+I want any completed task to be moved out of it's current file and into an archive file (with an =archive= file-tag). This is mostly to keep the number of headings =org-agenda= needs to search.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-archive-completed-tasks ()
+    "Move all completed zetian tasks and events into the archive."
+    (interactive)
+    ;; because we're modifying one file mostly: we want to work back-to-front or
+    ;; end-to-beginning.
+    (when-let ((nodes (sort (zetian-query-closed-task-or-event)
+                       (lambda (n1 n2)
+                         (< (org-roam-node-point n2)
+                            (org-roam-node-point n1))))))
+      (mapc #'zetian-archive-task nodes)
+      (with-current-buffer (find-file-noselect zetian-tasks-file)
+        (save-buffer))
+      (with-current-buffer (find-file-noselect zetian-tasks-archive-file)
+        (save-buffer))
+      (message "archived %d tasks" (length nodes))))
+
+  (defun zetian-archive-task (node)
+    "Move the zetian note NODE into the archive."
+    (save-excursion
+      (with-current-buffer
+          (find-file-noselect (org-roam-node-file node))
+        (goto-char (org-roam-node-point node))
+        (let ((org-log-refile nil))
+          (org-refile nil nil (list "" zetian-tasks-archive-file nil 1)))
+        (save-window-excursion
+          (org-refile-goto-last-stored)
+          (org-entry-put
+           nil "ARCHIVED_ON" (with-temp-buffer
+                               (org-time-stamp-inactive '(16))
+                               (buffer-string)))))))
 #+END_SRC
 
 *** Linter
