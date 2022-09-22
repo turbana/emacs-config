@@ -2483,6 +2483,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix "z"
            :prefix-map zetian
            ("b" . org-roam-buffer-toggle)
+           ("F" . zetian-select-find)
            ("u" . org-roam-ui-open)
            :prefix "zc"
            :prefix-map zetian-capture
@@ -2544,7 +2545,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     :infix "z"
     "" '(nil :which-key "zetian")
     "i" #'zetian-link-insert-immediate
-    "I" #'zetian-link-insert
+    "I" #'zetian-link-insert-search-immediate
     "l" #'zetian-find-link-from-current
     "L" #'zetian-find-link-to-current
     "R" #'zetian-rename-current
@@ -4263,6 +4264,29 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
           (last-modified-on ".")))
 #+END_SRC
 
+*** Search for search functions
+zetian is starting to get a lot of search functions and I don't really like to have to keybind them all so let's write a function that let's us select a function to run.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian--select-call-command (arg regex prompt &rest args)
+    "Select and call any defined `zetian-find-*' function."
+    (interactive "P")
+    (let ((symbols))
+      (mapatoms (lambda (sym)
+                  (when (string-match-p regex (symbol-name sym))
+                    (setq symbols (cons sym symbols)))))
+      (when-let ((func-name (completing-read prompt symbols)))
+        (apply (symbol-function (intern func-name)) arg args))))
+
+  (defun zetian-select-find (&optional arg)
+    (interactive "P")
+    (zetian--select-call-command arg "^zetian-find-" "function: "))
+
+  (defun zetian-select-search (&optional arg)
+    (interactive "P")
+    (zetian--select-call-command arg "^zetian-search-" "function: "))
+#+END_SRC
+
 *** Inserting Links
 #+BEGIN_SRC emacs-lisp
   (defconst zetian-new-note-template-key "p"
@@ -4302,6 +4326,13 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     needed."
     (interactive)
     (insert (zetian-link-immediate)))
+
+  (defun zetian-link-insert-search-immediate ()
+    "Query zetian for a search function, call that function: insert a link to
+    chosen node at point."
+    (interactive)
+    (when-let ((node (zetian-select-search)))
+      (insert (zetian-node-link node))))
 
   (defun zetian-node-create (&optional title template-key)
     "Return zetian node for TITLE, creating it if necessary. Uses TEMPLATE-KEY to
