@@ -5580,6 +5580,35 @@ I want a function to ensure that =zetian= remains healthy.
   ;; orphaned nodes
 #+END_SRC
 
+*** Show links buffer
+I'd like something similar to =org-roam-buffer-toggle=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-show-links-buffer ()
+    (interactive)
+    (when-let ((node (org-roam-node-at-point)))
+      (pop-to-buffer-same-window
+       (get-buffer-create "*zetian links buffer*"))
+      (org-transclusion-mode -1)
+      (read-only-mode -1)
+      (erase-buffer)
+      (insert (format "#+title: Links for %s\n\n" (org-roam-node-title node)))
+      (insert "* In Bound Links\n")
+      (dolist (link (zetian-query `(links-to ,node)))
+        (insert (format "** %1$s\n#+transclude: %1$s\n\n"
+                        (zetian-node-link link))))
+      (insert "\n* Out Bound Links\n")
+      (dolist (link (zetian-query `(links-from ,node)))
+        (insert (format "** %1$s\n#+transclude: %1$s\n"
+                        (zetian-node-link link))))
+      (org-mode)
+      (org-transclusion-mode 1)
+      (read-only-mode 1)
+      (goto-char (point-min))
+      (re-search-forward "^$")
+      (forward-char)))
+#+END_SRC
+
 *** journal
 I would like to start keeping a journal.
 #+BEGIN_SRC emacs-lisp
