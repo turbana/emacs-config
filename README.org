@@ -4791,9 +4791,11 @@ I want an easy way to add/update tags and other links on a given zettel. To star
           (insert "\n"))))
     ;; when overwriting a header and the point is on the initial content character
     ;; the point is moved to the start of the header, so move back to the content.
-    (while (or (zetian--looking-at-header)
-               (looking-at "^$"))
-      (forward-line 1)))
+    (when (zetian--looking-at-header)
+      (while (and (not (= (point) (point-max)))
+                  (or (zetian--looking-at-header)
+                      (looking-at "^$")))
+        (forward-line 1))))
 
   (defun zetian--remove-header ()
     "Remove the header from the current note.
@@ -4808,7 +4810,8 @@ I want an easy way to add/update tags and other links on a given zettel. To star
       (while (zetian--looking-at-header)
         (forward-line 1))
       ;; move over any consecutive new lines
-      (while (looking-at "^$")
+      (while (and (not (= (point) (point-max)))
+                  (looking-at "^$"))
         (forward-char 1))
       ;; delete and leave point
       (delete-region beg (point))))
