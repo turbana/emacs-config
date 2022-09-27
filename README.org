@@ -1240,6 +1240,12 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
   ;; show agenda icons
   (setq org-agenda-prefix-format "  %i %?-2 t%s")
 
+  (setq org-agenda-sorting-strategy
+        '((agenda habit-down time-up priority-down category-keep)
+          (todo tag-up priority-down alpha-up)
+          (tags priority-down category-keep)
+          (search category-keep)))
+
   ;; highlight the current line
   (add-hook 'org-agenda-mode-hook 'hl-line-mode)
 
@@ -1492,7 +1498,7 @@ Furthermore I consider a stuck project:
   (setq org-habit-following-days 1)
   (setq org-habit-graph-column 2)
   (setq org-habit-show-habits-only-for-today t)
-  (setq org-habit-show-all-today t)
+  (setq org-habit-show-all-today nil)
 
   ;; only show the first occurrence of a repeating task
   (setq org-agenda-show-future-repeats 'next)
