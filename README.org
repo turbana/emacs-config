@@ -4173,21 +4173,17 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     `(and ,zetian-query-open-task
           (links-to (eval (zetian-search-project)))))
 
-  (def-zetian-query nodes-without-project
-    '(not (eval `(or ,@(mapcar (lambda (p) `(links-to ,p))
-                               (zetian-query-project))))))
-
-  (def-zetian-query nodes-without-project
-    '(not (eval `(or ,@(mapcar (lambda (p) `(links-to ,(org-roam-node-id p)))
-                               (zetian-query-project))))))
+  (def-zetian-query nodes-with-project
+    '(eval `(or ,@(mapcar (lambda (p) `(links-to ,(org-roam-node-id p)))
+                          (zetian-query-project)))))
 
   (def-zetian-query tasks-without-project
     `(and ,zetian-query-task
-          ,zetian-query-nodes-without-project))
+          (not ,zetian-query-nodes-with-project)))
 
   (def-zetian-query open-tasks-without-project
     `(and ,zetian-query-open-task
-          ,zetian-query-nodes-without-project))
+          (not ,zetian-query-nodes-with-project)))
 
   ;; links
   (def-zetian-query link-to
