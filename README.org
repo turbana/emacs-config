@@ -4065,7 +4065,7 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
   (defmacro def-zetian-query (sym query &optional form skip-completing-read)
     (declare (indent 1))
     (let* ((name (symbol-name sym))
-           (pretty-name (string-replace "-" " " name))
+           (pretty-name (replace-regexp-in-string "-" " " name))
            (q-sym (intern (format "zetian-query-%s" name)))
            (f-sym (intern (format "zetian-find-%s" name)))
            (s-sym (intern (format "zetian-search-%s" name))))
@@ -4718,7 +4718,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
        (emacsql-prepare
         (format "SELECT * FROM (%s) WHERE id IN (%s)"
                 zetian-sql-query-all
-                (string-replace
+                (replace-regexp-in-string
                  "%" "%%"
                  (emacsql-format
                   (emacsql-prepare ids)))))))))
@@ -5198,7 +5198,7 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
       (s-replace-regexp
        "\\[\\[.*\\]\\[\\(.*\\)\\]\\]"
        "\\1"
-       (string-replace
+       (replace-regexp-in-string
         "\n" " "
         (buffer-substring-no-properties (point) (point-max))))))
 
