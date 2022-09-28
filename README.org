@@ -4418,26 +4418,40 @@ I use the =CATEGORY= property to denote /what/ a =zetian= node is. I'll need a p
 *** State
 I use =org-mode= tags for state and =org-roam= provides a pair of functions that work with both file tags and element tags, so let's use those.
 #+BEGIN_SRC emacs-lisp
-  (defalias #'zetian-add-state #'org-roam-tag-add
-    "Add a state to a zetian node.")
+  (defun zetian-org-get-tags-local-only (func &optional pos-or-element _)
+    "Wrapper for `org-get-tags' to force LOCAL argument to t."
+    (funcall func pos-or-element t))
 
-  (defalias #'zetian-remove-state #'org-roam-tag-remove
-    "Remove a state from a zetian node.")
+  (defun zetian-add-state (state)
+    "Add STATE to current zetian node."
+    (advice-add #'org-get-tags :around #'zetian-org-get-tags-local-only)
+    (unwind-protect
+        (org-roam-tag-add (list state))      
+      (advice-remove #'org-get-tags #'zetian-org-get-tags-local-only)))
+
+  (defun zetian-remove-state (state)
+    "Remove STATE from current zetian node."
+    (advice-add #'org-get-tags :around #'zetian-org-get-tags-local-only)
+    (unwind-protect
+        (org-roam-tag-remove (list state))      
+      (advice-remove #'org-get-tags #'zetian-org-get-tags-local-only)))
 
   (defun zetian-set-state (&optional arg)
     "Prompt user for a state to set, when given a universal-argument: remove
   instead."
     (interactive "P")
-    (let* ((remove (equal arg '(4)))
-           (states (if remove (zetian-get-states) (zetian-all-states)))
-           (state (completing-read "state: " states)))
-      (if remove
-          (org-roam-tag-remove (list state))
-        (org-roam-tag-add (list state)))))
+    (let ((remove (equal arg '(4))))
+      (funcall (if remove 'zetian-remove-state 'zetian-add-state)
+               (completing-read "state: "
+                                (if remove (zetian-get-states) (zetian-all-states))))))
 
-  (defun zetian-get-states ()
+  (defun zetian-get-states (&optional include-hidden)
     "Return a list of states of node at point."
-    (org-get-tags))
+    (seq-filter
+     (lambda (tag)
+       (or (not (equal (string-to-char tag) ?_))
+           include-hidden))
+     (org-get-tags)))
 
   (defun zetian-has-state (state)
     "Return true if STATE is a current state of node at point."
@@ -4945,10 +4959,29 @@ A =zetian= node can have a project associated with it. Like tags a project is si
   (defun zetian-set-project (&optional arg)
     "Set the project for the current node."
     (interactive "P")
-    (zetian-set-header-links
-     'project
-     (unless (equal arg '(4))
-       (list (zetian-search-project)))))
+    (let* ((remove (equal arg '(4)))
+           (old-project (zetian-get-project))
+           (new-project (unless remove
+                          (zetian-search-project))))
+      (zetian-set-header-links 'project (unless remove (list new-project)))
+      (when old-project
+        (zetian-remove-state (zetian-node-to-state old-project)))
+      (when new-project
+        (zetian-add-state (zetian-node-to-state new-project)))))
+
+  (defun zetian-node-to-state (&optional node)
+    "Return a string suitable for an org-mode tag from the NODE's title."
+    (concat "_"
+            (replace-regexp-in-string (rx (not (any alnum "@_")))
+                                      "_"
+                                      (org-roam-node-title
+                                       (or node (org-roam-node-at-point t))))))
+
+  (defun zetian-node-from-state (state)
+    "Return a zetian node given a project STATE."
+    (unless (= (string-to-char state) ?_)
+      (error "Not a valid project state: %s" state))
+    (zetian-query-1 `(title-like ,(substring state 1))))
 #+END_SRC
 
 **** Context
@@ -4986,9 +5019,14 @@ A =zetian= node can be a conversation so we want to keep the context of the note
 Sometimes I want some information about the entire state of =Zetian=.
 
 #+BEGIN_SRC emacs-lisp
-  (defun zetian-all-states ()
+  (defun zetian-all-states (&optional include-hidden)
     "Return a list of all states (org tags) in the zetian database."
-    (let ((results (org-roam-db-query [:select :distinct tag :from tags])))
+    (let ((results (org-roam-db-query
+                    `[:select :distinct tag
+                      :from tags
+                      ,@(unless include-hidden
+                          '(:where tag :not :like '"\"\\_%\""
+                            :escape '"\\"))])))
       (sort (mapcar #'car results)
             #'string-collate-lessp)))
 
