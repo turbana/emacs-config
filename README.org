@@ -3905,15 +3905,50 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     (goto-char (overlay-end zetian-mode--header-overlay)))
 #+END_SRC
 
+*** Utility functions
+#+BEGIN_SRC emacs-lisp
+  (defvar zetian--node-marker nil
+    "Internal value to mark a node's position in a (changing) buffer.")
+
+  (defmacro with-zetian-node (node &rest body)
+    "Evaluate BODY with NODE open and the view restricted to the note."
+    (declare (indent 1))
+    (let ((sym (gensym)))
+      `(let ((,sym ,node))
+         (if (not (org-roam-node-p ,sym))
+             (error "Wrong type argument: org-roam-node, %S" ,sym)
+           (save-excursion
+             (with-current-buffer
+                 (find-file-noselect (org-roam-node-file ,sym))
+               (save-restriction
+                 (widen)
+                 (goto-char (or zetian--node-marker
+                                (org-roam-node-point ,sym)))
+                 (when (org-at-heading-p)
+                   (org-narrow-to-subtree))
+                 ,@body)))))))
+
+  (defun map-zetian (func nodes)
+    "Call FUNC for each zetian node in NODES.
+  The node is opened, and narrowed before FUNC is called."
+    (mapcar (lambda (x)
+              (let ((zetian--node-marker (car x)))
+                (with-zetian-node (cdr x)
+                  (funcall func (cdr x)))))
+            (mapcar (lambda (n)
+                      (cons (org-roam-node-marker n) n))
+                    nodes)))
+#+END_SRC
+
 *** Capture Templates
 =org-roam= defines its own syntax for capture templates separate from =org-mode= so we'll define them here.
 #+BEGIN_SRC emacs-lisp
-  (setq zetian-capture-default-filename "%<%Y%m%d%H%M%S>-${id}.org")
+  (setq zetian-capture-default-filename "%<%Y%m%d%H%M%S>-${title}.org")
 
   (cl-defun zetian--capture-template
       (&key file-name title file-tags file-cat prop-cat prop-id other is-element
             todo suppress-prop-drawer)
-    (let ((default-file-name "%<%Y%m%d%H%M%S>-${id}.org")(body
+    (let ((body
            (concat
             (when is-element
               (concat "* "
@@ -4780,7 +4815,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
 
   (defun zetian--overwrite-header (all-links)
     "Set the entire header with the alist ALL-LINKS."
-    (save-excursion
+    (with-zetian-node (org-roam-node-at-point)
       (zetian--remove-header)
       (let (inserted-header)
         (dolist (type (mapcar 'car zetian-header-formats))
@@ -4821,7 +4856,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
 
   (defun zetian-get-header-links (type)
     "Return list of nodes contained in zetian header TYPE."
-    (save-excursion
+    (with-zetian-node (org-roam-node-at-point)
       (let ((header (assoc-default type zetian-header-formats)))
         (goto-char (zetian--header-pos type))
         (when (looking-at header)
