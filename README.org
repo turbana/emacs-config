@@ -1496,10 +1496,12 @@ Furthermore I consider a stuck project:
 **** Habits
 #+BEGIN_SRC emacs-lisp
   (setq org-habit-preceding-days 7)
-  (setq org-habit-following-days 1)
-  (setq org-habit-graph-column 2)
+  (setq org-habit-following-days 4)
+  (setq org-habit-graph-column 50)
   (setq org-habit-show-habits-only-for-today t)
   (setq org-habit-show-all-today nil)
+  (setq org-habit-today-glyph ?@)
+  (setq org-habit-completed-glyph ?*)
 
   ;; only show the first occurrence of a repeating task
   (setq org-agenda-show-future-repeats 'next)
