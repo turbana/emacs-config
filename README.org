@@ -3369,7 +3369,6 @@ Use =display-line-numbers= to show line numbers as it's written in C and part of
 
 Disable other line number modes and only enable =display-line-numbers= in certain text-heavy modes.
 #+BEGIN_SRC emacs-lisp
-  (global-linum-mode -1)
   (add-hook 'prog-mode-hook 'display-line-numbers-mode)
   (add-hook 'text-mode-hook 'display-line-numbers-mode)
 #+END_SRC
