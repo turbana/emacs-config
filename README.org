@@ -3943,7 +3943,7 @@ I'd like to have a custom mode to make things a little prettier. I really want u
 *** Capture Templates
 =org-roam= defines its own syntax for capture templates separate from =org-mode= so we'll define them here.
 #+BEGIN_SRC emacs-lisp
-  (setq zetian-capture-default-filename "%<%Y%m%d%H%M%S>-${title}.org")
+  (setq zetian-capture-default-filename "%<%Y%m%d%H%M%S>-${id}.org")
 
   (cl-defun zetian--capture-template
       (&key file-name title file-tags file-cat prop-cat prop-id other is-element
