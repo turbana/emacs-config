@@ -2459,7 +2459,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     :requires org
     :init
     (setq org-roam-v2-ack t)
-    (setq org-roam-directory (expand-file-name "~/org/home/roam/"))
+    (setq org-roam-directory (expand-file-name "~/src/roam/"))
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
@@ -2494,6 +2494,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("b" . org-roam-buffer-toggle)
            ("F" . zetian-select-find)
            ("u" . org-roam-ui-open)
+           ("U" . zetian-update-git)
            :prefix "zc"
            :prefix-map zetian-capture
            ("c" . org-roam-capture)
@@ -5853,6 +5854,30 @@ I would like to start keeping a journal.
               (save-buffer)))))))
   (add-hook 'org-after-todo-state-change-hook
             #'zetian--add-completed-task-to-journal)
+#+END_SRC
+
+*** git
+#+BEGIN_SRC emacs-lisp
+  (defconst zetian-update-git-seconds 600
+    "Automatically update zetian's git repo every count seconds.")
+
+  (defun zetian-update-git ()
+    "Update the git repo under `org-roam-directory'.
+  Automatically pull any updates, commit our changes, and push back up."
+    (interactive)
+    (let ((default-directory org-roam-directory)
+          (command (concat user-data-directory "zetian-update-git.sh"))
+          exit-status)
+      (with-current-buffer "*zetian-git-output*"
+        (read-only-mode -1)
+        (goto-char (point-max))
+        (setq exit-status (call-process command nil t nil))
+        (read-only-mode 1)
+        (unless (= exit-status 0)
+          (error "zetian-update-git.sh return non-zero exit status, check *zetian-git-output*")))))
+
+  ;; ensure we run `zetian-update-git' every `zetian-update-git-seconds'.
+  (run-with-idle-timer zetian-update-git-seconds t #'zetian-update-git)
 #+END_SRC
 
 ** Beeping
