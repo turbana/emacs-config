@@ -5868,7 +5868,7 @@ I would like to start keeping a journal.
     (let ((default-directory org-roam-directory)
           (command (concat user-data-directory "zetian-update-git.sh"))
           exit-status)
-      (with-current-buffer "*zetian-git-output*"
+      (with-current-buffer (get-buffer-create "*zetian-git-output*")
         (read-only-mode -1)
         (goto-char (point-max))
         (setq exit-status (call-process command nil t nil))
