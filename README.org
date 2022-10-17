@@ -3066,6 +3066,46 @@ I do most of my work in =UTF-8= with =unix= line endings, so set that as the def
   (add-hook 'ediff-after-quit-hook-internal 'winner-undo)
 #+END_SRC
 
+** Diff current buffer with disk version
+Sometimes I want to see what differences emacs has in a buffer over the contents on disk.
+#+BEGIN_SRC emacs-lisp
+  (defvar ic//ediff-buffer-A)
+  (defvar ic//ediff-buffer-B)
+
+  (defun ic/ediff-current-buffer-with-disk ()
+    "Run `ediff' against the current buffer and the file on disk."
+    (interactive)
+    (unless (buffer-file-name)
+      (user-error "Current buffer not visiting a file."))
+    (let* ((fn (buffer-file-name))
+           (disk-buf-name (format " *disk version of %s*"
+                                  (file-name-nondirectory fn)))
+           (disk-buf (with-current-buffer (get-buffer-create disk-buf-name)
+                       (erase-buffer)
+                       (insert-file-contents-literally fn)
+                       (current-buffer)))
+           (emacs-contents (save-restriction
+                             (widen)
+                             (buffer-substring-no-properties (point-min) (point-max))))
+           (emacs-buf-name (format " *emacs version of %s*"
+                                   (file-name-nondirectory fn)))
+           (emacs-buf (with-current-buffer (get-buffer-create emacs-buf-name)
+                        (erase-buffer)
+                        (insert emacs-contents)
+                        (current-buffer))))
+      (setq ic//ediff-buffer-A disk-buf)
+      (setq ic//ediff-buffer-B emacs-buf)
+      (add-hook 'ediff-quit-hook #'ic//ediff-cleanup)
+      (ediff-buffers disk-buf emacs-buf)))
+
+  (defun ic//ediff-cleanup ()
+    "Clean up the old buffers after calling `ic/ediff-current-buffer-with-disk'."
+    (dolist (buf (list ic//ediff-buffer-A ic//ediff-buffer-B))
+      (when (buffer-live-p buf)
+        (kill-buffer buf)))
+    (remove-hook 'ediff-quit-hook #'ic//ediff-cleanup))
+#+END_SRC
+
 ** user-emacs-directory
 Try and keep the =user-emacs-directory= somewhat clean.
 #+BEGIN_SRC emacs-lisp
@@ -5992,6 +6032,7 @@ XXX should these go in an override map?
    "b" 'consult-buffer
    "B" 'consult-buffer-other-window
    "d" 'kill-this-buffer
+   "D" 'ic/ediff-current-buffer-with-disk
    "i" 'ibuffer
    "P" 'ic/paste-clipboard-to-buffer
    "R" 'revert-buffer
