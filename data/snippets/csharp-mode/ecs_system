@@ -1,0 +1,15 @@
+# -*- mode: snippet -*-
+# name: ECS System
+# key: ecs_system
+# --
+using Unity.Entities;
+
+namespace $1 {
+    [RequireMatchingQueriesForUpdate]
+    [UpdateInGroup(typeof($2))]
+    public partial class `(file-name-nondirectory (file-name-sans-extension (buffer-file-name)))` : SystemBase {
+        protected override void OnUpdate() {
+            $0
+        }
+    }
+}
