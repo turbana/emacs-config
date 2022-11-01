@@ -1089,9 +1089,9 @@ Change some characters to unicode icons. Some good icons [[http://csbruce.com/so
             ("[-]" . ?)
             ("#+BEGIN_SRC" . ?λ)
             ("#+END_SRC" . ?ƛ)
-            ("CLOSED:" . ?⟁)
+            ("CLOSED:" . ?)
             ("SCHEDULED:" . ?)
-            ("DEADLINE:" . ?)))
+            ("DEADLINE:" . ?)))
     (prettify-symbols-mode 1))
 
   (add-hook 'org-mode-hook #'ic/org-mode-pretty-symbols)
