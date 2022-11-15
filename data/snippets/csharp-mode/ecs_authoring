@@ -1,0 +1,27 @@
+# -*- mode: snippet -*-
+# name: Unity ECS Authoring
+# key: ecs_authoring
+# --
+using UnityEngine;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
+
+namespace $1 {
+    public struct `(ic/csharp-authoring-base)`$2 : IComponentData {
+        $3
+    }
+
+    [AddComponentMenu("${1:$(ic/csharp-authoring-component-menu)}")]
+    public class `(ic/csharp-authoring-base-filename)` : MonoBehaviour {
+        $3
+        
+        public class `(ic/csharp-authoring-base-filename)`Baker : Baker<`(ic/csharp-authoring-base-filename)`> {
+            public override void Bake(`(ic/csharp-authoring-base-filename)` auth) {
+                AddComponent(new `(ic/csharp-authoring-base)`$2 {
+                        ${3:$(ic/csharp-authoring-assign-variables)}
+                    });
+            }
+        }
+    }
+}

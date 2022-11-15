@@ -2930,6 +2930,46 @@ For numbering and jumping to windows.
       (yas-global-mode 1))
 #+END_SRC
 
+*** csharp snippets
+#+BEGIN_SRC emacs-lisp
+  (defun ic/csharp-authoring-base-filename ()
+    "Return base part of '*.cs' filename."
+    (string-remove-suffix
+     ".cs"
+     (file-name-nondirectory (buffer-file-name))))
+
+  (defun ic/csharp-authoring-base ()
+    "Return base part of '*Authoring.cs' filename"
+    (string-remove-suffix "Authoring" (ic/csharp-authoring-base-filename)))
+
+  (defun ic/csharp-authoring-component-menu ()
+    "Return a string suitable for C# `AddComponentMenu'"
+    (let ((case-fold-search nil))
+      (concat (s-replace "." "/" (or (yas-field-value 1) ""))
+              "/"
+              (string-trim-left
+               (s-replace-regexp (rx upper)
+                                 (lambda (m) (concat " " m))
+                                 (concat (ic/csharp-authoring-base)
+                                         (yas-field-value 2)))
+               " "))))
+
+  (defun ic/csharp-authoring-variables ()
+    "Return a list of defined variable names"
+    (when (yas-text)
+      (mapcar (lambda (s)
+                (car (reverse (split-string s " "))))
+              (split-string (yas-text) ";" t " \n"))))
+
+  (defun ic/csharp-authoring-assign-variables ()
+    "Return a string where each variable is assigned from the authoring class"
+    (let ((indent (s-repeat 24 " ")))
+      (string-join (mapcar (lambda (v)
+                             (format "%s = auth.%s" v v))
+                           (ic/csharp-authoring-variables))
+                   (concat ",\n" indent))))
+#+END_SRC
+
 * Modes
 ** info-mode
 #+BEGIN_SRC emacs-lisp
