@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: Unity Monobehaviour Editor Script
+# key: unity_editor_script
+# --
+using UnityEditor;
+using UnityEngine;
+
+namespace $1.Editor {
+    [CustomEditor(typeof(`(string-remove-suffix "Editor.cs" (buffer-name))`))]
+    public class `(string-remove-suffix ".cs" (buffer-name))` : UnityEngine.Editor {
+        public override void OnInspectorGUI() {
+            base.OnInspectorGUI();
+            `(string-remove-suffix "Editor.cs" (buffer-name))` script = target as `(string-remove-suffix "Editor.cs" (buffer-name))`;
+            $0
+        }
+    }
+}
