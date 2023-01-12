@@ -5176,14 +5176,16 @@ Let's migrate my book importing code to =org-roam=.
                                   book "data/templates/capture-book-header.org")))))
       (cl-letf ((org-roam-capture-templates (list template)))
         (when-let ((node (zetian-node-create title)))
-          (zetian-node-find node)
-          (org-cycle-content)
           (when tag
             (if-let ((tag-node (org-roam-node-from-title-or-alias tag)))
-                (progn
-                  (zetian-set-header-links 'tags (list tag-node))
+                (save-excursion
+                  (zetian-node-find tag-node)
+                  (goto-char (point-max))
+                  (insert "- " (zetian-node-link node) "\n")
                   (save-buffer))
-              (error "Invalid zetian tag: %s" tag)))))))
+              (error "Invalid zetian tag: %s" tag)))
+          ;; end visiting the captured book's node
+          (zetian-node-find node)))))
 
   (defun zetian-capture-book-pleasure-toread ()
     "Import a book from OpenLibrary, and apply the 'Read for Pleasure' tag."
