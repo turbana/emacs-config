@@ -4122,6 +4122,315 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
         (error "could not lookup zetian node: %s" (org-id-find (org-roam-node-id node))))))
 #+END_SRC
 
+*** Bulk org-roam node searching and creation
+=org-roam= does not expose a way to create multiple nodes at once. As most of zetian's search functions return a list of nodes I need an efficient way to create those nodes. I've tried calling =org-roam-node-populate= for each node: that "works", but is getting to be too slow to use. I'll use a modified version of =org-roam-node-list= to base it off of.
+
+#+BEGIN_SRC emacs-lisp
+  (setq zetian-sql-query-all
+        "SELECT
+    id,
+    file,
+    filetitle,
+    \"level\",
+    todo,
+    pos,
+    priority ,
+    scheduled ,
+    deadline ,
+    title,
+    properties ,
+    olp,
+    atime,
+    mtime,
+    '(' || group_concat(tags, ' ') || ')' as tags,
+    aliases,
+    refs
+  FROM
+    (
+    SELECT
+      id,
+      file,
+      filetitle,
+      \"level\",
+      todo,
+      pos,
+      priority ,
+      scheduled ,
+      deadline ,
+      title,
+      properties ,
+      olp,
+      atime,
+      mtime,
+      tags,
+      '(' || group_concat(aliases, ' ') || ')' as aliases,
+      refs
+    FROM
+      (
+      SELECT
+        nodes.id as id,
+        nodes.file as file,
+        nodes.\"level\" as \"level\",
+        nodes.todo as todo,
+        nodes.pos as pos,
+        nodes.priority as priority,
+        nodes.scheduled as scheduled,
+        nodes.deadline as deadline,
+        nodes.title as title,
+        nodes.properties as properties,
+        nodes.olp as olp,
+        files.atime as atime,
+        files.mtime as mtime,
+        files.title as filetitle,
+        tags.tag as tags,
+        aliases.alias as aliases,
+        '(' || group_concat(RTRIM (refs.\"type\", '\"') || ':' || LTRIM(refs.ref, '\"'), ' ') || ')' as refs
+      FROM nodes
+      LEFT JOIN files ON files.file = nodes.file
+      LEFT JOIN tags ON tags.node_id = nodes.id
+      LEFT JOIN aliases ON aliases.node_id = nodes.id
+      LEFT JOIN refs ON refs.node_id = nodes.id
+      GROUP BY nodes.id, tags.tag, aliases.alias )
+    GROUP BY id, tags )
+  GROUP BY id")
+
+  (defun zetian--bulk-node-query (&optional ids)
+    (cond
+     ;; no ids: run bare query
+     ((null ids)
+      zetian-sql-query-all)
+     ;; list of ids: filter based on bare ids
+     ((listp ids)
+      (emacsql-format
+       (emacsql-prepare
+        (format "SELECT * FROM (%s) WHERE id IN $v1"
+                zetian-sql-query-all))
+       (apply #'vector ids)))
+     ;; vector found: filter based on sub-query
+     ((vectorp ids)
+      (emacsql-format
+       (emacsql-prepare
+        (format "SELECT * FROM (%s) WHERE id IN (%s)"
+                zetian-sql-query-all
+                (replace-regexp-in-string
+                 "%" "%%"
+                 (emacsql-format
+                  (emacsql-prepare ids)))))))))
+
+  (defun zetian-bulk-node-populate (&optional ids)
+    "Return a list of org-roam-nodes that match IDS.
+  IDS can either be an `emacsql' query selecting a list of ids or a vector of
+    string ids or NIL to return the entire database."
+    (let ((rows (org-roam-db-query (zetian--bulk-node-query ids))))
+      (cl-loop for row in rows
+               append (pcase-let* ((`(,id ,file ,file-title ,level ,todo ,pos ,priority ,scheduled ,deadline
+                                          ,title ,properties ,olp ,atime ,mtime ,tags ,aliases ,refs)
+                                    row)
+                                   (all-titles (cons title aliases)))
+                        (mapcar (lambda (temp-title)
+                                  (org-roam-node-create :id id
+                                                        :file file
+                                                        :file-title file-title
+                                                        :file-atime atime
+                                                        :file-mtime mtime
+                                                        :level level
+                                                        :point pos
+                                                        :todo todo
+                                                        :priority priority
+                                                        :scheduled scheduled
+                                                        :deadline deadline
+                                                        :title temp-title
+                                                        :aliases aliases
+                                                        :properties properties
+                                                        :olp olp
+                                                        :tags tags
+                                                        :refs refs))
+                                all-titles)))))
+#+END_SRC
+
+*** Searching
+I want a way to search through =zetian= in a fast, easy, and general manor.
+#+BEGIN_SRC emacs-lisp
+  (defvar zetian--readline-histories nil
+    "An ALIST of histories to use with `completing-read'.")
+
+  (defun zetian-search-find (&optional query prompt create)
+    "Search zetian for QUERY and navigate to chosen buffer. When CREATE is
+  non-nil allow user to create a new node."
+    (interactive)
+    (when-let ((node (zetian-search query create prompt)))
+      (zetian-node-find node)))
+
+  (defun ic/org-roam-node-body (node)
+    "Return the text contents of NODE"
+    (save-excursion
+      (with-temp-buffer
+        (insert-file-contents-literally (org-roam-node-file node))
+        (when (< 0 (org-roam-node-level node))
+          (org-mode)
+          (widen)
+          (goto-char (org-roam-node-point node))
+          (org-narrow-to-subtree))
+        (buffer-string))))
+
+  (defun zetian-query (&optional query)
+    "Run QUERY against `org-roam' database."
+    (zetian-bulk-node-populate
+     (and query (zetian--unroll-query query))))
+
+  (defun zetian-query-1 (query)
+    "Run QUERY against zetian and return the first result. Signal an error when
+    receiving zero or more than one result."
+    (let* ((results (zetian-query query))
+           (count (length results)))
+      (if (not (= count 1))
+          (error "zetian-query-1 received %s results from: %S"
+                 count query)
+        (car results))))
+
+  (defun zetian--unroll-query (query)
+    "Translate QUERY into a suitable `emacsql' query."
+    `[:select [nodes:id]
+      :from nodes
+      :where ,(zetian--unroll-query-impl query)])
+
+  (defun zetian--unroll-query-impl (query)
+    (cl-flet ((parse #'zetian--unroll-query-impl)
+              (parse-like #'zetian--query-quote-like)
+              (parse-date #'zetian--query-parse-date)
+              (parse-id #'zetian--query-parse-id))
+      (let ((atom (and (consp query) (car query)))
+            (args (and (consp query) (cdr query)))
+            (first (and (consp query) (cadr query)))
+            (second (and (consp query) (caddr query))))
+        (pcase (type-of query)
+          ('string
+           query)
+          ('org-roam-node
+           (org-roam-node-id query))
+          ('cons
+           (pcase atom
+             ('and
+              `(and ,@(mapcar #'parse args)))
+             ('or
+              `(or ,@(mapcar #'parse args)))
+             ('not
+              `(not ,(parse first)))
+             ('tag
+              `(in nodes:id [:select [tags:node-id]
+                             :from tags
+                             :where (= tags:node-id nodes:id)
+                             :and (= tags:tag ,(parse first))]))
+             ('title
+              `(like title ,(parse-like t (parse first))))
+             ('title-like
+              `(like title ,(parse-like nil (parse first))))
+             ('todo
+              `(like todo ,(parse-like t (parse first))))
+             ('priority
+              `(= priority ,(string-to-char (upcase (parse first)))))
+             ((or 'scheduled 'deadline)
+              (let ((col (make-symbol (format "nodes:%s" atom))))
+                (pcase first
+                  ('after
+                   `(> ,col ,(parse-date (parse second))))
+                  ('before
+                   `(< ,col ,(parse-date (parse second))))
+                  ;; ('on-or-after
+                  ;;  `(>= ,col ,(zetian--query-parse-date (caddr query))))
+                  ;; ('on-or-before
+                  ;;  `(<= ,col ,(zetian--query-parse-date (caddr query))))
+                  ('on
+                   (let ((date (parse-date (parse second))))
+                     `(<= ,date ,col ,date)))
+                  ('between
+                   `(<= ,(parse-date (parse second))
+                        ,col
+                        ,(parse-date (parse (cadddr query)) t)))
+                  ('none
+                   `(is ,col nil))
+                  (_
+                   (error "invalid operation for %S: %S" atom first)))))
+             ('prop
+              `(like
+                nodes:properties
+                ,(parse-like nil (cons (parse first) (parse second)))))
+             ('category
+              (parse `(prop "CATEGORY" ,first)))
+             ('created-on
+              `(like
+                nodes:properties
+                ,(parse-like nil (cons "CREATED"
+                                       (zetian--query-parse-date-like
+                                        (parse first))))))
+             ('last-modified-on
+              `(like
+                nodes:properties
+                ,(parse-like nil (cons "LAST_MODIFIED"
+                                       (zetian--query-parse-date-like
+                                        (parse first))))))
+             ((or 'links-to 'links-from)
+              (let ((col1 (if (eq 'links-to atom) 'links:source 'links:dest))
+                    (col2 (if (eq 'links-to atom) 'links:dest 'links:source)))
+                `(in nodes:id [:select [,col1]
+                               :from links
+                               :where (= ,col1 nodes:id)
+                               :and (= links:type "id")
+                               :and (= ,col2 ,(parse-id (parse first)))])))
+             ('has
+              (let* ((col (cond ((eq 'links-to first)
+                                 'links:dest)
+                                ((eq 'links-from first)
+                                 'links:source)
+                                (_
+                                 (error "invalid option for 'has: %S" first)))))
+                `(in nodes:id [:select [,col]
+                               :from links
+                               :where (= links:type "id")])))
+             ('eval
+              (parse (eval first)))
+             (_
+              (error "invalid search key: %S" atom))))
+          (_
+           (error "invalid query: %S" query))))))
+
+  (defun zetian--query-quote-like (exact obj)
+    "Return quoted OBJ in a form for `emacsql' query: (like column
+  ,(zetian--query-quote-like (cons 'a 'b)))"
+    (let ((double-quote "\"")
+          (maybe-percent (unless exact "%%")))
+      `(quote ,(if (stringp obj)
+                   (concat double-quote maybe-percent
+                           obj
+                           maybe-percent double-quote)
+                 (concat maybe-percent
+                         (prin1-to-string obj)
+                         maybe-percent)))))
+
+  (defun zetian--query-parse-date (date &optional next-day-when-no-time)
+    (format-time-string "%Y-%m-%dT%H:%M:%S%z"
+                        (ic-parse-org-date-string
+                         date
+                         next-day-when-no-time)))
+
+  (defun zetian--query-parse-date-like (date &optional next-day-when-no-time)
+    (format-time-string "[%Y-%m-%d%%%%]"
+                        (ic-parse-org-date-string
+                         date
+                         next-day-when-no-time)))
+
+  (defun zetian--query-parse-id (obj)
+    (cond
+     ((org-roam-node-p obj)
+      (org-roam-node-id obj))
+     ((stringp obj)
+      (org-roam-node-id
+       (or (org-roam-node-from-id obj)
+           (org-roam-node-from-title-or-alias obj))))
+     (t
+      (error "invalid zetian id: %S" obj))))
+#+END_SRC
+
 *** Saved Searches
 #+BEGIN_SRC emacs-lisp
   (defmacro def-zetian-query (sym query &optional form skip-completing-read)
@@ -4553,315 +4862,6 @@ Ensure that =org-agenda= can find the relevant notes.
     (remove-hook 'after-init-hook #'zetian--update-agenda-files-on-load)
     (zetian-refresh-agenda-list))
   (add-hook 'after-init-hook #'zetian--update-agenda-files-on-load)
-#+END_SRC
-
-*** Searching
-I want a way to search through =zetian= in a fast, easy, and general manor.
-#+BEGIN_SRC emacs-lisp
-  (defvar zetian--readline-histories nil
-    "An ALIST of histories to use with `completing-read'.")
-
-  (defun zetian-search-find (&optional query prompt create)
-    "Search zetian for QUERY and navigate to chosen buffer. When CREATE is
-  non-nil allow user to create a new node."
-    (interactive)
-    (when-let ((node (zetian-search query create prompt)))
-      (zetian-node-find node)))
-
-  (defun ic/org-roam-node-body (node)
-    "Return the text contents of NODE"
-    (save-excursion
-      (with-temp-buffer
-        (insert-file-contents-literally (org-roam-node-file node))
-        (when (< 0 (org-roam-node-level node))
-          (org-mode)
-          (widen)
-          (goto-char (org-roam-node-point node))
-          (org-narrow-to-subtree))
-        (buffer-string))))
-
-  (defun zetian-query (&optional query)
-    "Run QUERY against `org-roam' database."
-    (zetian-bulk-node-populate
-     (and query (zetian--unroll-query query))))
-
-  (defun zetian-query-1 (query)
-    "Run QUERY against zetian and return the first result. Signal an error when
-    receiving zero or more than one result."
-    (let* ((results (zetian-query query))
-           (count (length results)))
-      (if (not (= count 1))
-          (error "zetian-query-1 received %s results from: %S"
-                 count query)
-        (car results))))
-
-  (defun zetian--unroll-query (query)
-    "Translate QUERY into a suitable `emacsql' query."
-    `[:select [nodes:id]
-      :from nodes
-      :where ,(zetian--unroll-query-impl query)])
-
-  (defun zetian--unroll-query-impl (query)
-    (cl-flet ((parse #'zetian--unroll-query-impl)
-              (parse-like #'zetian--query-quote-like)
-              (parse-date #'zetian--query-parse-date)
-              (parse-id #'zetian--query-parse-id))
-      (let ((atom (and (consp query) (car query)))
-            (args (and (consp query) (cdr query)))
-            (first (and (consp query) (cadr query)))
-            (second (and (consp query) (caddr query))))
-        (pcase (type-of query)
-          ('string
-           query)
-          ('org-roam-node
-           (org-roam-node-id query))
-          ('cons
-           (pcase atom
-             ('and
-              `(and ,@(mapcar #'parse args)))
-             ('or
-              `(or ,@(mapcar #'parse args)))
-             ('not
-              `(not ,(parse first)))
-             ('tag
-              `(in nodes:id [:select [tags:node-id]
-                             :from tags
-                             :where (= tags:node-id nodes:id)
-                             :and (= tags:tag ,(parse first))]))
-             ('title
-              `(like title ,(parse-like t (parse first))))
-             ('title-like
-              `(like title ,(parse-like nil (parse first))))
-             ('todo
-              `(like todo ,(parse-like t (parse first))))
-             ('priority
-              `(= priority ,(string-to-char (upcase (parse first)))))
-             ((or 'scheduled 'deadline)
-              (let ((col (make-symbol (format "nodes:%s" atom))))
-                (pcase first
-                  ('after
-                   `(> ,col ,(parse-date (parse second))))
-                  ('before
-                   `(< ,col ,(parse-date (parse second))))
-                  ;; ('on-or-after
-                  ;;  `(>= ,col ,(zetian--query-parse-date (caddr query))))
-                  ;; ('on-or-before
-                  ;;  `(<= ,col ,(zetian--query-parse-date (caddr query))))
-                  ('on
-                   (let ((date (parse-date (parse second))))
-                     `(<= ,date ,col ,date)))
-                  ('between
-                   `(<= ,(parse-date (parse second))
-                        ,col
-                        ,(parse-date (parse (cadddr query)) t)))
-                  ('none
-                   `(is ,col nil))
-                  (_
-                   (error "invalid operation for %S: %S" atom first)))))
-             ('prop
-              `(like
-                nodes:properties
-                ,(parse-like nil (cons (parse first) (parse second)))))
-             ('category
-              (parse `(prop "CATEGORY" ,first)))
-             ('created-on
-              `(like
-                nodes:properties
-                ,(parse-like nil (cons "CREATED"
-                                       (zetian--query-parse-date-like
-                                        (parse first))))))
-             ('last-modified-on
-              `(like
-                nodes:properties
-                ,(parse-like nil (cons "LAST_MODIFIED"
-                                       (zetian--query-parse-date-like
-                                        (parse first))))))
-             ((or 'links-to 'links-from)
-              (let ((col1 (if (eq 'links-to atom) 'links:source 'links:dest))
-                    (col2 (if (eq 'links-to atom) 'links:dest 'links:source)))
-                `(in nodes:id [:select [,col1]
-                               :from links
-                               :where (= ,col1 nodes:id)
-                               :and (= links:type "id")
-                               :and (= ,col2 ,(parse-id (parse first)))])))
-             ('has
-              (let* ((col (cond ((eq 'links-to first)
-                                 'links:dest)
-                                ((eq 'links-from first)
-                                 'links:source)
-                                (_
-                                 (error "invalid option for 'has: %S" first)))))
-                `(in nodes:id [:select [,col]
-                               :from links
-                               :where (= links:type "id")])))
-             ('eval
-              (parse (eval first)))
-             (_
-              (error "invalid search key: %S" atom))))
-          (_
-           (error "invalid query: %S" query))))))
-
-  (defun zetian--query-quote-like (exact obj)
-    "Return quoted OBJ in a form for `emacsql' query: (like column
-  ,(zetian--query-quote-like (cons 'a 'b)))"
-    (let ((double-quote "\"")
-          (maybe-percent (unless exact "%%")))
-      `(quote ,(if (stringp obj)
-                   (concat double-quote maybe-percent
-                           obj
-                           maybe-percent double-quote)
-                 (concat maybe-percent
-                         (prin1-to-string obj)
-                         maybe-percent)))))
-
-  (defun zetian--query-parse-date (date &optional next-day-when-no-time)
-    (format-time-string "%Y-%m-%dT%H:%M:%S%z"
-                        (ic-parse-org-date-string
-                         date
-                         next-day-when-no-time)))
-
-  (defun zetian--query-parse-date-like (date &optional next-day-when-no-time)
-    (format-time-string "[%Y-%m-%d%%%%]"
-                        (ic-parse-org-date-string
-                         date
-                         next-day-when-no-time)))
-
-  (defun zetian--query-parse-id (obj)
-    (cond
-     ((org-roam-node-p obj)
-      (org-roam-node-id obj))
-     ((stringp obj)
-      (org-roam-node-id
-       (or (org-roam-node-from-id obj)
-           (org-roam-node-from-title-or-alias obj))))
-     (t
-      (error "invalid zetian id: %S" obj))))
-#+END_SRC
-
-*** Bulk org-roam node searching and creation
-=org-roam= does not expose a way to create multiple nodes at once. As most of zetian's search functions return a list of nodes I need an efficient way to create those nodes. I've tried calling =org-roam-node-populate= for each node: that "works", but is getting to be too slow to use. I'll use a modified version of =org-roam-node-list= to base it off of.
-
-#+BEGIN_SRC emacs-lisp
-  (setq zetian-sql-query-all
-        "SELECT
-    id,
-    file,
-    filetitle,
-    \"level\",
-    todo,
-    pos,
-    priority ,
-    scheduled ,
-    deadline ,
-    title,
-    properties ,
-    olp,
-    atime,
-    mtime,
-    '(' || group_concat(tags, ' ') || ')' as tags,
-    aliases,
-    refs
-  FROM
-    (
-    SELECT
-      id,
-      file,
-      filetitle,
-      \"level\",
-      todo,
-      pos,
-      priority ,
-      scheduled ,
-      deadline ,
-      title,
-      properties ,
-      olp,
-      atime,
-      mtime,
-      tags,
-      '(' || group_concat(aliases, ' ') || ')' as aliases,
-      refs
-    FROM
-      (
-      SELECT
-        nodes.id as id,
-        nodes.file as file,
-        nodes.\"level\" as \"level\",
-        nodes.todo as todo,
-        nodes.pos as pos,
-        nodes.priority as priority,
-        nodes.scheduled as scheduled,
-        nodes.deadline as deadline,
-        nodes.title as title,
-        nodes.properties as properties,
-        nodes.olp as olp,
-        files.atime as atime,
-        files.mtime as mtime,
-        files.title as filetitle,
-        tags.tag as tags,
-        aliases.alias as aliases,
-        '(' || group_concat(RTRIM (refs.\"type\", '\"') || ':' || LTRIM(refs.ref, '\"'), ' ') || ')' as refs
-      FROM nodes
-      LEFT JOIN files ON files.file = nodes.file
-      LEFT JOIN tags ON tags.node_id = nodes.id
-      LEFT JOIN aliases ON aliases.node_id = nodes.id
-      LEFT JOIN refs ON refs.node_id = nodes.id
-      GROUP BY nodes.id, tags.tag, aliases.alias )
-    GROUP BY id, tags )
-  GROUP BY id")
-
-  (defun zetian--bulk-node-query (&optional ids)
-    (cond
-     ;; no ids: run bare query
-     ((null ids)
-      zetian-sql-query-all)
-     ;; list of ids: filter based on bare ids
-     ((listp ids)
-      (emacsql-format
-       (emacsql-prepare
-        (format "SELECT * FROM (%s) WHERE id IN $v1"
-                zetian-sql-query-all))
-       (apply #'vector ids)))
-     ;; vector found: filter based on sub-query
-     ((vectorp ids)
-      (emacsql-format
-       (emacsql-prepare
-        (format "SELECT * FROM (%s) WHERE id IN (%s)"
-                zetian-sql-query-all
-                (replace-regexp-in-string
-                 "%" "%%"
-                 (emacsql-format
-                  (emacsql-prepare ids)))))))))
-
-  (defun zetian-bulk-node-populate (&optional ids)
-    "Return a list of org-roam-nodes that match IDS.
-  IDS can either be an `emacsql' query selecting a list of ids or a vector of
-    string ids or NIL to return the entire database."
-    (let ((rows (org-roam-db-query (zetian--bulk-node-query ids))))
-      (cl-loop for row in rows
-               append (pcase-let* ((`(,id ,file ,file-title ,level ,todo ,pos ,priority ,scheduled ,deadline
-                                          ,title ,properties ,olp ,atime ,mtime ,tags ,aliases ,refs)
-                                    row)
-                                   (all-titles (cons title aliases)))
-                        (mapcar (lambda (temp-title)
-                                  (org-roam-node-create :id id
-                                                        :file file
-                                                        :file-title file-title
-                                                        :file-atime atime
-                                                        :file-mtime mtime
-                                                        :level level
-                                                        :point pos
-                                                        :todo todo
-                                                        :priority priority
-                                                        :scheduled scheduled
-                                                        :deadline deadline
-                                                        :title temp-title
-                                                        :aliases aliases
-                                                        :properties properties
-                                                        :olp olp
-                                                        :tags tags
-                                                        :refs refs))
-                                all-titles)))))
 #+END_SRC
 
 *** Header Links
