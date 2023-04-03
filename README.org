@@ -1176,40 +1176,25 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
            ((agenda "" nil)
             (tags "refile"
                   ((org-agenda-overriding-header "Refile tasks:")
-                   (org-tags-match-list-sublevels nil)))
-            ;; (tags "-refile/"
-            ;;       ((org-agenda-overriding-header "Archive tasks:")
-            ;;        (org-agenda-skip-function 'bh/skip-non-archivable-tasks)
-            ;;        (org-tags-match-list-sublevels nil)))
-            )
-           ((org-agenda-tag-filter-preset '("-HOME"))))
+                   (org-tags-match-list-sublevels nil))))
+           ((org-agenda-tag-filter-preset '("-HOME" "-archive"))))
+
+          ("W" "Work agenda today"
+           ((agenda "" ((org-agenda-span 'week))))
+           ((org-agenda-tag-filter-preset '("-HOME" "-archive"))))
 
           ;; home agenda
           ("h" "Home agenda"
-           ((agenda ""
-                    ((org-agenda-skip-function 'ic/skip-old-meal-plans)))
+           ((agenda "" nil)
             (tags "refile"
                   ((org-agenda-overriding-header "\nRefile tasks:")
-                   (org-tags-match-list-sublevels nil)))
-            ;; (tags "-refile"
-            ;;       ((org-agenda-overriding-header "\nArchive tasks:")
-            ;;        (org-agenda-skip-function 'ic/skip-non-archivable-tasks)
-            ;;        (org-tags-match-list-sublevels nil)))
-            (todo "NEXT"
-                  ((org-agenda-overriding-header "\nNext Steps:")))
-            (tags-todo "chores+PRIORITY=\"A\"|jobs+PRIORITY=\"A\""
-                       ((org-agenda-overriding-header "\nImportant Chores:")))
-            (tags-todo "chores-PRIORITY=\"A\"|jobs-PRIORITY=\"A\""
-                       ((org-agenda-overriding-header "\nChores:")
-                        (org-agenda-skip-function
-                         '(org-agenda-skip-entry-if 'scheduled 'deadline))
-                        ))
-            (tags "+HOME"
-                  ((org-agenda-overriding-header "\nStuck Projects")
-                   (org-agenda-skip-function 'ic/org-skip-nonstuck-projects)
-                   ))
-            )
-           ((org-agenda-tag-filter-preset '("+HOME"))))
+                   (org-tags-match-list-sublevels nil))))
+           ((org-agenda-tag-filter-preset '("+HOME" "-archive")))
+           ("~/test.html"))
+
+          ("H" "Home agenda today"
+           ((agenda "" ((org-agenda-span 'week))))
+           ((org-agenda-tag-filter-preset '("+HOME" "-archive"))))
 
           ;; archives
           ("a" . "Archiving")
