@@ -4638,6 +4638,8 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                    `(<= ,(parse-date (parse second))
                         ,col
                         ,(parse-date (parse (cadddr query)) t)))
+                  ('none
+                   `(is ,col nil))
                   (_
                    (error "invalid operation for %S: %S" atom first)))))
              ('prop
