@@ -4291,6 +4291,10 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
               ,zetian-query-event)
           (not ,zetian-query-open)))
 
+  (def-zetian-query unscheduled-open-task-or-event
+    `(and ,zetian-query-open-task-or-event
+          (scheduled none)))
+
   (def-zetian-query state
     '(tag (eval (completing-read "State: " (zetian-all-states)))))
 
@@ -4343,6 +4347,33 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
   (def-zetian-query permanent-modified-today
     `(and ,zetian-query-permanent
           (last-modified-on ".")))
+
+  ;; chores
+  ;; I consider a chore to be any task or event that links to a project that is
+  ;; under a specific list of areas.
+  (setq zetian--project-chore-ids
+        (mapcar 'org-roam-node-id
+                (mapcan (lambda (area)
+                          (zetian-query `(and (category "project")
+                                              (links-to ,area))))
+                        (zetian-query '(and (category "area")
+                                            (or (title "Health")
+                                                (title "Chores")
+                                                (title "Finances")
+                                                (title "social life")))))))
+
+  (def-zetian-query chores
+    `(or ,@(mapcar (lambda (proj)
+                     `(links-to ,proj))
+                   zetian--project-chore-ids)))
+
+  (def-zetian-query open-chores
+    `(and ,zetian-query-open-task-or-event
+          ,zetian-query-chores))
+
+  (def-zetian-query unscheduled-chores
+    `(and ,zetian-query-open-chores
+          (scheduled none)))
 #+END_SRC
 
 *** Search for search functions
