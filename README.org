@@ -4360,7 +4360,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
              ('created-on
               `(like
                 nodes:properties
-                ,(parse-like nil (cons "CREATED"
+                ,(parse-like nil (cons "DATE_CREATED"
                                        (zetian--query-parse-date-like
                                         (parse first))))))
              ('last-modified-on
