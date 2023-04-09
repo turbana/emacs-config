@@ -89,6 +89,11 @@ I want to check in my packages to git so store the version file under =user-data
 #+BEGIN_SRC emacs-lisp
   (setq straight-profiles `((nil . ,(concat user-data-directory "straight-default.el"))))
 #+END_SRC
+** org-mode
+#+BEGIN_SRC emacs-lisp
+  (straight-use-package 'org)
+#+END_SRC
+
 ** async
 I use the =async= package in my =init.el= tangling function, so we need to load it early.
 #+BEGIN_SRC emacs-lisp
