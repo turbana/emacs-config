@@ -60,7 +60,9 @@ I want to make use of the native compilation system introduced in emacs 28.
     ;; keep the eln cache tidy
     (setq native-comp-eln-load-path
           (list (concat user-cache-directory "eln-cache/")
-                (car (last native-comp-eln-load-path)))))
+                (car (last native-comp-eln-load-path))))
+    ;; needed for emacs-29.1
+    (setq native-comp-deferred-compilation-deny-list nil))
 #+END_SRC
 ** straight.el
 I use =straight.el= for package management so install this early.
@@ -554,11 +556,10 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
      ))
 #+END_SRC
 
-** csharp-mode
-Minimal setup for viewing =C#= code.
-
+** compat
 #+BEGIN_SRC emacs-lisp
-  (use-package csharp-mode)
+  (use-package compat)
+  (require 'compat)
 #+END_SRC
 
 ** flycheck
@@ -1845,8 +1846,8 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
         (add "** Links\n")
         (add "- [[http://openlibrary.org%s][OpenLibrary]]\n"
              (assoc-default 'ol-work-id doc))
-        (dolist (tuple (-zip (assoc-default 'authors doc)
-                             (assoc-default 'ol-author-ids doc)))
+        (dolist (tuple (-zip-pair (assoc-default 'authors doc)
+                                  (assoc-default 'ol-author-ids doc)))
           (add "- [[http://openlibrary.org/authors/%s][OpenLibrary - %s]]\n"
                (cdr tuple) (car tuple)))
         (add (concat "- [[https://librarything.com"
@@ -3496,6 +3497,11 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
 
 #+END_SRC
 
+*** Embark-Consult
+#+BEGIN_SRC emacs-lisp
+  (use-package embark-consult)
+#+END_SRC
+
 *** Embark
 #+BEGIN_SRC emacs-lisp
   (use-package embark
@@ -3715,23 +3721,16 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
 
 *** Embark
 #+BEGIN_SRC emacs-lisp
-  (use-package embark
+  (use-package embark-consult
     :demand t
     :config
     ;; always use completing-read for selecting actions, rather than keybinds
     (setq embark-prompter 'embark-completing-read-prompter)
+  
     ;; setup initial action keybind
     (meow-normal-define-key
      '("C-." . embark-act))
   
-    :bind (:map minibuffer-local-map
-           ("C-." . embark-act)))
-#+END_SRC
-
-*** Consult
-#+BEGIN_SRC emacs-lisp
-  (use-package consult
-    :config
     (defun consult-outline-or-org-heading (&optional match scope)
       "Call `consult-org-heading' when in an `org-mode' buffer, otherwise call
     `consult-outline'."
@@ -3746,7 +3745,9 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
       (interactive)
       (let ((consult-preview-key 'nil))
         (call-interactively #'consult-bookmark)))
-    )
+
+    :bind (:map minibuffer-local-map
+           ("C-." . embark-act)))
 #+END_SRC
 
 *** consult-lsp
@@ -5214,8 +5215,8 @@ Let's migrate my book importing code to =org-roam=.
                       (format "- [[https://openlibrary.org/authors/%s][OpenLibrary - %s]]"
                               (cdr tuple)
                               (car tuple)))
-                    (-zip (assoc-default 'authors book)
-                          (assoc-default 'ol-author-ids book)))
+                    (-zip-pair (assoc-default 'authors book)
+                               (assoc-default 'ol-author-ids book)))
                    "\n"))
                 (maybe-quote
                  ,(when-let ((desc (assoc-default 'description book)))
