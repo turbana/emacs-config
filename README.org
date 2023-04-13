@@ -3835,10 +3835,14 @@ When we're on a mac and we have GNU =ls= installed (=gls=): use that as our =dir
     (setq dired-listing-switches "-alU"))
 #+END_SRC
 
-** Start maximized
+** Start maximized 
 I want every frame to start maximized by default.
+
+<2023-04-13 Thu> This has seemingly stopped working on windows. It creates a large frame that spans two monitors, but is neither maximized nor full screen.
+
 #+BEGIN_SRC emacs-lisp
-  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  (unless on-home-windows-desktop-wsl
+    (add-to-list 'default-frame-alist '(fullscreen . maximized)))
 #+END_SRC
 
 ** Zetian
