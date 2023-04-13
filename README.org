@@ -41,8 +41,8 @@ I want my config to be portable between machines. So I'll need some variables to
 
   (defconst on-tablet (on-host "DESKTOP-F6Q3GN2"))
   (defconst on-old-imac (on-host "Michaels-iMac.local"))
-  (defconst on-home-windows-desktop (and on-windows (on-host "Chetwood")))
-  (defconst on-home-windows-desktop-wsl (and on-linux (on-host "Chetwood")))
+  (defconst on-home-windows-desktop (and on-windows (on-host "Fanghorn")))
+  (defconst on-home-windows-desktop-wsl (and on-linux (on-host "Fanghorn")))
 #+END_SRC
 
 I use emacs server and would prefer all packages to be loaded at once, ahead of time.
