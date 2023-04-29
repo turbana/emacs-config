@@ -6048,6 +6048,62 @@ Some tramp specific configurations.
     (dir-locals-set-directory-class
      "c:/Code/Icarus" 'unity-project))
 #+END_SRC
+** Random names
+I keep some random name lists in a specific org file and I want a way to grab a random one from those lists. So I want a command that will ask for a tag I want to narrow to and then yank a random name from that list onto the killring and system clipboard.
+
+#+BEGIN_SRC emacs-lisp
+  (defvar ic/random-list-file (concat org-directory
+                                      "/home/lists-of-names.org"))
+
+  (defun ic/random-name ()
+    "Return a random name from the lists in `ic/random-list-file'."
+    (interactive)
+    (save-excursion
+      (save-restriction
+        (with-current-buffer (find-file-noselect ic/random-list-file)
+          (widen)
+          (let* (;; find tag
+                 (tag (completing-read "Tag for random name:"
+                                       (org-get-buffer-tags)))
+                 ;; find random heading matching tag
+                 (headings (org-ql-select (current-buffer) `(tags ,tag)))
+                 (heading (seq-random-elt headings))
+                 ;; data for heading
+                 (data (org-element-parse-secondary-string
+                        (buffer-substring
+                         (plist-get (cadr heading) :contents-begin)
+                         (plist-get (cadr heading) :contents-end))
+                        '(item)))
+                 (text (substring-no-properties (car data)))
+                 ;; find random line
+                 (lines (split-string text "\n" t))
+                 (line (seq-random-elt lines))
+                 (result (ic//random-name-cleanup (substring line 2))))
+            ;; add to kill ring and return
+            (kill-new result)
+            (message result))))))
+
+  (defun ic//random-name-cleanup (name)
+    (let ((regexes (list ;; (rx (or " in" " and" " or" " is" "," ":" " -")
+                         ;;     word-end (* nonl) eol)
+                         (rx " in" word-end (* nonl) eol)
+                         (rx " and" word-end (* nonl) eol)
+                         (rx " or" word-end (* nonl) eol)
+                         (rx " is" word-end (* nonl) eol)
+                         (rx " - " (* nonl) eol)
+                         (rx "," (* nonl) eol)
+                         (rx ":" (* nonl) eol)
+                         (rx ";" (* nonl) eol)
+                         (rx (optional space) "(" (* (not ")")) ")")
+                         (rx (optional space) "[" (* (not "]")) "]")
+                         )))
+      (mapc
+       (lambda (re)
+         ;; (message re)
+         (setq name (replace-regexp-in-string re "" name)))
+       regexes)
+      name))
+#+END_SRC
 
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
