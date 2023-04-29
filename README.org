@@ -1204,7 +1204,7 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
            ("~/test.html"))
 
           ("H" "Home agenda today"
-           ((agenda "" ((org-agenda-span 'week))))
+           ((agenda "" ((org-agenda-span 'day))))
            ((org-agenda-tag-filter-preset '("+HOME" "-archive"))))
 
           ;; archives
