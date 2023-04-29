@@ -1248,6 +1248,9 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
 
   ;; hide some tags I mostly use for filtering only
   (setq org-agenda-hide-tags-regexp "\\(HOME\\|WORK\\|agenda\\)")
+
+  ;; show all future repeating entries
+  (setq org-agenda-show-future-repeats t)
 #+END_SRC
 
 ***** Test icons (disabled)
