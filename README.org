@@ -3199,22 +3199,30 @@ Some useful buffer related functions.
       (kill-new filename)
       (message filename)))
 
-  (defun ic/switch-to-scratch-buffer ()
-    "Switch to the `*scratch*' buffer."
-    (interactive)
-    (switch-to-buffer (startup--get-buffer-create-scratch)))
+  (defvar ic//current-scratch nil
+    "The most recently created *scratch* buffer.")
 
-  (defun ic/check-buffer-visiting (file-name)
-    "Return the first active buffer visiting FILE-NAME, NIL if not such buffer
-  exists."
-    (when file-name
-      (let ((expanded-file-name (expand-file-name file-name)))
-        (car (seq-filter
-              (lambda (b)
-                (when-let ((buf-file (buffer-file-name b)))
-                  (equal expanded-file-name
-                         (expand-file-name buf-file))))
-              (buffer-list))))))
+  (defun ic/switch-to-scratch-buffer (arg)
+    "Switch to (or create) the `*scratch*' buffer."
+    (interactive "P")
+    (when (or (equal arg '(4))
+              (not (buffer-live-p ic//current-scratch)))
+      (setq ic//current-scratch (ic//create-scratch-buffer)))
+    (pop-to-buffer-same-window (buffer-name ic//current-scratch)))
+
+  (defun ic//create-scratch-buffer ()
+    "Create a new *scratch* buffer."
+    (let* ((buffers (seq-filter
+                     (lambda (buf)
+                       (string-prefix-p "*scratch"
+                                        (buffer-name buf)))
+                     (buffer-list)))
+           (number (+ 1 (length buffers)))
+           (name (format "*scratch-%d*" number)))
+      (with-current-buffer (get-buffer-create name)
+        (org-mode)
+        (insert (format "#+TITLE: Scratch Buffer %d\n\n" number))
+        (current-buffer))))
 #+END_SRC
 
 ** ibuffer
