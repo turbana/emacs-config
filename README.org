@@ -2491,8 +2491,6 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("F" . zetian-select-find)
            ("u" . org-roam-ui-open)
            ("U" . zetian-update-git)
-           ("n" . zetian-new-note)
-           ("N" . zetian-find-notes-today)
            :prefix "zc"
            :prefix-map zetian-capture
            ("c" . org-roam-capture)
@@ -3862,7 +3860,6 @@ My personal 2nd brain implemented in =org-roam=.
   (setq zetian-journal-dir (concat org-roam-directory "journal/"))
   (setq zetian-refnote-dir (concat org-roam-directory "ref/"))
   (setq zetian-archive-dir (concat org-roam-directory "archive/"))
-  (setq zetian-notes-dir   (concat org-roam-directory "notes/"))
 
   (setq zetian-tasks-file (concat zetian-special-dir "zetian-tasks.org"))
   (setq zetian-people-file (concat zetian-special-dir "zetian-people.org"))
@@ -4511,19 +4508,18 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
             `(setq ,q-sym ,query))
          (defun ,q-sym (&optional include-archive)
            ,(format
-             (concat "Return a list of all %s zetian nodes.\nIgnore archive and "
-                     "note tags unless INCLUDE-ARCHIVE is non-nil.")
+             (concat "Return a list of all %s zetian nodes.\nIgnore archive notes "
+                     "unless INCLUDE-ARCHIVE is non-nil.")
              pretty-name)
            ,(if query
                 `(zetian-query (if include-archive
                                    ,q-sym
-                                 `(and ,,q-sym (and (not ,zetian-query-note)
-                                                    (not ,zetian-query-archive)))))
+                                 `(and ,,q-sym (not ,zetian-query-archive))))
               form))
          (defun ,s-sym (&optional arg)
            ,(format
              (concat "Search zetian for any %s note, return user selected node.\n"
-                     "Ignore archive and note tags unless universal argument given.")
+                     "Ignore archive notes unless universal argument given.")
              pretty-name)
            (interactive "P")
            ,(if skip-completing-read
@@ -4535,7 +4531,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
          (defun ,f-sym (&optional arg)
            ,(format
              (concat "Search zetian for any %s note, prompt user for selection and "
-                     "navigate to the buffer.\nIgnore archive and note tags unless"
+                     "navigate to the buffer.\nIgnore archive tags unless"
                      "universal argument given.")
              pretty-name)
            (interactive "P")
@@ -4550,16 +4546,12 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (def-zetian-query archive
     '(tag "archive"))
 
-  (def-zetian-query note
-    '(category "note"))
-
   (defun zetian--fix-archive-query (func &rest _)
     "Fix `zetian-query-archive' filtering out the notes we want to see.
   Zetian filters out archive notes by default, which fails when we want to view
   only archive notes."
     (funcall func t))
   (advice-add 'zetian-query-archive :around #'zetian--fix-archive-query)
-  (advice-add 'zetian-query-note :around #'zetian--fix-archive-query)
 
   ;; all notes
   (def-zetian-query all
@@ -4739,12 +4731,6 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (def-zetian-query unscheduled-chores
     `(and ,zetian-query-open-chores
           (scheduled none)))
-
-  ;; notes
-  (def-zetian-query notes-today
-    `(and ,zetian-query-note
-          (created-on ".")))
-  (advice-add 'zetian-query-notes-today :around #'zetian--fix-archive-query)
 #+END_SRC
 
 *** Search for search functions
@@ -6017,25 +6003,7 @@ I would like to start keeping a journal.
   ;; ensure we run `zetian-update-git' every `zetian-update-git-seconds'.
   (run-with-idle-timer zetian-update-git-seconds t #'zetian-update-git)
 #+END_SRC
-*** notes
-I want to be able to bring up a notes buffer easily and quickly. This should be basically a unique =*scratch*= buffer with =org-mode=.
 
-#+BEGIN_SRC emacs-lisp
-  (defun zetian-new-note ()
-    "Open a new zetian note buffer."
-    (interactive)
-    (let ((filename (concat zetian-notes-dir
-                            (format-time-string "%Y%m%d-%H%M%S")
-                            ".org")))
-      (find-file filename)
-      (yas-expand-snippet
-       (yas-lookup-snippet "zetian-note" 'org-mode))
-      (goto-char (point-min))
-      (org-id-get-create)
-      (save-buffer)
-      (goto-char (point-max))
-      (zetian-mode)))
-#+END_SRC
 ** Beeping
 Turn off the damn bell!
 #+BEGIN_SRC emacs-lisp
