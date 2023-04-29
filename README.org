@@ -2613,6 +2613,20 @@ This used to be much more involved, but I found a lot of my project specific cod
 
     :config
     (projectile-mode 1)
+    (setq projectile-globally-ignored-file-suffixes
+          '(
+            ;; unity stuff
+            ".meta" ".unity" ".asset" ".mat" ".cginc" ".prefab"
+            ".renderTexture" ".lighting" ".shadergraph" ".shadersubgraph"
+            ".shader" ".sceneWithBuildSettings" ".hlsl" ".vfx"
+            ;; images
+            ".png" ".xcf" ".jpg" ".jpeg" ".tif"
+            ;; fonts
+            ".ttf"
+            ;; misc
+            ".pdf"
+            ))
+    (setq projectile-indexing-method 'hybrid)
 
     :general
     (leader-keys
