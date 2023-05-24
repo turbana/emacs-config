@@ -336,20 +336,27 @@ Load my custom theme early so if we have errors emacs still looks pretty.
     :init
     (setq themian-org-mode-variable-pitch t)
     (setq themian--show-unknowns nil)
-    (cond (on-old-imac
-           (set-face-attribute 'default nil
-                               :family "Iosevka Extended" :height 160 :weight 'ultra-light)
-           (set-face-attribute 'fixed-pitch nil
-                               :family "Iosevka Extended" :height 160 :weight 'ultra-light)
-           (set-face-attribute 'variable-pitch nil
-                               :family "DejaVu Sans ExtraLight" :height 150 :weight 'ultra-light))
-          (t
-           (set-face-attribute 'default nil
-                               :family "Iosevka Extended" :height 110 :weight 'normal)
-           (set-face-attribute 'fixed-pitch nil
-                               :family "Iosevka Extended" :height 110 :weight 'normal)
-           (set-face-attribute 'variable-pitch nil
-                               :family "DejaVu Sans Condensed" :height 120 :weight 'normal)))
+    (let ((fixed
+           (cond (on-old-imac
+                  '("Iosevka Extended" 160 ultra-light))
+                 ;; (on-home-windows-desktop-wsl
+                 ;;  '("Noto Sans Mono" 110 normal))
+                 (t
+                  '("Iosevka Extended" 110 normal))))
+          (variable
+           (cond (on-old-imac
+                  '("DejaVu Sans ExtraLight" 150 ultra-light))
+                 ;; (on-home-windows-desktop-wsl
+                 ;;  '("Noto Sans" 120 normal))
+                 (t
+                  '("DejaVu Sans Condensed" 120 normal)))))
+      (set-face-attribute 'default nil :family (nth 0 fixed)
+                          :height (nth 1 fixed) :weight (nth 2 fixed))
+      (set-face-attribute 'fixed-pitch nil :family (nth 0 fixed)
+                          :height (nth 1 fixed) :weight (nth 2 fixed))
+      (set-face-attribute 'variable-pitch nil :family (nth 0 variable)
+                          :height (nth 1 variable) :weight (nth 2 variable)))
+
     (defun themian--reload-dark-theme ()
       (interactive)
       (load-file "~/src/themian/themian-theme.el")
