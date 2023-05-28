@@ -5824,10 +5824,10 @@ I want a function to ensure that =zetian= remains healthy.
                             (zetian--lint-read-link-at-pos (car link) pos)
                             pos)))))
       (when tasks-without-project
-        (insert (format "\n* %d open tasks with missing projects"
+        (insert (format "\n* %d open tasks with missing projects\n"
                         (length tasks-without-project)))
         (dolist (task tasks-without-project)
-          (insert (format "\n- %s" (zetian-node-link task)))))
+          (insert (format "- %s\n" (zetian-node-link task)))))
       (when isolated
         (insert (format "\n* %d isolated tasks (no in-bound or out-bound links)"
                         (length isolated)))
