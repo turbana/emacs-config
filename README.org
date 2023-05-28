@@ -4438,6 +4438,9 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                    `(is ,col nil))
                   (_
                    (error "invalid operation for %S: %S" atom first)))))
+             ('level
+              ;; '(level < 42) becomes '(< "level" 42)
+              `(,first nodes:level ,second))
              ('prop
               `(like
                 nodes:properties
@@ -4586,7 +4589,8 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     '(category (eval (completing-read "Category: " (zetian-all-categories)))))
 
   (def-zetian-query project
-    '(category "project"))
+    '(and (level = 0)
+          (category "project")))
 
   (def-zetian-query area
     '(category "area"))
