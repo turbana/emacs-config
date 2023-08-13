@@ -1102,25 +1102,34 @@ Change some characters to unicode icons. Some good icons [[http://csbruce.com/so
           `(("[#A]" . ?Ⓐ)
             ("[#B]" . ?Ⓑ)
             ("[#C]" . ?Ⓒ)
-            ("[ ]" . ?)
-            ("[X]" . ?)
-            ("[-]" . ?)
+            ("[ ]" . ?)
+            ("[X]" . ?)
+            ("[-]" . ?)
             ("#+BEGIN_SRC" . ?λ)
             ("#+END_SRC" . ?ƛ)
             ("CLOSED:" . ?)
             ("SCHEDULED:" . ?)
+            ("Scheduled:" . ?)
+            ("Sched." . ?)
+            ;; ("TODO" . ?)
             ("DEADLINE:" . ?)))
+    ;; (print prettify-symbols-alist)
     (prettify-symbols-mode 1))
-
   (add-hook 'org-mode-hook #'ic/org-mode-pretty-symbols)
   (add-hook 'org-agenda-mode-hook #'ic/org-mode-pretty-symbols)
 #+END_SRC
+
+Here are some fancy symbols:
+⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵
+
+The font matters so here is some in fixed width:
+=⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵=
 
 Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/questions/59882/how-to-change-color-of-font-lock-add-keywords][this]] stack exchange question.
 #+BEGIN_SRC emacs-lisp
   (require 'org-element)
 
-  (setq ic/org-list-icon (propertize "—" 'face 'themian-subtle))
+  (setq ic/org-list-icon (propertize "" 'face 'themian-subtle))
 
   (defun org+-match-item-marker (bound)
     "Match the bullet of itemizations."
