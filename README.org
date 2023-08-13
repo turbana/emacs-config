@@ -2517,6 +2517,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("d" . org-roam-db-diagnose-node)
            ("l" . zetian-lint)
            ("s" . org-roam-db-sync)
+           ("t" . zetian-report-tasks)
            :prefix "zf"
            :prefix-map zetian-find
            ("f" . zetian-find-all)
@@ -5859,6 +5860,68 @@ I want a function to ensure that =zetian= remains healthy.
 
   ;; strange categories
   ;; orphaned nodes
+#+END_SRC
+
+*** Reports
+I would like to view some reports on the state of zetian.
+
+**** Report Macro
+This will open a buffer and insert a standard header for the reports to use.
+
+#+BEGIN_SRC emacs-lisp
+  (defmacro zetian--with-report-buffer (name &rest body)
+    "Open a list of all open tasks grouped by project."
+    (declare (indent 1))
+    (let ((sym-name (gensym))
+          (sym-buf (gensym))
+          (sym-now (gensym)))
+      `(let* ((,sym-name ,name)
+              (,sym-buf (get-buffer-create (concat "*" ,sym-name "*")))
+              (,sym-now (format-time-string "[%Y-%m-%d %a %H:%M]")))
+         (pop-to-buffer-same-window ,sym-buf)
+         (read-only-mode -1)
+         (erase-buffer)
+         (insert (concat "#+title: " ,sym-name "\n\n"))
+         (insert (format "report was run at %s\n\n" ,sym-now))
+         ,@body
+         (org-mode)
+         (read-only-mode 1)
+         (goto-char (point-min)))))
+#+END_SRC
+
+**** Tasks
+Open a buffer with a list of all the open tasks grouped by project.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-report-tasks ()
+    "Open a list of all open tasks grouped by project."
+    (interactive)
+    (zetian--report-generate
+     "zetian task list"
+     (mapcar (lambda (proj)
+               (cons proj (zetian-query `(and (links-to ,proj)
+                                              ,zetian-query-open-task))))
+                   (zetian-query-project))))
+
+  (defun zetian--report-generate (name elements)
+    "Generate a report of `NAME', using the alist `ELEMENTS'."
+    (zetian--with-report-buffer name
+      (mapc (lambda (elem)
+              (let ((title (car elem))
+                    (items (cdr elem)))
+                (insert (concat "\n* " (zetian--report-format title) "\n"))
+                (mapc (lambda (it) (insert (concat "- " (zetian--report-format it)"\n")))
+                      items)))
+           elements)))
+
+  (defun zetian--report-format (thing)
+    "Format `THING' as a string suitable for inserting into an org document."
+    (cond ((stringp thing) thing)
+          (t
+           ;; assume an org-roam node
+           (format "[[id:%s][%s]]"
+                   (org-roam-node-id thing)
+                   (org-roam-node-title thing)))))
 #+END_SRC
 
 *** Show links buffer
