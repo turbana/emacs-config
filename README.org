@@ -5953,6 +5953,22 @@ I'd like something similar to =org-roam-buffer-toggle=.
       (forward-char)))
 #+END_SRC
 
+*** Code Execution
+I want a function that let's us view a list of zetian nodes as an org-mode list. This should help with viewing lists through code execution inside zetian nodes.
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-show-list (nodes &optional no-sort)
+    "Turn `NODES' into a string of ORG-MODE links suitable for inclusion in an org
+    document."
+    (mapconcat (lambda (node) (format "- [[id:%s][%s]]\n"
+                                      (org-roam-node-id node)
+                                      (org-roam-node-title node)))
+               (if no-sort
+                   nodes
+                 (sort nodes
+                       (lambda (n1 n2) (string< (org-roam-node-title n1)
+                                                (org-roam-node-title n2)))))))
+#+END_SRC
+
 *** journal
 I would like to start keeping a journal.
 #+BEGIN_SRC emacs-lisp
