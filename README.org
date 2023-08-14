@@ -5942,14 +5942,34 @@ Open a buffer with a list of all the open tasks grouped by project.
 
 #+BEGIN_SRC emacs-lisp
   (defun zetian-report-tasks ()
-    "Open a list of all open tasks grouped by project."
     (interactive)
-    (zetian--report-generate
-     "zetian task list"
-     (mapcar (lambda (proj)
-               (cons proj (zetian-query `(and (links-to ,proj)
-                                              ,zetian-query-open-task))))
-                   (zetian-query-project))))
+    (zetian--with-report-buffer "zetian task list"
+      ;; for each area
+      (mapc
+       (lambda (area)
+         (insert (concat "* " (zetian--report-format area) "\n"))
+         (when-let ((tasks (zetian-query `(and ,zetian-query-open-task-or-event
+                                               (links-to ,area)))))
+           ;; for each task linked to this area
+           (mapc
+             (lambda (task)
+               (insert (concat "- " (zetian--report-format task) "\n")))
+             tasks))
+         ;; for each project linked to the area
+         (mapc
+          (lambda (proj)
+            (insert (concat "** " (zetian--report-format proj) "\n"))
+            ;; for each task linked to the project
+            (mapc
+             (lambda (task)
+               (insert (concat "- " (zetian--report-format task) "\n")))
+             (zetian-query `(and ,zetian-query-open-task-or-event
+                                 (links-to ,proj)))))
+          (zetian-query `(and ,zetian-query-project
+                              (links-to ,area)
+                              (not ,zetian-query-archive))))
+         (insert "\n"))
+       (zetian-query-area))))
 
   (defun zetian--report-generate (name elements)
     "Generate a report of `NAME', using the alist `ELEMENTS'."
