@@ -8,7 +8,7 @@
 :LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :END:
 #+STARTUP: showall
-#+title: Monthly journal for `(format-time-string "%B")`
+#+title: Monthly journal for `(format-time-string "%B %Y")`
 
 Journal for `(format-time-string "%B")` :: `(zetian-journal-year-link)`
 
