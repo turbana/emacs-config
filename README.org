@@ -1212,10 +1212,15 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
 
           ;; home agenda
           ("h" "Home agenda"
-           ((agenda "" nil)
+           (
+            (tags "PRIORITY=\"A\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "Today's Tasks:")))
+            (agenda "" nil)
             (tags "refile"
-                  ((org-agenda-overriding-header "\nRefile tasks:")
-                   (org-tags-match-list-sublevels nil))))
+                  ((org-agenda-overriding-header "\nRefile Tasks:")
+                   (org-tags-match-list-sublevels nil)))
+            )
            ((org-agenda-tag-filter-preset '("+HOME" "-archive")))
            ("~/test.html"))
 
@@ -1266,7 +1271,7 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
   (setq org-agenda-hide-tags-regexp "\\(HOME\\|WORK\\|agenda\\)")
 
   ;; show all future repeating entries
-  (setq org-agenda-show-future-repeats t)
+  (setq org-agenda-show-future-repeats nil)
 #+END_SRC
 
 ***** Test icons (disabled)
