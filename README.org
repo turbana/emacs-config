@@ -4115,7 +4115,7 @@ I'd like to have a custom mode to make things a little prettier. I really want u
 
   (cl-defun zetian--capture-template
       (&key file-name title file-tags file-cat prop-cat prop-id other is-element
-            todo suppress-prop-drawer)
+            todo suppress-prop-drawer tail)
     (let ((body
            (concat
             (when is-element
@@ -4141,7 +4141,8 @@ I'd like to have a custom mode to make things a little prettier. I really want u
             (when file-tags (format "#+filetags: %s\n" file-tags))
             (when other (concat other "\n"))
             (unless is-element
-              (format "#+title: %s" (or title "${title}"))))))
+              (format "#+title: %s" (or title "${title}")))
+            tail)))
       (if is-element
           body
         `(file+head ,(or file-name zetian-capture-default-filename)
@@ -4208,12 +4209,14 @@ These templates are used from =org-capture-protocol=.
 #+BEGIN_SRC emacs-lisp
   (setq org-roam-capture-ref-templates
         `(("W" "web zettel (org-protocol)" plain
-           ,(concat "%U\n\n%?\n\nFrom [[%:link][${title}]] on %U:\n"
-                    "#+begin_quote\n${body}\n#+end_quote")
+           ,(concat
+             "* %<%Y-%m-%d %H:%M:%S>\n"
+             "#+begin_quote\n${body}\n#+end_quote\n\n%?")
            :target ,(zetian--capture-template
                      :file-name (concat zetian-refnote-dir
-                                        zetian-capture-default-filename)
-                     :file-cat "ref" :title "refnote ${id}")
+                                        "%(secure-hash 'sha1 \"${ref}\").org")
+                     :file-cat "ref" :title "refnote ${title}"
+                     :tail "\n\nsource: [[%:link][${title}]]\n\n")
            :unnarrowed t)))
 #+END_SRC
 
