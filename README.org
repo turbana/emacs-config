@@ -5151,7 +5151,8 @@ I want an easy way to add/update tags and other links on a given zettel. To star
           (removing (equal arg '(4))))
       (when-let ((node (if removing
                            (zetian-completing-read tags)
-                         (zetian-search nil "add tag" t))))
+                         (zetian-search zetian-query-permanent
+                                        "add tag" t))))
         (setq tags (if removing
                        (delete node tags)
                      (cons node tags)))
