@@ -2311,7 +2311,7 @@ Main =local-leader= key binds:
     "A" 'org-archive-subtree
     "D" 'org-insert-drawer
     "d" 'org-deadline
-    "f" 'org-set-effort
+    "e" 'org-set-effort
     "H" 'org-shiftleft
     "J" 'org-shiftdown
     "K" 'org-shiftup
@@ -2339,10 +2339,10 @@ Main =local-leader= key binds:
     "q" 'org-clock-cancel)
 #+END_SRC
 
-=,e= export keybinds:
+=,E= export keybinds:
 #+BEGIN_SRC emacs-lisp
   (local-leader-keys org-mode-map
-    :infix "e"
+    :infix "E"
     "" '(nil :which-key "export")
     "e" 'org-export-dispatch
     "T" 'org-babel-tangle-file
@@ -2371,9 +2371,15 @@ TODO =,T= tables keybinds
 
 **** org-agenda-mode
 #+BEGIN_SRC emacs-lisp
+  (general-define-key
+   :keymaps '(org-agenda-mode-map org-columns-map)
+   "e" 'org-agenda-set-effort
+   "p" 'org-agenda-priority
+   )
+
   (local-leader-keys org-agenda-mode-map
     "d" 'org-agenda-deadline
-    "f" 'org-agenda-set-effort
+    "e" 'org-agenda-set-effort
     "p" 'org-agenda-priority
     "P" 'org-agenda-set-property
     "r" 'org-agenda-refile
@@ -4071,6 +4077,22 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     (cursor-sensor-mode 1)
     (zetian-mode--update-header)
     (goto-char (overlay-end zetian-mode--header-overlay)))
+#+END_SRC
+
+*** Effort
+I want a way to track how much effort each task could take.
+
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'org-global-properties
+               (cons "Effort_ALL" "0 0:10 0:30 1:00 2:00 4:00 8:00"))
+#+END_SRC
+
+*** Column View
+Setup how things will look when viewing a list of tasks.
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-columns-default-format-for-agenda
+        "%TODO %1Priority %4Effort(Efft){:} %40ITEM(Task) %20TAGS %33DEADLINE %33SCHEDULED")
 #+END_SRC
 
 *** Utility functions
