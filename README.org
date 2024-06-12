@@ -2650,6 +2650,17 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
             org-roam-ui-open-on-start t))
 #+END_SRC
 
+** org-super-agenda
+#+BEGIN_SRC emacs-lisp
+  (use-package org-super-agenda
+    :config
+    ;; start automatically
+    (add-hook 'org-agenda-mode-hook 'org-super-agenda-mode)
+    ;; don't use a special keymap when over an org-super-agenda header
+    (setq org-super-agenda-header-map nil)
+    )
+#+END_SRC
+
 ** org-ql
 Let's try having a nice search interface for =org-mode=.
 
