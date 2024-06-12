@@ -1211,18 +1211,20 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
            ((org-agenda-tag-filter-preset '("-HOME" "-archive"))))
 
           ;; home agenda
-          ("h" "Home agenda"
-           (
-            (tags "PRIORITY=\"A\""
-                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                   (org-agenda-overriding-header "Today's Tasks:")))
-            (agenda "" nil)
-            (tags "refile"
-                  ((org-agenda-overriding-header "\nRefile Tasks:")
-                   (org-tags-match-list-sublevels nil)))
-            )
-           ((org-agenda-tag-filter-preset '("+HOME" "-archive")))
-           ("~/test.html"))
+          ;; ("h" "Home agenda"
+          ;;  (
+          ;;   (tags "PRIORITY=\"A\""
+          ;;         ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+          ;;          (org-agenda-overriding-header
+          ;;           (concat (ic/life-goals-formatted)
+          ;;                   "\nToday's Tasks:"))))
+          ;;   (agenda "" nil)
+          ;;   (tags "refile"
+          ;;         ((org-agenda-overriding-header "\nRefile Tasks:")
+          ;;          (org-tags-match-list-sublevels nil)))
+          ;;   )
+          ;;  ((org-agenda-tag-filter-preset '("+HOME" "-archive")))
+          ;;  ("~/test.html"))
 
           ("H" "Home agenda today"
            ((agenda "" ((org-agenda-span 'day))))
@@ -1236,15 +1238,53 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
           ("aw" "Work archive"
            ((tags "-HOME-noarchive+TIMESTAMP_IA<=\"<-2w>\"/DONE|CANCELLED"
                   ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
+
+          ;; test org-super-agenda
+          ("h" "super test (home)"
+           ((todo ""
+                  ((org-agenda-overriding-header "")
+                   (org-super-agenda-groups
+                    '((:name "Refile"
+                             :tag "refile")
+                      (:name "Overdue"
+                             :deadline past
+                             :scheduled past)
+                      (:name "Needs deadline"
+                             :and (:priority "A" :deadline nil))
+                      (:name "Needs scheduling"
+                             :and (:priority "A" :scheduled nil))
+                      (:name "Due Today"
+                             :deadline today)
+                      ;; (:name "Scheduled Today"
+                      ;;        :date today
+                      ;;        :scheduled today
+                      ;;        :deadline today)
+                      (:discard (:anything t))))))
+            (agenda ""
+                    ((org-agenda-overriding-header "")
+                     (org-agenda-span 'week)))
+            ;; (todo ""
+            ;;       ((org-agenda-overriding-header "")
+            ;;        (org-super-agenda-groups
+            ;;         '(
+            ;;           (:name "Scheduled Today"
+            ;;                  :date today
+            ;;                  :scheduled today
+            ;;                  :deadline today)
+            ;;           (:name "Upcoming"
+            ;;                  :auto-planning t)
+            ;;           (:discard (:anything t))))))
+            )
+           ((org-agenda-tag-filter-preset '("+HOME" "-archive"))))
           ))
 #+END_SRC
 
 ***** Appearance
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :noweb-ref disable
   ;; don't show completed DEADLINE and SCHEDULED in agenda
   (setq org-agenda-skip-scheduled-if-done t)
   (setq org-agenda-skip-deadline-if-done t)
-  (setq org-agenda-skip-deadline-prewarning-if-scheduled 't)
+  (setq org-agenda-skip-deadline-prewarning-if-scheduled t)
 
   ;; first day in agenda should be today
   (setq org-agenda-start-on-weekday nil)
@@ -1255,8 +1295,9 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
   ;; don't have a separator between agenda sections
   (setq org-agenda-compact-blocks t)
 
-  ;; show agenda icons
-  (setq org-agenda-prefix-format "  %i %?-2 t%s")
+  ;; setup format
+  (setq org-agenda-prefix-format " %i %4e %?-12t")
+  (setq org-super-agenda-date-format "%A, %e %B %Y")
 
   (setq org-agenda-sorting-strategy
         '((agenda habit-down time-up priority-down category-keep)
@@ -2375,6 +2416,9 @@ TODO =,T= tables keybinds
    :keymaps '(org-agenda-mode-map org-columns-map)
    "e" 'org-agenda-set-effort
    "p" 'org-agenda-priority
+   "?" 'org-agenda-filter
+   ;; why is is the local leader getting overridden?
+   meow-local-leader-prefix (lookup-key org-agenda-mode-map (kbd emacs-local-leader-prefix))
    )
 
   (local-leader-keys org-agenda-mode-map
