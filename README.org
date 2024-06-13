@@ -1309,7 +1309,7 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
   (setq org-agenda-compact-blocks t)
 
   ;; setup format
-  (setq org-agenda-prefix-format " %i %4e %?-12t")
+  (setq org-agenda-prefix-format " %i %4e %?-12t% s")
   (setq org-super-agenda-date-format "%A, %e %B %Y")
 
   (setq org-agenda-sorting-strategy
