@@ -1099,9 +1099,11 @@ Change some characters to unicode icons. Some good icons [[http://csbruce.com/so
     ;; don't show the prettified symbol around point
     (setq prettify-symbols-unprettify-at-point t)
     (setq prettify-symbols-alist
-          `(("[#A]" . ?Ⓐ)
-            ("[#B]" . ?Ⓑ)
-            ("[#C]" . ?Ⓒ)
+          `(
+            ;; priority cookies are nice, but *very* inconsistent
+            ;; ("[#A]" . ?Ⓐ)
+            ;; ("[#B]" . ?Ⓑ)
+            ;; ("[#C]" . ?Ⓒ)
             ("[ ]" . ?)
             ("[X]" . ?)
             ("[-]" . ?)
@@ -1150,13 +1152,6 @@ Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/
    t)
 #+END_SRC
 
-Color priorities based on how important they are.
-#+BEGIN_SRC emacs-lisp
-  (setq org-priority-faces '((?A . '(:inherit (themian-error org-priority)))
-                             (?B . 'org-priority)
-                             (?C . '(:inherit (themian-weak org-priority)))))
-#+END_SRC
-
 XXX what do these do?
 #+BEGIN_SRC emacs-lisp
   (setq org-completion-use-ido t)
@@ -1167,6 +1162,23 @@ XXX what do these do?
 Hide emphasis markers such as *bold*, /italic/, etc.
 #+BEGIN_SRC emacs-lisp
   (setq org-hide-emphasis-markers t)
+#+END_SRC
+
+**** Priorities
+I like to have 5 priorities (A-E) with (C) being the default
+#+BEGIN_SRC emacs-lisp
+  (setq org-priority-highest ?A)
+  (setq org-priority-lowest ?E)
+  (setq org-priority-default ?C)
+#+END_SRC
+
+Color priorities based on how important they are.
+#+BEGIN_SRC emacs-lisp
+  (setq org-priority-faces '((?A . '(:inherit (themian-error org-priority)))
+                             (?B . '(:inherit (themian-warning org-priority)))
+                             (?C . 'org-priority)
+                             (?D . '(:inherit (themian-item org-priority)))
+                             (?E . '(:inherit (themian-weak org-priority)))))
 #+END_SRC
 
 **** org-src
@@ -1252,7 +1264,8 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
                       (:name "Needs deadline"
                              :and (:priority "A" :deadline nil))
                       (:name "Needs scheduling"
-                             :and (:priority "A" :scheduled nil))
+                             :and (:priority "A" :scheduled nil)
+                             :and (:priority "B" :scheduled nil))
                       (:name "Due Today"
                              :deadline today)
                       ;; (:name "Scheduled Today"
