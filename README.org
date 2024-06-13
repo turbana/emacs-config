@@ -2641,8 +2641,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     "c" #'zetian-set-context
     "i" #'zetian-link-insert-immediate
     "I" #'zetian-link-insert-search-immediate
-    "l" #'zetian-find-link-from-current
-    "L" #'zetian-find-link-to-current
+    "l" #'zetian-find-link-to-current
+    "L" #'zetian-find-link-from-current
     "R" #'zetian-rename-current
     "s" #'zetian-set-state
     "t" #'zetian-set-tag
