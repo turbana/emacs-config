@@ -10,7 +10,7 @@
 #+STARTUP: showall
 #+title: Monthly journal for `(format-time-string "%B %Y")`
 
-Journal for `(format-time-string "%B")` :: `(zetian-journal-year-link)`
+Journal for `(format-time-string "%B")` `(zetian-journal-year-link)`
 
 TODO
 * Review of Areas
@@ -18,3 +18,7 @@ TODO
 - [[id:67a077fd-021a-4e36-86c2-8e90f7a345bf][social life]]
 - [[id:d7cee164-2877-48fe-835f-e3026e46a386][Finances]]
 - [[id:EBB7D46B-7CC9-4DF5-A131-594C8E8B47E2][Chores]]
+
+* Where am I allowing a lack of consistent execution to hold me back?
+
+* Where am I allowing my fear of discomfort to hold me back?
