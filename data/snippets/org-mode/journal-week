@@ -8,9 +8,9 @@
 :LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :END:
 #+STARTUP: showall
-#+title: Weekly journal for week `(format-time-string "%W, %Y" time)`
+#+title: Weekly journal for week `(format-time-string "%V, %Y" time)`
 
-Journal for Week `(format-time-string "%W" time)` :: `(zetian-journal-month-link time)`
+Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-month-link time)`
 
 * What 1% improvements did I make?
 

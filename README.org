@@ -6268,7 +6268,7 @@ I would like to start keeping a journal.
     "Return an org-mode link to this week's journal."
     (zetian--journal-link
      (zetian-journal-week time)
-     (format-time-string "Week %W" time)))
+     (format-time-string "Week %V" time)))
 
   (defun zetian-journal-month-link (&optional time)
     "Return an org-mode link to this month's journal."
