@@ -41,8 +41,8 @@ I want my config to be portable between machines. So I'll need some variables to
 
   (defconst on-tablet (on-host "DESKTOP-F6Q3GN2"))
   (defconst on-old-imac (on-host "Michaels-iMac.local"))
-  (defconst on-home-windows-desktop (and on-windows (on-host "Fanghorn")))
-  (defconst on-home-windows-desktop-wsl (and on-linux (on-host "Fanghorn")))
+  (defconst on-home-windows-desktop (and on-windows (on-host "Gladden")))
+  (defconst on-home-windows-desktop-wsl (and on-linux (on-host "Gladden")))
 #+END_SRC
 
 I use emacs server and would prefer all packages to be loaded at once, ahead of time.
@@ -1280,7 +1280,7 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
 #+END_SRC
 
 ***** Appearance
-#+BEGIN_SRC emacs-lisp :noweb-ref disable
+#+BEGIN_SRC emacs-lisp
   ;; don't show completed DEADLINE and SCHEDULED in agenda
   (setq org-agenda-skip-scheduled-if-done t)
   (setq org-agenda-skip-deadline-if-done t)
@@ -2920,6 +2920,13 @@ Add icons to any custom modes we've defined
   (add-to-list 'all-the-icons-mode-icon-alist
                '(zetian-mode all-the-icons-material "local_florist"
                              :height 1.0 :v-adjust -0.1))
+#+END_SRC
+
+** org-super-agenda
+#+BEGIN_SRC emacs-lisp
+  (use-package org-super-agenda
+    :config
+    (org-super-agenda-mode 1))
 #+END_SRC
 
 ** visual-fill-column
@@ -5465,7 +5472,7 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
          (prompt (if query-name
                      (format "[%s]: " query-name)
                    "Zetian Node: "))
-         (selection (completing-read prompt completing-func)))
+         (selection (completing-read prompt candidates)))
       (if-let ((node (assoc-default selection candidates)))
           (prog1 node
             ;; remove the 'zetian-node property added to the title
