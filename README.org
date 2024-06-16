@@ -2629,10 +2629,14 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix "zj"
            :prefix-map zetian-journal
            ("j" . zetian-journal-goto-today)
+           ("J" . zetian-journal-goto-tomorrow)
            ("m" . zetian-journal-goto-month)
+           ("M" . zetian-journal-goto-next-month)
            ("t" . zetian-journal-goto-today)
            ("w" . zetian-journal-goto-week)
+           ("W" . zetian-journal-goto-next-week)
            ("y" . zetian-journal-goto-year)
+           ("Y" . zetian-journal-goto-next-year)
            ))
 
   (local-leader-keys 'org-mode-map
@@ -6158,7 +6162,8 @@ I would like to start keeping a journal.
         (with-current-buffer (find-file-noselect journal)
           ;; (find-file journal)
           (yas-expand-snippet
-           (yas-lookup-snippet template-name 'org-mode))
+           (yas-lookup-snippet template-name 'org-mode)
+           nil nil '((time time)))
           (goto-char (point-min))
           (org-id-get-create)
           (save-buffer)
@@ -6167,27 +6172,42 @@ I would like to start keeping a journal.
           (current-buffer)
           ))))
 
-  (defun zetian-journal-today ()
-    "Return the buffer for today's journal"
-    (zetian--journal-buffer "%Y-%m-%d" "journal-day"))
+  (defun ic/time-advance (key value)
+    "Return an encoded time value advanced by KEY VALUEs. See `make-decoded-time'
+  for possible KEY/VALUE."
+    (let ((time (decode-time nil nil t))
+          (delta (make-decoded-time key value)))
+      (encode-time (decoded-time-add time delta))))
 
-  (defun zetian-journal-week ()
+  (defun zetian-journal-day (&optional time)
+    "Return the buffer for (today + DAYS)'s journal"
+    (zetian--journal-buffer "%Y-%m-%d" "journal-day" time))
+
+  (defun zetian-journal-week (&optional time)
     "Return the buffer for week's journal"
-    (zetian--journal-buffer "%Y-w%W" "journal-week"))
+    (zetian--journal-buffer "%Y-w%W" "journal-week" time))
 
-  (defun zetian-journal-month ()
+  (defun zetian-journal-month (&optional time)
     "Return the buffer for month's journal"
-    (zetian--journal-buffer "%Y-%m" "journal-month"))
+    (zetian--journal-buffer "%Y-%m" "journal-month" time))
 
-  (defun zetian-journal-year ()
+  (defun zetian-journal-year (&optional time)
     "Return the buffer for year's journal"
-    (zetian--journal-buffer "%Y" "journal-year"))
+    (zetian--journal-buffer "%Y" "journal-year" time))
+
 
   (defun zetian-journal-goto-today ()
     "Open today's journal."
     (interactive)
     (pop-to-buffer-same-window
-     (zetian-journal-today)))
+     (zetian-journal-day)))
+
+  (defun zetian-journal-goto-tomorrow ()
+    "Open tomorrow's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-day
+      (ic/time-advance :day 1))))
 
   (defun zetian-journal-goto-week ()
     "Open this week's journal."
@@ -6195,17 +6215,39 @@ I would like to start keeping a journal.
     (pop-to-buffer-same-window
      (zetian-journal-week)))
 
+  (defun zetian-journal-goto-next-week ()
+    "Open next week's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-week
+      (ic/time-advance :day 7))))
+
   (defun zetian-journal-goto-month ()
     "Open this month's journal."
     (interactive)
     (pop-to-buffer-same-window
      (zetian-journal-month)))
 
+  (defun zetian-journal-goto-next-month ()
+    "Open next month's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-month
+      (ic/time-advance :month 1))))
+
   (defun zetian-journal-goto-year ()
     "Open this year's journal."
     (interactive)
     (pop-to-buffer-same-window
      (zetian-journal-year)))
+
+  (defun zetian-journal-goto-next-year ()
+    "Open next year's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-year
+      (ic/time-advance :year 1))))
+
 
   (defun zetian--journal-link (buffer title)
     "Return and org-mode link to BUFFER with TITLE"
@@ -6216,29 +6258,30 @@ I would like to start keeping a journal.
                 (org-id-get)))
             title))
 
-  (defun zetian-journal-today-link ()
+  (defun zetian-journal-day-link (&optional time)
     "Return an org-mode link to today's journal."
     (zetian--journal-link
-     (zetian-journal-today)
-     (format-time-string "%Y-%m-%d")))
+     (zetian-journal-day time)
+     (format-time-string "%Y-%m-%d" time)))
 
-  (defun zetian-journal-week-link ()
+  (defun zetian-journal-week-link (&optional time)
     "Return an org-mode link to this week's journal."
     (zetian--journal-link
-     (zetian-journal-week)
-     (format-time-string "Week %W")))
+     (zetian-journal-week time)
+     (format-time-string "Week %W" time)))
 
-  (defun zetian-journal-month-link ()
+  (defun zetian-journal-month-link (&optional time)
     "Return an org-mode link to this month's journal."
     (zetian--journal-link
-     (zetian-journal-month)
-     (format-time-string "%B")))
+     (zetian-journal-month time)
+     (format-time-string "%B" time)))
 
-  (defun zetian-journal-year-link ()
+  (defun zetian-journal-year-link (&optional time)
     "Return an org-mode link to this year's journal."
     (zetian--journal-link
-     (zetian-journal-year)
-     (format-time-string "%Y")))
+     (zetian-journal-year time)
+     (format-time-string "%Y" time)))
+
 
   (defun zetian--add-completed-task-to-journal ()
     "This hook should run under `org-after-todo-state-change-hook' and will add

@@ -8,8 +8,8 @@
 :LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :END:
 #+STARTUP: showall
-#+title: Yearly journal for `(format-time-string "%Y")`
+#+title: Yearly journal for `(format-time-string "%Y" time)`
 
-Journal for `(format-time-string "%Y")`
+Journal for `(format-time-string "%Y" time)`
 
 TODO

@@ -8,9 +8,9 @@
 :LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :END:
 #+STARTUP: showall
-#+title: Monthly journal for `(format-time-string "%B %Y")`
+#+title: Monthly journal for `(format-time-string "%B %Y" time)`
 
-Journal for `(format-time-string "%B")` `(zetian-journal-year-link)`
+Journal for `(format-time-string "%B" time)` `(zetian-journal-year-link time)`
 
 TODO
 * Review of Areas
