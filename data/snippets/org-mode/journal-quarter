@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: journal-quarter
+# key: nil
+# --
+:PROPERTIES:
+:CATEGORY: journal
+:DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
+:END:
+#+STARTUP: showall
+#+title: Quarterly journal for Q`(zetian-quarter-number time)` `(format-time-string "%Y" time)`
+
+Quarter `(zetian-quarter-number time)` :: `(zetian-journal-year-link time)`

@@ -2632,6 +2632,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("J" . zetian-journal-goto-tomorrow)
            ("m" . zetian-journal-goto-month)
            ("M" . zetian-journal-goto-next-month)
+           ("q" . zetian-journal-goto-quarter)
+           ("Q" . zetian-journal-goto-next-quarter)
            ("t" . zetian-journal-goto-today)
            ("w" . zetian-journal-goto-week)
            ("W" . zetian-journal-goto-next-week)
@@ -6160,7 +6162,6 @@ I would like to start keeping a journal.
       (if (file-exists-p journal)
           (find-file-noselect journal)
         (with-current-buffer (find-file-noselect journal)
-          ;; (find-file journal)
           (yas-expand-snippet
            (yas-lookup-snippet template-name 'org-mode)
            nil nil '((time time)))
@@ -6168,9 +6169,8 @@ I would like to start keeping a journal.
           (org-id-get-create)
           (save-buffer)
           (zetian-mode)
-          ;; (re-search-forward "^$")
-          (current-buffer)
-          ))))
+          (current-buffer)))))
+
 
   (defun ic/time-advance (key value)
     "Return an encoded time value advanced by KEY VALUEs. See `make-decoded-time'
@@ -6178,6 +6178,7 @@ I would like to start keeping a journal.
     (let ((time (decode-time nil nil t))
           (delta (make-decoded-time key value)))
       (encode-time (decoded-time-add time delta))))
+
 
   (defun zetian-journal-day (&optional time)
     "Return the buffer for (today + DAYS)'s journal"
@@ -6190,6 +6191,17 @@ I would like to start keeping a journal.
   (defun zetian-journal-month (&optional time)
     "Return the buffer for month's journal"
     (zetian--journal-buffer "%Y-%m" "journal-month" time))
+
+  (defun zetian-quarter-number (&optional time)
+    "Return values between 1 and 4 (as strings) based on what quarter of the year
+  TIME falls under."
+    (let ((week (string-to-number (format-time-string "%V" time))))
+      (number-to-string (ceiling (/ week 13.0)))))
+
+  (defun zetian-journal-quarter (&optional time)
+    "Return the buffer to this quarter's journal"
+    (zetian--journal-buffer (concat "%Y-q" (zetian-quarter-number time))
+                            "journal-quarter" time))
 
   (defun zetian-journal-year (&optional time)
     "Return the buffer for year's journal"
@@ -6235,6 +6247,19 @@ I would like to start keeping a journal.
      (zetian-journal-month
       (ic/time-advance :month 1))))
 
+  (defun zetian-journal-goto-quarter ()
+    "Open this quarter's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-quarter)))
+
+  (defun zetian-journal-goto-next-quarter ()
+    "Open next quarter's journal."
+    (interactive)
+    (pop-to-buffer-same-window
+     (zetian-journal-quarter
+      (ic/time-advance :day (* 7 13)))))
+
   (defun zetian-journal-goto-year ()
     "Open this year's journal."
     (interactive)
@@ -6276,6 +6301,13 @@ I would like to start keeping a journal.
      (zetian-journal-month time)
      (format-time-string "%B" time)))
 
+  (defun zetian-journal-quarter-link (&optional time)
+    "Return an org-mode link to this quarter's journal."
+    (zetian--journal-link
+     (zetian-journal-quarter time)
+     (concat (format-time-string "%Y-Q")
+             (zetian-quarter-number time))))
+
   (defun zetian-journal-year-link (&optional time)
     "Return an org-mode link to this year's journal."
     (zetian--journal-link
@@ -6290,7 +6322,7 @@ I would like to start keeping a journal.
       (let ((link (format "[[id:%s][%s]]"
                           (org-id-get)
                           (org-get-heading t t t t))))
-        (with-current-buffer (zetian-journal-today)
+        (with-current-buffer (zetian-journal-day)
           (save-excursion
             (save-restriction
               (goto-char (marker-position
@@ -6298,7 +6330,7 @@ I would like to start keeping a journal.
                                         (current-buffer))))
               (org-narrow-to-subtree)
               (goto-char (point-max))
-              (insert (format " - [X] %s" link))
+              (insert (format "- [X] %s" link))
               (save-buffer)))))))
   (add-hook 'org-after-todo-state-change-hook
             #'zetian--add-completed-task-to-journal)
