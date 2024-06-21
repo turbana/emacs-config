@@ -5648,7 +5648,7 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
          (prompt (if query-name
                      (format "[%s]: " query-name)
                    "Zetian Node: "))
-         (selection (completing-read prompt candidates)))
+         (selection (completing-read prompt completing-func)))
       (if-let ((node (assoc-default selection candidates)))
           (prog1 node
             ;; remove the 'zetian-node property added to the title
