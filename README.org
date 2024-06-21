@@ -4357,12 +4357,13 @@ Setup how things will look when viewing a list of tasks.
 
   (cl-defun zetian--capture-template
       (&key file-name title file-tags file-cat prop-cat prop-id other is-element
-            todo suppress-prop-drawer tail)
+            todo suppress-prop-drawer tail priority)
     (let ((body
            (concat
             (when is-element
               (concat "* "
                       (when todo (concat todo " "))
+                      (when priority (format "[#%s] " priority))
                       (or title "${title}")
                       "\n"))
             (unless suppress-prop-drawer
@@ -4418,14 +4419,16 @@ Setup how things will look when viewing a list of tasks.
 
           ("t" "task" entry
            ,(concat (zetian--capture-template
-                     :is-element t :todo "TODO" :prop-cat "task")
+                     :is-element t :todo "TODO" :prop-cat "task"
+                     :priority (char-to-string org-default-priority))
                     default-template)
            :target ,task-target
            :empty-lines-before 1)
 
           ("e" "event" entry
            ,(concat (zetian--capture-template
-                     :is-element t :todo "TODO" :prop-cat "event")
+                     :is-element t :todo "TODO" :prop-cat "event"
+                     :priority (char-to-string org-default-priority))
                     default-template)
            :target ,task-target
            :empty-lines-before 1)
