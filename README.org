@@ -4448,6 +4448,13 @@ Setup how things will look when viewing a list of tasks.
            :target ,people-target
            :empty-lines-before 1)
           )))
+
+  (defun zetian-capture-select-template ()
+    "Return selected template key as a string, NIL otherwise."
+    (let* ((org-capture-templates org-roam-capture-templates)
+           (selected (org-capture-select-template)))
+      (when (consp selected)
+        (car selected))))
 #+END_SRC
 
 These templates are used from =org-capture-protocol=.
@@ -5089,9 +5096,6 @@ zetian is starting to get a lot of search functions and I don't really like to h
 
 *** Inserting Links
 #+BEGIN_SRC emacs-lisp
-  (defconst zetian-new-note-template-key "p"
-    "Template key used when creating a new note from elisp.")
-
   (defun zetian-node-link (node)
     "Return an `org-mode' link to NODE as a string."
     (org-make-link-string (concat "id:" (org-roam-node-id node))
@@ -5136,15 +5140,15 @@ zetian is starting to get a lot of search functions and I don't really like to h
 
   (defun zetian-node-create (&optional title template-key)
     "Return zetian node for TITLE, creating it if necessary. Uses TEMPLATE-KEY to
-  lookup template from `org-roam-capture-templates', when NIL use
-    `zetian-new-note-template-key'."
+  lookup template from `org-roam-capture-templates', when NIL prompt user for key."
     (if title
         (if-let (node (org-roam-node-from-title-or-alias title))
             ;; we have a title and an existing node
             node
           ;; we have a title, but the node needs to be created
           (let ((template (append
-                           (assoc (or template-key zetian-new-note-template-key)
+                           (assoc (or template-key
+                                      (zetian-capture-select-template))
                                   org-roam-capture-templates)
                            '(:immediate-finish t)))
                 (node (org-roam-node-create :title title)))
@@ -5588,7 +5592,7 @@ Let's migrate my book importing code to =org-roam=.
                                 ,(zetian--format-template
                                   book "data/templates/capture-book-header.org")))))
       (cl-letf ((org-roam-capture-templates (list template)))
-        (when-let ((node (zetian-node-create title)))
+        (when-let ((node (zetian-node-create title "p")))
           (when tag
             (if-let ((tag-node (org-roam-node-from-title-or-alias tag)))
                 (save-excursion
