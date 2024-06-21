@@ -1634,7 +1634,7 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
 
   (setq org-capture-templates
         `(("t" "todo" entry (file org-default-notes-file)
-           "* TODO %?\n%u\n"
+           "* TODO [#C] %?\n%u\n"
            ;; :clock-in ic/org-clock-in :clock-resume ic/org-clock-resume
            )
           ("T" "test org-protocol" entry (file org-default-notes-file)
