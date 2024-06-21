@@ -1242,6 +1242,24 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
            ((agenda "" ((org-agenda-span 'day))))
            ((org-agenda-tag-filter-preset '("+HOME" "-archive"))))
 
+          ("d" "Deadlines"
+           ((todo ""
+                  ((org-agenda-overriding-header "")
+                   (org-agenda-tag-filter-preset '("-archive"))
+                   (org-agenda-skip-function '(org-agenda-skip-entry-if 'notdeadline))
+                   (org-super-agenda-date-format "%Y-%m-%d %A")
+                   (org-super-agenda-groups
+                    '((:name "Overdue" :deadline past)
+                      (:name "Today" :deadline today)
+                      ;; NOTE: I should be able to use :transformer to
+                      ;; change the group title string, but it doesn't seem
+                      ;; to work
+                      (:auto-map (lambda (item)
+                                   (format-time-string
+                                    org-super-agenda-date-format
+                                    (org-time-string-to-time
+                                     (org-entry-get nil "DEADLINE")))))))))))
+
           ;; archives
           ("a" . "Archiving")
           ("ah" "Home archive"
