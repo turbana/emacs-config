@@ -2709,7 +2709,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
           (seq-uniq (append (org-roam-list-files)
                             (and (boundp 'org-id-files) org-id-files))))
 
-    :bind (("<f2>" . org-roam-capture)
+    :bind (("<f2>" . zetian-capture)
            :map global-leader-map
            :prefix "z"
            :prefix-map zetian
@@ -2718,8 +2718,8 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            ("u" . org-roam-ui-open)
            ("U" . zetian-update-git)
            :prefix "zc"
-           :prefix-map zetian-capture
-           ("c" . org-roam-capture)
+           :prefix-map zetian-capture-map
+           ("c" . zetian-capture)
            :prefix "zcb"
            :prefix-map zetian-capture-books
            ("b" . zetian-capture-book)
@@ -5660,6 +5660,13 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
   (defun zetian-search (&optional query prompt create)
     (interactive)
     (zetian-completing-read (zetian-query query) prompt create))
+
+  (defun zetian-capture ()
+    "Similar to `org-roam-capture' and `org-capture', but for Zetian. Will
+  auto-complete the capture template."
+    (interactive)
+    (zetian-node-find
+     (zetian-completing-read (zetian-query-all) "all nodes" t)))
 #+END_SRC
 
 *** Integrate with marginalia
