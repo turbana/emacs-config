@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+COPY_TO=~/sync/org-roam-readonly
+
 echo
 echo starting $0 at `date`
 set -ex
@@ -24,3 +26,8 @@ if [ $changes -ne 0 ]; then
     # push to origin
     git push origin master
 fi
+
+# copy to destination
+mkdir -p $COPY_TO
+cp special/zetian-tasks.org $COPY_TO/
+cp special/zetian-people.org $COPY_TO/
