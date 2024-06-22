@@ -6017,7 +6017,7 @@ I want to be able to rename a =zetian= note. This should not only change the tit
 #+END_SRC
 
 *** Archive old tasks
-I want any completed task to be moved out of it's current file and into an archive file (with an =archive= file-tag). This is mostly to keep the number of headings =org-agenda= needs to search.
+I want any completed task to be moved out of it's current file and into an archive file (with an =archive= file-tag). This is mostly to keep the number of headings =org-agenda= needs to search to a reasonable amount.
 
 #+BEGIN_SRC emacs-lisp
   (defun zetian-archive-completed-tasks ()
