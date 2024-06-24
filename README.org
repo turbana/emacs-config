@@ -4169,7 +4169,7 @@ My personal 2nd brain implemented in =org-roam=.
   (setq zetian-people-file (concat zetian-special-dir "zetian-people.org"))
   (setq zetian-tasks-archive-file (concat zetian-special-dir "zetian-tasks-archive.org"))
 
-  (defconst zetian--type-cookie "type_"
+  (defconst zetian--type-cookie "_type_"
     "The prefix used for org-mode tags denoting a zetian type.")
 #+END_SRC
 
@@ -5264,7 +5264,7 @@ I use =type_FOO= tags to denote /what/ a =zetian= node is. I'll need a pair of f
     "Return the current node's zetian type."
     (unless (org-roam-node-at-point)
       (error "No node found at point."))
-    (if-let ((states (zetian-get-states)))
+    (if-let ((states (zetian-get-states t)))
         (when-let ((types
                     (seq-filter (lambda (s)
                                   (s-starts-with-p zetian--type-cookie s))
