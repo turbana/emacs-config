@@ -6546,6 +6546,9 @@ I would like to start keeping a journal.
 
   ;; ensure we run `zetian-update-git' every `zetian-update-git-seconds'.
   (run-with-idle-timer zetian-update-git-seconds t #'zetian-update-git)
+
+  ;; run `zetian-update-git' when we first start emacs
+  (add-hook 'emacs-startup-hook #'zetian-update-git)
 #+END_SRC
 
 ** Beeping
