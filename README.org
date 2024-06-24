@@ -4726,6 +4726,8 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
               `(like title ,(parse-like nil (parse first))))
              ('todo
               `(like todo ,(parse-like t (parse first))))
+             ('type
+              (parse `(tag ,(concat "type_" (parse first)))))
              ('priority
               `(= priority ,(string-to-char (upcase (parse first)))))
              ((or 'scheduled 'deadline)
@@ -4883,7 +4885,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
   ;; needs to come first as the macros use it
   (def-zetian-query archive
-    '(tag "archive"))
+    '(type "archive"))
 
   (defun zetian--fix-archive-query (func &rest _)
     "Fix `zetian-query-archive' filtering out the notes we want to see.
@@ -4901,31 +4903,31 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     '(category (eval (completing-read "Category: " (zetian-all-categories)))))
 
   (def-zetian-query project
-    '(tag "type_project"))
+    '(type "project"))
 
   (def-zetian-query area
-    '(tag "type_area"))
+    '(type "area"))
 
   (def-zetian-query book
-    '(tag "type_book"))
+    '(type "book"))
 
   (def-zetian-query author
-    '(tag "type_author"))
+    '(type "author"))
 
   (def-zetian-query task
-    '(tag "type_task"))
+    '(type "task"))
 
   (def-zetian-query event
-    '(tag "type_event"))
+    '(type "event"))
 
   (def-zetian-query permanent
-    '(tag "type_perm"))
+    '(type "perm"))
 
   (def-zetian-query refnote
-    '(tag "type_ref"))
+    '(type "ref"))
 
   (def-zetian-query import
-    '(tag "type_import"))
+    '(type "import"))
 
   ;; tasks
   (def-zetian-query open
@@ -5771,7 +5773,7 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
   (defun zetian--add-ebook-mapping (ebook)
     "Prompt the user for the zetian note that EBOOK should be associated with."
     (interactive)
-    (when-let ((node (zetian-search '(category "book")
+    (when-let ((node (zetian-search '(type "book")
                                     (format "associate (%s) with book" ebook))))
       (push (cons ebook (org-roam-node-id node)) zetian--ebook-mapping)
       (with-temp-file zetian-ebook-mapping-file
