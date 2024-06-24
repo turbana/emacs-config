@@ -4898,32 +4898,31 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     '(category (eval (completing-read "Category: " (zetian-all-categories)))))
 
   (def-zetian-query project
-    '(and (level = 0)
-          (category "project")))
+    '(tag "type_project"))
 
   (def-zetian-query area
-    '(category "area"))
+    '(tag "type_area"))
 
   (def-zetian-query book
-    '(category "book"))
+    '(tag "type_book"))
 
   (def-zetian-query author
-    '(category "author"))
+    '(tag "type_author"))
 
   (def-zetian-query task
-    '(category "task"))
+    '(tag "type_task"))
 
   (def-zetian-query event
-    '(category "event"))
+    '(tag "type_event"))
 
   (def-zetian-query permanent
-    '(category "perm"))
+    '(tag "type_perm"))
 
   (def-zetian-query refnote
-    '(category "ref"))
+    '(tag "type_ref"))
 
   (def-zetian-query import
-    '(category "import"))
+    '(tag "type_import"))
 
   ;; tasks
   (def-zetian-query open
@@ -5048,9 +5047,9 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (setq zetian--project-chore-ids
         (mapcar 'org-roam-node-id
                 (mapcan (lambda (area)
-                          (zetian-query `(and (category "project")
+                          (zetian-query `(and ,zetian-query-project
                                               (links-to ,area))))
-                        (zetian-query '(and (category "area")
+                        (zetian-query `(and ,zetian-query-area
                                             (or (title "Health")
                                                 (title "Chores")
                                                 (title "Finances")
