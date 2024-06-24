@@ -1,6 +1,6 @@
 :PROPERTIES:
-:CATEGORY: import
 :DATE_CREATED: %U
 :LAST_MODIFIED: %U
 :END:
+#+filetags: :_type_import:
 #+title: `title`

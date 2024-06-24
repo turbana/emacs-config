@@ -1,5 +1,3 @@
-%U
-
 /`title`/ is a book by `authors-pretty-links`.
 
 `maybe-quote`- [[https://librarything.com`lt-uri`][LibraryThing]]

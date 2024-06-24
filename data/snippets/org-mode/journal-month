@@ -3,11 +3,11 @@
 # key: nil
 # --
 :PROPERTIES:
-:CATEGORY: journal
 :DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :END:
 #+STARTUP: showall
+#+filetags: :_type_journal:
 #+title: Monthly journal for `(format-time-string "%B %Y" time)`
 
 Journal for `(format-time-string "%B" time)` `(zetian-journal-year-link time)`

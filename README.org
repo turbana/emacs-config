@@ -4396,7 +4396,7 @@ Setup how things will look when viewing a list of tasks.
             (unless suppress-prop-drawer
               (concat
                ":PROPERTIES:\n"
-               ":CREATED: %U\n"
+               ":DATE_CREATED: %U\n"
                ":LAST_MODIFIED: %U\n"
                ;; XXX for some reason org-roam is inserting the file's id for
                ;; "${id}" when capturing an element (task, event, etc) rather than
@@ -6182,7 +6182,7 @@ I want a function to ensure that =zetian= remains healthy.
         (dolist (task tasks-without-project)
           (insert (format "- %s\n" (zetian-node-link task)))))
       (when isolated
-        (insert (format "\n* %d isolated tasks (no in-bound or out-bound links)"
+        (insert (format "\n* %d isolated nodes (no in-bound or out-bound links)"
                         (length isolated)))
         (dolist (task isolated)
           (insert (format "\n- %s" (zetian-node-link task)))))

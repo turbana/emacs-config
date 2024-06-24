@@ -3,29 +3,33 @@
 # key: nil
 # --
 :PROPERTIES:
-:CATEGORY: journal
 :DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :END:
 #+STARTUP: showall
+#+filetags: :_type_journal:
 #+title: Weekly journal for week `(format-time-string "%V, %Y" time)`
 
 Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-month-link time)`
 
-* What 1% improvements did I make?
+* Plan
+:PROPERTIES:
+:SCORE:    0
+:END:
 
-* What was the highlight of the week?
-
-* What I'm proud of
-
-* What I need to work on
-
-* Weekly Review [0/6]
-- [ ] Answer above questions.
+* Review [0/7]
+- [ ] Score the week.
+- [ ] Answer below questions.
 - [ ] Review tasks completed this week.
 - [ ] Review Areas.
 - [ ] Review active Projects.
-- [ ] Plan major goal for the coming week.
-- [ ] Plan one #A task for each upcoming day.
+- [ ] Review Quarterly Plan.
+- [ ] Plan upcoming week.
 
-* What will I do next week?
+** What 1% improvements did I make?
+
+** What was the highlight of the week?
+
+** What I'm proud of
+
+** What I need to work on
