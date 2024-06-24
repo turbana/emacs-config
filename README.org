@@ -4356,8 +4356,11 @@ Setup how things will look when viewing a list of tasks.
   (setq zetian-capture-default-filename "%<%Y%m%d%H%M%S>-${id}.org")
 
   (cl-defun zetian--capture-template
-      (&key file-name title file-tags file-cat prop-cat prop-id other is-element
+      (&key file-name title file-tags file-cat type prop-id other is-element
             todo suppress-prop-drawer tail priority)
+    (unless is-element
+      (setq file-tags (concat (format ":type_%s" type)
+                              (or file-tags ":"))))
     (let ((body
            (concat
             (when is-element
@@ -4365,6 +4368,7 @@ Setup how things will look when viewing a list of tasks.
                       (when todo (concat todo " "))
                       (when priority (format "[#%s] " priority))
                       (or title "${title}")
+                      (format " :type_%s:" type)
                       "\n"))
             (unless suppress-prop-drawer
               (concat
@@ -4378,7 +4382,6 @@ Setup how things will look when viewing a list of tasks.
                                        (if is-element
                                            "%(org-id-new)"
                                          "${id}")))
-               (when prop-cat (format ":CATEGORY: %s\n" prop-cat))
                ":END:\n"))
             (when file-cat (format "#+category: %s\n" file-cat))
             (when file-tags (format "#+filetags: %s\n" file-tags))
@@ -4397,29 +4400,29 @@ Setup how things will look when viewing a list of tasks.
          (task-target
           (zetian--capture-template
            :file-name zetian-tasks-file :title "All My Tasks"
-           :file-cat "task" :other "#+startup: contents"
+           :type "task" :other "#+startup: contents"
            :suppress-prop-drawer t
            :file-tags ":%(if at-home \"HOME\" \"WORK\"):agenda:"))
          (people-target
           (zetian--capture-template
            :file-name zetian-people-file :title "All My Contacts"
-           :file-cat "person" :other "#+startup: contents"
+           :type "person" :other "#+startup: contents"
            :suppress-prop-drawer t
            :file-tags ":%(if at-home \"HOME\" \"WORK\"):agenda:")))
     (setq org-roam-capture-templates
         `(("p" "permanent note" plain ,default-template
            :target ,(zetian--capture-template
-                     :file-cat "perm" :file-tags "review")
+                     :type "perm" :file-tags ":review:")
            :unnarrowed t)
 
           ("i" "idea" plain ,default-template
            :target ,(zetian--capture-template
-                     :file-cat "idea" :file-tags "review")
+                     :type "idea" :file-tags ":review:")
            :unnarrowed t)
 
           ("t" "task" entry
            ,(concat (zetian--capture-template
-                     :is-element t :todo "TODO" :prop-cat "task"
+                     :is-element t :todo "TODO" :type "task"
                      :priority (char-to-string org-default-priority))
                     default-template)
            :target ,task-target
@@ -4427,7 +4430,7 @@ Setup how things will look when viewing a list of tasks.
 
           ("e" "event" entry
            ,(concat (zetian--capture-template
-                     :is-element t :todo "TODO" :prop-cat "event"
+                     :is-element t :todo "TODO" :type "event"
                      :priority (char-to-string org-default-priority))
                     default-template)
            :target ,task-target
@@ -4435,7 +4438,7 @@ Setup how things will look when viewing a list of tasks.
 
           ("P" "person" entry
            ,(zetian--capture-template
-             :is-element t :prop-cat "person"
+             :is-element t :type "person"
              :other (concat
                      "%U\n\n"
                      "- organization ::\n"
