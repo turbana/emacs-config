@@ -4191,9 +4191,12 @@ I'd like to have a custom mode to make things a little prettier. I really want u
 
   (defun zetian-mode--update-header-1 ()
     (let*
-        ((category (zetian-get-category))
+        ((type (zetian-get-type))
          (states (zetian-get-states))
          (title (zetian-get-title))
+         (context (zetian-get-context))
+         (project (zetian-get-project))
+         (tags (zetian-get-tags))
          (modified (or (zetian-get-last-modified) "?"))
          (num-outbound-links
           (length (zetian-query `(links-from ,(org-roam-node-at-point)))))
@@ -4202,9 +4205,9 @@ I'd like to have a custom mode to make things a little prettier. I really want u
          (header
           (concat
            (propertize title 'face 'org-document-title)
-           (when category
+           (when type
              (concat (propertize " [" 'face 'org-drawer)
-                     category
+                     type
                      (propertize "]" 'face 'org-drawer)))
            (when states
              (concat
@@ -4223,11 +4226,28 @@ I'd like to have a custom mode to make things a little prettier. I really want u
            (propertize " In:" 'face 'org-drawer)
            (propertize (format "%d" num-inbound-links)
                        'face 'org-special-keyword)
+           (when (or context project tags)
+             "\n")
+           (zetian-mode--header-list-maybe "Context:" context)
+           (zetian-mode--header-list-maybe "Project:" (and project (list project)))
+           (zetian-mode--header-list-maybe "Tags:" tags)
            "\n"
            (propertize "\n" 'face '(:inherit default :extend t)))))
       (overlay-put zetian-mode--header-overlay 'face 'header-line)
       (overlay-put zetian-mode--header-overlay 'display header)
       (overlay-put zetian-mode--header-overlay 'cursor (length header))))
+
+  (defun zetian-mode--header-list-maybe (label nodes)
+    (when nodes
+      (concat
+       (propertize label 'face 'org-drawer)
+       (s-join (propertize "," 'face 'org-drawer)
+               (mapcar (lambda (n)
+                         (propertize
+                          (substring-no-properties (org-roam-node-title n))
+                          'face 'org-link))
+                       nodes))
+       "  ")))
 
   (defvar-local zetian-mode--modification-hook-save nil)
   (defvar-local zetian-mode--modification-hook-save-state nil)
@@ -5298,9 +5318,9 @@ Ensure that =org-agenda= can find the relevant notes.
 I want an easy way to add/update tags and other links on a given zettel. To start I'm probably just going to use /Tags/, but I could see myself using other forms as well, (maybe /Depends/ for moving my emacs config into zettels?). So I'll call them =header-links=.
 
 #+BEGIN_SRC emacs-lisp
-  (defvar zetian-header-formats '((context . "- context :: ")
-                                  (project . "- project :: ")
-                                  (tags . "- tags :: ")))
+  (defvar zetian-header-formats '((context . "context:: ")
+                                  (project . "project:: ")
+                                  (tags . "tags:: ")))
   (defvar zetian-header-seperator ", ")
 
 
@@ -5328,9 +5348,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
             (insert
              (assoc-default type zetian-header-formats)
              (mapconcat #'zetian-node-link links zetian-header-seperator)
-             "\n")))
-        (when inserted-header
-          (insert "\n"))))
+             "\n")))))
     ;; when overwriting a header and the point is on the initial content character
     ;; the point is moved to the start of the header, so move back to the content.
     (when (zetian--looking-at-header)
@@ -5343,20 +5361,16 @@ I want an easy way to add/update tags and other links on a given zettel. To star
     "Remove the header from the current note.
   Leave point where the header would be."
     (goto-char (point-min))
-    ;; move to start of potential header
     (re-search-forward "^$")
-    (forward-char 1)
-    ;; save starting point
-    (let ((beg (point)))
-      ;; move over any found headers
+    (let ((bot (point))
+          top)
+      (forward-line -1)
       (while (zetian--looking-at-header)
-        (forward-line 1))
-      ;; move over any consecutive new lines
-      (while (and (not (= (point) (point-max)))
-                  (looking-at "^$"))
-        (forward-char 1))
-      ;; delete and leave point
-      (delete-region beg (point))))
+        (setq top (point))
+        (forward-line -1))
+      (when top
+        (delete-region top bot))
+      (forward-line 1)))
 
   (defun zetian-get-header-links (type)
     "Return list of nodes contained in zetian header TYPE."
@@ -5451,14 +5465,9 @@ A =zetian= node can have a project associated with it. Like tags a project is si
     "Set the project for the current node."
     (interactive "P")
     (let* ((remove (equal arg '(4)))
-           (old-project (zetian-get-project))
            (new-project (unless remove
                           (zetian-search-project))))
-      (zetian-set-header-links 'project (unless remove (list new-project)))
-      (when old-project
-        (zetian-remove-state (zetian-node-to-state old-project)))
-      (when new-project
-        (zetian-add-state (zetian-node-to-state new-project)))))
+      (zetian-set-header-links 'project (unless remove (list new-project)))))
 
   (defun zetian-node-to-state (&optional node)
     "Return a string suitable for an org-mode tag from the NODE's title."
