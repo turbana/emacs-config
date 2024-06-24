@@ -5744,36 +5744,22 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
                                        ".")
                              (propertize todo 'face todo-face))
                          ""))
-             (tags (seq-filter
-                    (lambda (tag)
-                      (not (string-match-p
-                            org-agenda-hide-tags-regexp tag)))
-                    (org-roam-node-tags node)))
-             (tags-str (string-join tags ":"))
-             (cat (assoc-default "CATEGORY" (org-roam-node-properties node)))
+             (tags-str (string-join (zetian-node-get-states node) ":"))
+             (type-str (zetian-node-get-type node))
              (pri (org-roam-node-priority node))
              (pri-str (if pri
                           (format "[#%s]" (char-to-string pri))
                         ""))
              ;; (contents (zetian--completion-get-contents node))
              )
-        ;; ensure todo string is full width, otherwise the 'org-todo face extends past the tag
-        (setq todo-str (concat todo-str
-                               (make-string (- 5 (length todo-str)) ? )))
         (marginalia--fields
-         (cat :face 'org-document-info
-              ;; :width 8
-              :truncate 8
-              )
+         (type-str :face 'org-document-info
+                   :truncate 8)
          (pri-str :face (org-get-priority-face pri)
-                  :truncate 4
-                  ;; :width 4
-                  )
+                  :truncate 4)
          (todo-str :truncate 5)
          (tags-str :face 'org-tag
-                   ;; :width 10
-                   :truncate 10
-                   )
+                   :truncate 20)
          ;; ("|" :width 1 :truncate 1)
          ;; (contents :face 'org-footnote
          ;;           :truncate 200)
