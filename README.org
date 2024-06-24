@@ -4419,7 +4419,7 @@ Setup how things will look when viewing a list of tasks.
 
   (let* ((zetian-tasks-file "special/zetian-tasks.org")
          (zetian-people-file "special/zetian-people.org")
-         (default-template "%U\n\n%?")
+         (default-template "\n%?")
          (task-target
           (zetian--capture-template
            :file-name zetian-tasks-file :title "All My Tasks"
