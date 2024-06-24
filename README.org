@@ -4168,6 +4168,9 @@ My personal 2nd brain implemented in =org-roam=.
   (setq zetian-tasks-file (concat zetian-special-dir "zetian-tasks.org"))
   (setq zetian-people-file (concat zetian-special-dir "zetian-people.org"))
   (setq zetian-tasks-archive-file (concat zetian-special-dir "zetian-tasks-archive.org"))
+
+  (defconst zetian--type-cookie "type_"
+    "The prefix used for org-mode tags denoting a zetian type.")
 #+END_SRC
 
 *** zetian-mode
@@ -4727,7 +4730,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
              ('todo
               `(like todo ,(parse-like t (parse first))))
              ('type
-              (parse `(tag ,(concat "type_" (parse first)))))
+              (parse `(tag ,(concat zetian--type-cookie (parse first)))))
              ('priority
               `(= priority ,(string-to-char (upcase (parse first)))))
              ((or 'scheduled 'deadline)
@@ -5168,7 +5171,6 @@ zetian is starting to get a lot of search functions and I don't really like to h
 #+END_SRC
 
 *** Category
-I use the =CATEGORY= property to denote /what/ a =zetian= node is. I'll need a pair of functions to get/set that.
 #+BEGIN_SRC emacs-lisp
   (defun zetian-set-category (&optional category)
     "Set the category of the node at point. If it's on a file, set the #+category:
@@ -5225,6 +5227,32 @@ I use =org-mode= tags for state and =org-roam= provides a pair of functions that
   (defun zetian-has-state (state)
     "Return true if STATE is a current state of node at point."
     (member state (zetian-get-states)))
+#+END_SRC
+
+*** Type
+I use =type_FOO= tags to denote /what/ a =zetian= node is. I'll need a pair of functions to get/set that.
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-set-type (&optional type)
+    "Set the current node's zetian type to TYPE."
+    (interactive)
+    (when-let ((new-type (or type (completing-read "Type: " nil))))
+      (when-let ((old-type (zetian-get-type)))
+        (zetian-remove-state (concat zetian--type-cookie old-type)))
+      (zetian-add-state (concat zetian--type-cookie new-type))))
+
+  (defun zetian-get-type ()
+    "Return the current node's zetian type."
+    (unless (org-roam-node-at-point)
+      (error "No node found at point."))
+    (if-let ((states (zetian-get-states)))
+        (when-let ((types
+                    (seq-filter (lambda (s)
+                                  (s-starts-with-p zetian--type-cookie s))
+                                states)))
+          (if (= 1 (length types))
+              (string-remove-prefix zetian--type-cookie (car types))
+            (error "More than one type found on node.")))
+      (error "No states found on node.")))
 #+END_SRC
 
 *** Last Modified
