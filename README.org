@@ -5238,11 +5238,15 @@ I use =org-mode= tags for state and =org-roam= provides a pair of functions that
 
   (defun zetian-get-states (&optional include-hidden)
     "Return a list of states of node at point."
+    (zetian-node-get-states (org-roam-node-at-point) include-hidden))
+
+  (defun zetian-node-get-states (node &optional include-hidden)
+    "Return a list of states of NODE"
     (seq-filter
      (lambda (tag)
        (or (not (equal (string-to-char tag) ?_))
            include-hidden))
-     (org-get-tags)))
+     (org-roam-node-tags node)))
 
   (defun zetian-has-state (state)
     "Return true if STATE is a current state of node at point."
@@ -5262,9 +5266,13 @@ I use =type_FOO= tags to denote /what/ a =zetian= node is. I'll need a pair of f
 
   (defun zetian-get-type ()
     "Return the current node's zetian type."
-    (unless (org-roam-node-at-point)
-      (error "No node found at point."))
-    (if-let ((states (zetian-get-states t)))
+    (zetian-node-get-type (org-roam-node-at-point)))
+
+  (defun zetian-node-get-type (node)
+    "Return the NODE's zetian type."
+    (unless node
+      (error "No node found."))
+    (if-let ((states (zetian-node-get-states node t)))
         (when-let ((types
                     (seq-filter (lambda (s)
                                   (s-starts-with-p zetian--type-cookie s))
