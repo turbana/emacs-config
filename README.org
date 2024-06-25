@@ -2731,9 +2731,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix-map zetian-database
            ("c" . org-roam-db-clear-all)
            ("d" . org-roam-db-diagnose-node)
-           ("l" . zetian-lint)
            ("s" . org-roam-db-sync)
-           ("t" . zetian-report-tasks)
            :prefix "zf"
            :prefix-map zetian-find
            ("f" . zetian-find-all)
@@ -2765,6 +2763,12 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
            :prefix "zi"
            :prefix-map zetian-import
            ("m" . zetian-moonreader-import)
+           :prefix "zr"
+           :prefix-map zetian-reports
+           ("c" . zetian-report-completed-this-week)
+           ("C" . zetian-report-completed-last-week)
+           ("l" . zetian-lint)
+           ("t" . zetian-report-tasks)
            :prefix "zj"
            :prefix-map zetian-journal
            ("j" . zetian-journal-goto-today)
@@ -6290,6 +6294,74 @@ Open a buffer with a list of all the open tasks grouped by project.
            (format "[[id:%s][%s]]"
                    (org-roam-node-id thing)
                    (org-roam-node-title thing)))))
+#+END_SRC
+
+**** Completed Tasks
+I'd like to be able to see a list of the recently completed tasks, sorted by date. I also want to be able to specify an ISO week to narrow it down.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/dates-within-iso-week (year week &optional include-future)
+    "Return a list of dates (in the format \"%Y-%m-%d\") that fall within the ISO
+    week WEEK of YEAR. Include future dates when INCLUDE-FUTURE is true."
+    (let ((iso-days (mapcar (lambda (d) (list week d year))
+                            '(1 2 3 4 5 6 0)))
+          (today (car (calendar-absolute-from-time
+                       (time-convert (current-time) 'integer)
+                       0))))
+      (mapcar
+       (lambda (abs)
+         (let ((date (calendar-gregorian-from-absolute abs)))
+           (format "%d-%02d-%02d" (nth 2 date) (nth 0 date) (nth 1 date))))
+       (seq-filter
+        (lambda (date) (or include-future (<= date today)))
+        (mapcar #'calendar-iso-to-absolute iso-days)))))
+
+  (defun ic/org-get-heading-contents (title buffer)
+    "Return the contents of header with title TITLE, found in BUFFER."
+    (save-excursion
+      (with-current-buffer buffer
+        (org-element-map (org-element-parse-buffer) 'headline
+          (lambda (heading)
+            (when (string-equal (org-element-property :raw-value heading)
+                                title)
+              (let ((beg (org-element-property :contents-begin heading))
+                    (end (org-element-property :contents-end heading)))
+                (if (and beg end)
+                    (buffer-substring beg end)
+                  ""))))
+          nil t))))
+
+  (defun zetian-report-completed (&optional week-delta)
+    "Generate a zetian report with all completed tasks, use WEEK-DELTA to
+    determine ISO week difference from current week"
+    (interactive)
+    (let* ((time (time-add nil (days-to-time (* 7 week-delta))))
+           (year (string-to-number (format-time-string "%G" time)))
+           (week (string-to-number (format-time-string "%V" time)))
+           (dates (ic/dates-within-iso-week year week))
+           )
+      (zetian--with-report-buffer (format "zetian completed tasks for %s-w%s"
+                                          year week)
+        (dolist (date dates)
+          (let ((time (encode-time (parse-time-string (concat date "T00:00:00")))))
+            (insert (concat "\n* "
+                            (format-time-string "%A, %d %B %G" time)
+                            "\n"))
+            (insert
+             (or
+              (ic/org-get-heading-contents "Completed Tasks" (zetian-journal-day time))
+              "")))))))
+
+  (defun zetian-report-completed-this-week ()
+    "Run a zetian report for all completed journal entries for the current ISO
+  week."
+    (interactive)
+    (zetian-report-completed 0))
+
+  (defun zetian-report-completed-last-week ()
+    "Run a zetian report for all completed journal entries for the previous ISO
+  week."
+    (interactive)
+    (zetian-report-completed -1))
 #+END_SRC
 
 *** Show links buffer
