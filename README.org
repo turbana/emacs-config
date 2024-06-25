@@ -6299,6 +6299,9 @@ Open a buffer with a list of all the open tasks grouped by project.
 **** Completed Tasks
 I'd like to be able to see a list of the recently completed tasks, sorted by date. I also want to be able to specify an ISO week to narrow it down.
 #+BEGIN_SRC emacs-lisp
+  (require 'cal-dst)
+  (require 'cal-iso)
+
   (defun ic/dates-within-iso-week (year week &optional include-future)
     "Return a list of dates (in the format \"%Y-%m-%d\") that fall within the ISO
     week WEEK of YEAR. Include future dates when INCLUDE-FUTURE is true."
@@ -6343,13 +6346,14 @@ I'd like to be able to see a list of the recently completed tasks, sorted by dat
                                           year week)
         (dolist (date dates)
           (let ((time (encode-time (parse-time-string (concat date "T00:00:00")))))
-            (insert (concat "\n* "
+            (insert (concat "* "
                             (format-time-string "%A, %d %B %G" time)
                             "\n"))
             (insert
              (or
               (ic/org-get-heading-contents "Completed Tasks" (zetian-journal-day time))
-              "")))))))
+              ""))
+            (insert "\n"))))))
 
   (defun zetian-report-completed-this-week ()
     "Run a zetian report for all completed journal entries for the current ISO
