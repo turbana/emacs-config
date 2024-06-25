@@ -1340,7 +1340,7 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
   (add-hook 'org-agenda-mode-hook 'hl-line-mode)
 
   ;; hide some tags I mostly use for filtering only
-  (setq org-agenda-hide-tags-regexp "\\(HOME\\|WORK\\|agenda\\)")
+  (setq org-agenda-hide-tags-regexp "\\(HOME\\|WORK\\|agenda\\|_type_task\\|_type_event\\)")
 
   ;; show all future repeating entries
   (setq org-agenda-show-future-repeats nil)
@@ -4382,7 +4382,7 @@ Setup how things will look when viewing a list of tasks.
       (&key file-name title file-tags file-cat type prop-id other is-element
             todo suppress-prop-drawer tail priority)
     (unless is-element
-      (setq file-tags (concat (format ":type_%s" type)
+      (setq file-tags (concat (format ":_type_%s" type)
                               (or file-tags ":"))))
     (let ((body
            (concat
