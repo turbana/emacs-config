@@ -4397,7 +4397,7 @@ Setup how things will look when viewing a list of tasks.
                       (when todo (concat todo " "))
                       (when priority (format "[#%s] " priority))
                       (or title "${title}")
-                      (format " :type_%s:" type)
+                      (format " :_type_%s:" type)
                       "\n"))
             (unless suppress-prop-drawer
               (concat
