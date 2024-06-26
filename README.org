@@ -1247,6 +1247,8 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
                   ((org-agenda-overriding-header "")
                    (org-agenda-tag-filter-preset '("-archive"))
                    (org-agenda-skip-function '(org-agenda-skip-entry-if 'notdeadline))
+                   (org-agenda-sorting-strategy
+                    '((agenda scheduled-up priority-down effort-down)))
                    (org-super-agenda-date-format "%Y-%m-%d %A")
                    (org-super-agenda-groups
                     '((:name "Overdue" :deadline past)
@@ -4339,7 +4341,7 @@ Setup how things will look when viewing a list of tasks.
 
 #+BEGIN_SRC emacs-lisp
   (setq org-columns-default-format-for-agenda
-        "%TODO %1Priority %4Effort(Efft){:} %40ITEM(Task) %20TAGS %33DEADLINE %33SCHEDULED")
+        "%TODO %1Priority %4Effort(Efft){:} %40ITEM(Task) %33SCHEDULED %33DEADLINE %20TAGS")
 #+END_SRC
 
 *** Utility functions
