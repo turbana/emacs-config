@@ -5332,9 +5332,9 @@ Ensure that =org-agenda= can find the relevant notes.
 I want an easy way to add/update tags and other links on a given zettel. To start I'm probably just going to use /Tags/, but I could see myself using other forms as well, (maybe /Depends/ for moving my emacs config into zettels?). So I'll call them =header-links=.
 
 #+BEGIN_SRC emacs-lisp
-  (defvar zetian-header-formats '((context . "context:: ")
-                                  (project . "project:: ")
-                                  (tags . "tags:: ")))
+  (defvar zetian-header-formats '((context . "context: ")
+                                  (project . "project: ")
+                                  (tags . "tags: ")))
   (defvar zetian-header-seperator ", ")
 
 
@@ -5398,17 +5398,12 @@ I want an easy way to add/update tags and other links on a given zettel. To star
             (while (not done)
               ;; is the point on an org link?
               (if-let ((elem (org-element-link-parser)))
-                  (let* ((link (cadr elem))
-                         (id (plist-get link :path))
-                         (tgt (plist-get link :raw-link))
-                         (desc (buffer-substring-no-properties
-                                (plist-get link :contents-begin)
-                                (plist-get link :contents-end)))
-                         (end (plist-get link :end)))
-                    ;; add the found node
-                    (setq links (cons (org-roam-node-from-id id) links))
+                  (progn
+                    (setq links (cons (org-roam-node-from-id
+                                       (org-element-property :path elem))
+                                      links))
                     ;; move to the end of the link
-                    (goto-char end)
+                    (goto-char (org-element-property :end elem))
                     ;; try and move over `zetian-header-seperator'
                     (re-search-forward
                      (regexp-quote zetian-header-seperator)
@@ -5423,15 +5418,24 @@ I want an easy way to add/update tags and other links on a given zettel. To star
   (defun zetian--header-pos (type)
     "Return start position of header TYPE.
   If header TYPE doesn't exist: return the position it would have if it existed."
+    (let ((header-end (zetian--header-end-pos))
+          (header (assoc-default type zetian-header-formats)))
+      (save-excursion
+        (goto-char (point-min))
+        (condition-case err
+            (progn
+              (re-search-forward (concat "^" (regexp-quote header))
+                                 header-end)
+              (match-beginning 0))
+          (search-failed
+           header-end)))))
+
+  (defun zetian--header-end-pos ()
+    "Return the position of the newline separating the header from the content."
     (save-excursion
       (goto-char (point-min))
-      (condition-case err
-          (progn
-            (re-search-forward
-             (regexp-quote (assoc-default type zetian-header-formats)))
-            (match-beginning 0))
-        (search-failed
-         (+ 1 (re-search-forward "^$"))))))
+      (re-search-forward "^$")
+      (match-end 0)))
 
   (defun zetian--looking-at-header (&optional type)
     "Return non-nil when POINT is on header TYPE.
