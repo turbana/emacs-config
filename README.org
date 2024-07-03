@@ -601,6 +601,14 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
   (use-package json)
 #+END_SRC
 
+** kbd-mode
+This is to support editing =KMonad= =.*kbd= files.
+#+BEGIN_SRC emacs-lisp
+  (use-package kbd-mode
+    :straight (kbd-mode type git :host github :repo "kmonad/kbd-mode")
+    )
+#+END_SRC
+
 ** lsp
 *** config
 #+BEGIN_SRC emacs-lisp
