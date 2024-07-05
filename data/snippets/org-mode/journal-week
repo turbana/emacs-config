@@ -17,6 +17,15 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-month-link
 :SCORE:    0
 :END:
 
+* Meal Plan
+- Monday :: 
+- Tuesday :: 
+- Wednesday :: 
+- Thursday ::
+- Friday :: pizza
+- Monday :: 
+- Tuesday :: 
+
 * Review [0/7]
 - [ ] Score the week.
 - [ ] Answer below questions.
