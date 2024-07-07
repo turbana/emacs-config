@@ -6624,9 +6624,10 @@ I would like to start keeping a journal.
   Automatically pull any updates, commit our changes, and push back up."
     (interactive)
     (let ((default-directory org-roam-directory)
-          (command (concat user-data-directory "zetian-update-git.sh"))
+          (command (concat org-roam-directory "special/zetian-update-git.sh"))
           exit-status)
-      (with-current-buffer (get-buffer-create "*zetian-git-output*")
+      (with-current-buffer
+          (get-buffer-create "*zetian-git-output*")
         (read-only-mode -1)
         (goto-char (point-max))
         (setq exit-status (call-process command nil t nil))
