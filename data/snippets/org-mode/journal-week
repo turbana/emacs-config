@@ -10,12 +10,19 @@
 #+filetags: :_type_journal:
 #+title: Weekly journal for week `(format-time-string "%V, %Y" time)`
 
-Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-month-link time)`
+Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-link time)`
 
 * Plan
 :PROPERTIES:
 :SCORE:    0
 :END:
+| Metric                   | M | T | W | T | F | S | S |
+|--------------------------+---+---+---+---+---+---+---|
+| total applications       |   |   |   |   |   |   |   |
+| sent application         |   |   |   |   |   |   |   |
+| exercised                |   |   |   |   |   | - |   |
+| limited calories to 1300 |   |   |   |   |   |   |   |
+| total weight lost        |   |   |   |   |   |   |   |
 
 * Meal Plan
 - Monday :: 
