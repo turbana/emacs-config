@@ -4922,7 +4922,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
   ;; needs to come first as the macros use it
   (def-zetian-query archive
-    '(type "archive"))
+    '(tag "archive"))
 
   (defun zetian--fix-archive-query (func &rest _)
     "Fix `zetian-query-archive' filtering out the notes we want to see.
