@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: refnote-content
+# key: 
+# --
+
+* `checksum`
+`timestamp`
+#+BEGIN_QUOTE
+`quoted`
+#+END_QUOTE
+
+`note`

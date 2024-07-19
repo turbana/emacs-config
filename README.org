@@ -3201,8 +3201,22 @@ For numbering and jumping to windows.
 #+BEGIN_SRC emacs-lisp
   (use-package yasnippet
       :init
-      (setq yas-snippet-dirs (list (concat user-data-directory "snippets")))
-      (yas-global-mode 1))
+      (setq ic/snippet-dir (concat user-data-directory "snippets/"))
+      (setq yas-snippet-dirs (list ic/snippet-dir))
+      (yas-global-mode 1)
+      :config
+      (defun ic/expand-snippet (snippet &optional mode env)
+        "Load the `yas-snippet' SNIPPET found in MODE mode, with the ENV
+      environment and return as a string."
+        (with-temp-buffer
+          (unless (yas-minor-mode 1)
+            (error "failed to load yas-minor-mode"))
+          (yas-expand-snippet
+           (yas-lookup-snippet snippet mode)
+           nil
+           nil
+           env)
+          (buffer-string))))
 #+END_SRC
 
 *** csharp snippets
@@ -5839,6 +5853,40 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
           (org-roam-node-from-id (zetian--add-ebook-mapping ebook)))))
 #+END_SRC
 
+**** map to refnote
+Now we need a way to lookup a reference note by the book's note.
+
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-ref-node-from-book-node (book-node)
+    "Return the 'reference note' Zetian node that refers to `book-node', creating
+  it if needed."
+    (let ((nodes (zetian-query `(and ,zetian-query-refnote
+                                     (links-to ,book-node)))))
+      (cond
+       ((= 1 (length nodes))
+        (car nodes))
+       ((= 0 (length nodes))
+        (zetian--create-refnote-node book-node))
+       (t
+        (error "more than one refnote found linking to %s"
+               (org-roam-node-title book-node))))))
+
+  (defun zetian--create-refnote-node (book-node)
+    "Create a new refnote that refers to `book-node'."
+    (let* ((id (org-id-new))
+           (now (format-time-string "%Y%m%d%H%M%S"))
+           (node-file (format "%sref/%s-%s.org" org-roam-directory now id)))
+      (with-current-buffer
+          (find-file-noselect node-file)
+        (insert (ic/expand-snippet "refnote-head"
+                                   'org-mode
+                                   `((node ,book-node)
+                                     (id ,id))))
+        (save-buffer)
+        (org-roam-db-sync)
+        (org-roam-node-at-point))))
+#+END_SRC
+
 **** extract backup
 #+BEGIN_SRC emacs-lisp
   (defvar zetian-moonreader-backup-dir
@@ -5888,7 +5936,7 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
   form: ((ebook quoted-text note) ...)."
     (with-temp-buffer
       (call-process "sqlite3" nil t nil "-line" db-file
-                    "select filename, original, note, time from notes")
+                    "select filename, original, note, time from notes order by time")
       (goto-char (point-min))
       (let (result filename quoted note time)
         (while (re-search-forward "^filename = " nil t)
@@ -5915,81 +5963,36 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
                 result))
         result)))
 
-  (defun zetian--format-template-ebook (highlight filename)
-    "Load the `yas-snippet' found in FILENAME with the environment from
-  HIGHLIGHT."
-    (with-temp-buffer
-      (unless (yas-minor-mode 1)
-        (error "failed to load yas-minor-mode"))
-      (yas-expand-snippet
-       (with-temp-buffer
-         (insert-file-contents
-          (locate-user-emacs-file filename))
-         (buffer-string))       
-       nil
-       nil
-       (mapcar (lambda (c)
-                 (list (car c)
-                       (if (listp (cdr c))
-                           `(quote ,(cdr c))
-                         (cdr c))))
-               highlight))
-      (buffer-string)))
+  (defun zetian--moonreader-expand-template (template highlight)
+    "call `ic/expand-snippet' with the correct environment from HIGHLIGHT"
+    (ic/expand-snippet template
+                       'org-mode
+                       (mapcar (lambda (c)
+                                 (list (car c)
+                                       (if (listp (cdr c))
+                                           `(quote ,(cdr c))
+                                         (cdr c))))
+                               highlight)))
 
   (defun zetian--moonreader-import-highlight (highlight)
     "Import HIGHLIGHT into zetian if it's not already imported."
     (interactive)
-    (unless (org-roam-node-from-title-or-alias
-             (format "refnote %s" (assoc-default 'checksum highlight)))
-      (when-let ((node (zetian-node-from-ebook (assoc-default 'ebook highlight))))
-        (push `(book-id . ,(org-roam-node-id node)) highlight)
-        (push `(book-title . ,(org-roam-node-title node)) highlight)
-        (let ((template `("l" "literature note" plain
-                          ,(zetian--format-template-ebook
-                            highlight "data/templates/capture-refnote-body.org")
-                          :target (file+head
-                                   ,(concat zetian-refnote-dir
-                                           zetian-capture-default-filename)
-                                   ,(zetian--format-template-ebook
-                                     highlight "data/templates/capture-refnote-header.org"))))
-              (title (format "refnote %s" (assoc-default 'checksum highlight))))
-          (cl-letf ((org-roam-capture-templates (list template)))
-            (zetian-node-create title "l"))))))
-
-  (defun zetian--moonreader-import-summary (imported)
-    "Generate a summary note from highlights in the list IMPORTED"
-    (interactive)
-    (when imported
-      (let* ((parent-node (org-roam-node-from-title-or-alias
-                           "automated moonreader import"))
-             (body
-              (concat "%U\n\n%?"
-                      (format "[[id:%s][%s]] "
-                              (org-roam-node-id parent-node)
-                              (org-roam-node-title parent-node))
-                      (format "added %d literature notes:\n\n"
-                              (length imported))
-                      (mapconcat
-                       (lambda (node)
-                         (let ((link (format "[[id:%s][%s]]"
-                                             (org-roam-node-id node)
-                                             (org-roam-node-title node))))
-                           (format "* %s\n#+transclude: %s\n\n" link link)))
-                       imported)))
-             (header-template
-              "data/templates/capture-moonreader-import-summary-header.org")
-             (title (format "refnote import for %s"
-                            (format-time-string "[%Y-%m-%d %a %H:%M]")))
-             (template `("s" "moonreader import summary" plain
-                         ,body
-                         :target (file+head
-                                  "%<%Y%m%d%H%M%S>-${id}.org"
-                                  ,(zetian--format-template-ebook
-                                    `((title . ,title))
-                                    header-template)))))
-        (cl-letf ((org-roam-capture-templates (list template)))
-          (message "creating with %s" title)
-          (zetian-node-create title "s")))))
+    (when-let ((ebook (assoc-default 'ebook highlight))
+               (book-node (zetian-node-from-ebook ebook))
+               (ref-node (zetian-ref-node-from-book-node book-node))
+               )
+      (with-zetian-node ref-node
+        (let ((checksum (assoc-default 'checksum highlight))
+              (current-checksums
+               (org-element-map (org-element-parse-buffer) 'headline
+                 (lambda (elem)
+                   (org-element-property :raw-value elem)))))
+          (unless (member checksum current-checksums)
+            (goto-char (point-max))
+            (insert "\n")
+            (insert (zetian--moonreader-expand-template
+                     "refnote-content" highlight))
+            t)))))
 
   (defun zetian-moonreader-import ()
     "Import any highlights from a moonreader backup in
@@ -6003,14 +6006,10 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
           (dolist (highlight highlights)
             (when-let ((node (zetian--moonreader-import-highlight highlight)))
               (push node imported)))
-          (prog1
-              (when imported
-                (zetian-node-find
-                 (zetian--moonreader-import-summary imported)))
-            (message "imported %d new notes (%d total moonreader notes)"
-                     (length imported) (length highlights))
-            (delete-directory tmpdir t)
-            (delete-file backup)))
+          (message "imported %d new notes (%d total moonreader notes)"
+                   (length imported) (length highlights))
+          (delete-directory tmpdir t)
+          (delete-file backup))
       (message "no moonreader backup file found")))
 #+END_SRC
 
