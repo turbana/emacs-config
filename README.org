@@ -3105,13 +3105,6 @@ Add icons to any custom modes we've defined
                              :height 1.0 :v-adjust -0.1))
 #+END_SRC
 
-** org-super-agenda
-#+BEGIN_SRC emacs-lisp
-  (use-package org-super-agenda
-    :config
-    (org-super-agenda-mode 1))
-#+END_SRC
-
 ** visual-fill-column
 I want emacs to wrap long lines automatically and refill when modifying text. =visual-fill-column= does just that.
 #+BEGIN_SRC emacs-lisp
