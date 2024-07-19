@@ -16,13 +16,13 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
 :PROPERTIES:
 :SCORE:    0
 :END:
-| Metric                   | M | T | W | T | F | S | S |
-|--------------------------+---+---+---+---+---+---+---|
-| total applications       |   |   |   |   |   |   |   |
-| sent application         |   |   |   |   |   |   |   |
-| exercised                |   |   |   |   |   | - |   |
-| limited calories to 1300 |   |   |   |   |   |   |   |
-| total weight lost        |   |   |   |   |   |   |   |
+| Metric       | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
+|--------------+-----+-----+-----+-----+-----+-----+-----|
+| total apps   |     |     |     |     |     |     |     |
+| sent apps    |     |     |     |     |     |     |     |
+| exercised    |     |     |     |     |     | -   |     |
+| limited cals |     |     |     |     |     |     |     |
+| weight lost  |     |     |     |     |     |     |     |
 
 * Meal Plan
 - Monday :: 
