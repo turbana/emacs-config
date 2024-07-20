@@ -1,6 +1,5 @@
 # -*- mode: snippet -*-
 # name: refnote-head
-# key: nil
 # --
 :PROPERTIES:
 :DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
