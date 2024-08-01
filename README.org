@@ -5929,7 +5929,8 @@ Now we need a way to lookup a reference note by the book's note.
   form: ((ebook quoted-text note) ...)."
     (with-temp-buffer
       (call-process "sqlite3" nil t nil "-line" db-file
-                    "select filename, original, note, time from notes order by time")
+                    (concat "select filename, original, note, time "
+                            "from notes order by time desc"))
       (goto-char (point-min))
       (let (result filename quoted note time)
         (while (re-search-forward "^filename = " nil t)
