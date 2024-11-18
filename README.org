@@ -6879,7 +6879,7 @@ XXX should these go in an override map?
    "" '(nil :which-key "buffers")
    "b" 'consult-buffer
    "B" 'consult-buffer-other-window
-   "d" 'kill-this-buffer
+   "d" 'kill-current-buffer
    "D" 'ic/ediff-current-buffer-with-disk
    "i" 'ibuffer
    "P" 'ic/paste-clipboard-to-buffer
