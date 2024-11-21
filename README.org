@@ -41,8 +41,8 @@ I want my config to be portable between machines. So I'll need some variables to
 
   (defconst on-tablet (on-host "DESKTOP-F6Q3GN2"))
   (defconst on-old-imac (on-host "Michaels-iMac.local"))
-  (defconst on-home-windows-desktop (and on-windows (on-host "Gladden")))
-  (defconst on-home-windows-desktop-wsl (and on-linux (on-host "Gladden")))
+  (defconst on-home-windows-desktop (and on-windows (on-host "Fanghorn")))
+  (defconst on-home-windows-laptop (on-host "Gladden"))
 #+END_SRC
 
 I use emacs server and would prefer all packages to be loaded at once, ahead of time.
@@ -339,15 +339,15 @@ Load my custom theme early so if we have errors emacs still looks pretty.
     (let ((fixed
            (cond (on-old-imac
                   '("Iosevka Extended" 160 ultra-light))
-                 ;; (on-home-windows-desktop-wsl
-                 ;;  '("Noto Sans Mono" 110 normal))
+                 (on-home-windows-laptop
+                  '("Iosevka Extended" 140 normal))
                  (t
                   '("Iosevka Extended" 110 normal))))
           (variable
            (cond (on-old-imac
                   '("DejaVu Sans ExtraLight" 150 ultra-light))
-                 ;; (on-home-windows-desktop-wsl
-                 ;;  '("Noto Sans" 120 normal))
+                 (on-home-windows-laptop
+                  '("DejaVu Sans Condensed" 140 normal))
                  (t
                   '("DejaVu Sans Condensed" 120 normal)))))
       (set-face-attribute 'default nil :family (nth 0 fixed)
@@ -624,9 +624,9 @@ This is to support editing =KMonad= =.*kbd= files.
     ;; keep more log data
     (setq lsp-log-max 10000)
     ;; setup c# lsp server
-    (setq lsp-csharp-server-path
-          (cond (on-home-windows-desktop-wsl
-                 (executable-find "omnisharp"))))
+    ;; (setq lsp-csharp-server-path
+    ;;       (cond (on-home-windows-desktop-wsl
+    ;;              (executable-find "omnisharp"))))
 
     :hook
     ((lsp-mode . lsp-enable-which-key-integration)
@@ -4130,11 +4130,8 @@ When we're on a mac and we have GNU =ls= installed (=gls=): use that as our =dir
 ** Start maximized 
 I want every frame to start maximized by default.
 
-<2023-04-13 Thu> This has seemingly stopped working on windows. It creates a large frame that spans two monitors, but is neither maximized nor full screen.
-
 #+BEGIN_SRC emacs-lisp
-  (unless on-home-windows-desktop-wsl
-    (add-to-list 'default-frame-alist '(fullscreen . maximized)))
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
 #+END_SRC
 
 ** Tree Sitter
