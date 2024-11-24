@@ -1,23 +1,38 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
 import logo from './logo.svg';
 import './App.css';
 
+function AgendaTask({task}) {
+    return (
+            <div>{task.title}</div>
+    );
+}
+
+function Agenda({tasks}) {
+    const rows = tasks.map((task) => {
+        return (
+                <AgendaTask task={task} />
+        );
+    });
+    return (
+            <div>{rows}</div>
+    );
+}
+
 function App() {
+    const [agendaTasks, setAgendaTasks] = useState([]);
+
+    useEffect(() => {
+        axios.get("agenda.json").then((res) => {
+            setAgendaTasks(res.data.tasks);
+        });
+    }, []);
+    
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+          <Agenda tasks={agendaTasks} />
     </div>
   );
 }
