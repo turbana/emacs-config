@@ -12,8 +12,17 @@ margin-left: 0.25em;
 /* .task.scheduled { */
 /* } */
 
-.task.deadline {
+.task.type-deadline {
 background: #fee;
+}
+
+.task.state-DONE {
+}
+
+.task.state-DONE > .title > a {
+color: #666;
+text-decoration: line-through;
+font-style: italic;
 }
 
 .title > a {

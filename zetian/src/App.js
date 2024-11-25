@@ -26,7 +26,7 @@ function AgendaTask({task}) {
     default: taskType = "❓";
     }
     return (
-        <div className={"task " + task.type}>
+        <div className={`task type-${task.type} state-${task.state}`}>
             <span className="time">{time}</span>
             <span className="type">{taskType}</span>
             <span className={"priority box priority-" + task.priority}>{task.priority}</span>
@@ -68,7 +68,7 @@ function Agenda({tasks}) {
         return (
             <Fragment key={`${task.type}-${task.id}`}>
                 {extra}
-                <AgendaTask task={task} key={task.key} />
+                <AgendaTask task={task} />
             </Fragment>
         );
     });
