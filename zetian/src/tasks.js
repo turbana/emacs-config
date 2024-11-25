@@ -9,7 +9,21 @@ export function createTaskList(data) {
             tasks.push(createTask(task, task.deadline, "deadline"));
         }
     });
-    return tasks.sort((t1, t2) => t2.time < t1.time);
+    return tasks.sort(taskSort);
+}
+
+function taskSort(t1, t2) {
+    const time1 = t1.time.getTime();
+    const time2 = t2.time.getTime();
+    if (time1 != time2) {
+        return time1 - time2;
+    } else if (t1.priority != t2.priority) {
+        return t1.priority.localeCompare(t2.priority);
+    } else if (t1.effort != t2.effort) {
+        return t1.effort.localeCompare(t2.effort);
+    } else {
+        return t1.title.localeCompare(t2.title);
+    }
 }
 
 function createTask(item, time, type) {

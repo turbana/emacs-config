@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import axios from "axios";
 
 import { createTaskList } from './tasks.js';
@@ -18,17 +18,24 @@ function AgendaTask({task}) {
         if (minutes < 10) minutes = `0${minutes}`;
         time = `${hours}:${minutes}`;
     }
+    // var taskType = "⏱️";
+    var taskType;
+    switch (task.type) {
+    case "scheduled": taskType = "📅"; break;
+    case "deadline":  taskType = "⏰"; break;
+    default: taskType = "❓";
+    }
     return (
         <div className={"task " + task.type}>
             <span className="time">{time}</span>
-            <span className="priority">#{task.priority}</span>
+            <span className="type">{taskType}</span>
+            <span className={"priority box priority-" + task.priority}>{task.priority}</span>
             <span className="title">
-                <span className="type">{task.type}::</span>
                 <a href={"./?note=" + task.id}>
                     {task.title}
                 </a>
             </span>
-            <span className="effort">[{task.effort}]</span>
+            {task.effort && <span className="effort box">{task.effort}</span>}
         </div>
     );
 }
@@ -38,8 +45,12 @@ function DateDivider({time}) {
     const day = time.getDate();
     const month = new Intl.DateTimeFormat(TIME_LOCALE, {month:"long"}).format(time);
     const year = time.getFullYear();
+    const now = new Date();
+    const today = time.getDate() == now.getDate()
+          && time.getMonth() == now.getMonth()
+          && time.getFullYear() == now.getFullYear();
     return (
-        <div className="date">
+        <div className={"date" + (today ? " today" : "")}>
             {dow}, {day} {month} {year}
         </div>
     );
@@ -55,14 +66,14 @@ function Agenda({tasks}) {
             extra = <DateDivider time={task.time} />;
         }
         return (
-            <>
+            <Fragment key={`${task.type}-${task.id}`}>
                 {extra}
-                <AgendaTask task={task} />
-            </>
+                <AgendaTask task={task} key={task.key} />
+            </Fragment>
         );
     });
     return (
-            <div className="agenda">{rows}</div>
+        <div className="agenda" key="bar">{rows}</div>
     );
 }
 
@@ -77,7 +88,7 @@ function App() {
     
   return (
     <div className="App">
-          <Agenda tasks={agendaTasks} />
+          <Agenda tasks={agendaTasks} key="huh" />
     </div>
   );
 }
