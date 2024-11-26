@@ -1,0 +1,84 @@
+.task > span {
+    margin-left: 0.25em;
+}
+
+/* .task.scheduled { */
+/* } */
+
+.task.type-deadline {
+    background: #fee;
+}
+
+.task.state-DONE > .title > a {
+    color: #666;
+    text-decoration: line-through;
+    font-style: italic;
+}
+
+.title > a {
+    color: #000;
+    text-decoration: none;
+}
+
+.type {
+    font-size: medium;
+    color: #666;
+}
+
+.date {
+    color: #564720;
+    font-size: large;
+    margin-top: 1em;
+    font-family: serif;
+}
+
+.time {
+    width: 3em;
+    display: inline-block;
+    font-size: small;
+}
+
+.today {
+    /* color: #000; */
+    font-weight: bold;
+}
+
+.priority {
+    display: inline-block;
+    width: 1.25em;
+    font-size: x-small;
+    font-weight: bold;
+    text-align: center;
+}
+
+.priority-A {
+    background: #c87588 !important;
+}
+
+.priority-B {
+    background: #bfc875 !important;
+}
+
+.priority-C {
+    background: #75c8c3 !important;
+}
+
+.priority-D {
+    background: #7596c8 !important;
+}
+
+.priority-E {
+    background: #857547 !important;
+}
+
+.effort {
+    font-size: small;
+    float: right;
+}
+
+.box {
+    background: #ccc;
+    border-radius: 4px;
+    padding-left: 0.25em;
+    padding-right: 0.25em;
+}

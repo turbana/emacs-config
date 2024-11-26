@@ -2,6 +2,7 @@
 export function createTaskList(data) {
     var tasks = [];
     data.map((task) => {
+        if (task.state != "TODO") return;
         if (task.scheduled !== "") {
             tasks.push(createTask(task, task.scheduled, "scheduled"));
         }
