@@ -28,7 +28,8 @@ text-decoration: none;
 }
 
 .type {
-font-size: small;
+font-size: medium;
+color: #666;
 }
 
 .date {

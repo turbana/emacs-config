@@ -20,14 +20,16 @@ function AgendaTask({task}) {
     }
     var taskType;
     switch (task.type) {
-    case "scheduled": taskType = "📅"; break;
-    case "deadline":  taskType = "⏰"; break;
-    default: taskType = "❓";
+        // NOTE: when adding new icons be sure and update the <rel> tag that
+        // loads the material stylesheet in index.html
+    case "scheduled": taskType = "schedule"; break;
+    case "deadline":  taskType = "calendar_month"; break;
+    default: taskType = "question_mark";
     }
     return (
         <div className={`task type-${task.type} state-${task.state}`}>
             <span className="time">{time}</span>
-            <span className="type">{taskType}</span>
+            <span className="type material-symbols-outlined">{taskType}</span>
             <span className={"priority box priority-" + task.priority}>{task.priority}</span>
             <span className="title">
                 <a href={"./?note=" + task.id}>
