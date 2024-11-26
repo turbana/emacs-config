@@ -1,9 +1,22 @@
+.material-symbols-outlined {
+    font-size: medium;
+    position: relative;
+    top: 0.2em;
+}
+
+.task {
+    margin-bottom: 2px;
+    display: flex;
+    align-items: baseline;
+}
+
+.title {
+    flex-grow: 1;
+}
+
 .task > span {
     margin-left: 0.25em;
 }
-
-/* .task.scheduled { */
-/* } */
 
 .task.type-deadline {
     background: #fee;
@@ -29,7 +42,10 @@
     color: #564720;
     font-size: large;
     margin-top: 1em;
+    margin-bottom: 0.2em;
+    height: 1.2em;
     font-family: serif;
+    border-bottom: 1px solid #ccc;
 }
 
 .time {
@@ -72,8 +88,10 @@
 }
 
 .effort {
-    font-size: small;
+    display: inline;
     float: right;
+    font-size: small;
+    text-align: center;
 }
 
 .box {

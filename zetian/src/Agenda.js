@@ -25,7 +25,11 @@ function AgendaTask({task}) {
     return (
         <div className={`task type-${task.type} state-${task.state}`}>
             <span className="time">{time}</span>
-            <span className="type material-symbols-outlined">{taskType}</span>
+            <span className="type">
+                <span className="material-symbols-outlined">
+                    {taskType}
+                </span>
+            </span>
             <span className={"priority box priority-" + task.priority}>{task.priority}</span>
             <span className="title">
                 <a href={"./?note=" + task.id}>
