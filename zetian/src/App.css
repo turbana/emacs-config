@@ -16,9 +16,6 @@ margin-left: 0.25em;
 background: #fee;
 }
 
-.task.state-DONE {
-}
-
 .task.state-DONE > .title > a {
 color: #666;
 text-decoration: line-through;

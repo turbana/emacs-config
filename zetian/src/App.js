@@ -18,7 +18,6 @@ function AgendaTask({task}) {
         if (minutes < 10) minutes = `0${minutes}`;
         time = `${hours}:${minutes}`;
     }
-    // var taskType = "⏱️";
     var taskType;
     switch (task.type) {
     case "scheduled": taskType = "📅"; break;
@@ -73,7 +72,7 @@ function Agenda({tasks}) {
         );
     });
     return (
-        <div className="agenda" key="bar">{rows}</div>
+        <div className="agenda">{rows}</div>
     );
 }
 
@@ -88,7 +87,7 @@ function App() {
     
   return (
     <div className="App">
-          <Agenda tasks={agendaTasks} key="huh" />
+        <Agenda tasks={agendaTasks} />
     </div>
   );
 }
