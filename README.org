@@ -1618,7 +1618,7 @@ Furthermore I consider a stuck project:
     (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|"
               "CANCELLED(c@/!)" "PHONE" "MEETING" "HABIT(a)")))
   (setq org-enforce-todo-dependencies t)
-  (setq org-enforce-todo-checkbox-dependencies t)
+  (setq org-enforce-todo-checkbox-dependencies nil)
 #+END_SRC
 
 **** Logging
