@@ -1,31 +1,31 @@
-.material-symbols-outlined {
+.type > .material-symbols-outlined {
     font-size: medium;
     position: relative;
     top: 0.2em;
 }
 
 .task.type-deadline {
-    background: #fee;
+    background: var(--bs-tertiary-bg);
 }
 
 .task.state-DONE > .title > a {
-    color: #666;
+    color: var(--bs-secondary-color);
     text-decoration: line-through;
     font-style: italic;
 }
 
 .title > a {
-    color: #000;
+    color: var(--bs-emphasis-color);
     text-decoration: none;
 }
 
 .type {
     font-size: medium;
-    color: #666;
+    color: var(--bs-secondary-color);
 }
 
 .date {
-    color: #564720;
+    color: var(--bs-primary-text-emphasis);
     font-size: large;
     margin-top: 1em;
     margin-bottom: 0.2em;
@@ -40,7 +40,6 @@
 }
 
 .today {
-    /* color: #000; */
     font-weight: bold;
 }
 
@@ -54,23 +53,23 @@
 }
 
 .priority-A {
-    background: #c87588 !important;
+    background: var(--bs-danger) !important;
 }
 
 .priority-B {
-    background: #bfc875 !important;
+    background: var(--bs-warning) !important;
 }
 
 .priority-C {
-    background: #75c8c3 !important;
+    background: var(--bs-info) !important;
 }
 
 .priority-D {
-    background: #7596c8 !important;
+    background: var(--bs-tertiary-color) !important;
 }
 
 .priority-E {
-    background: #857547 !important;
+    background: var(--bs-dark-bg-subtle) !important;
 }
 
 .effort {
@@ -79,7 +78,7 @@
 }
 
 .box {
-    background: #ccc;
+    background: var(--bs-secondary-bg);
     border-radius: 4px;
     padding-left: 0.25em;
     padding-right: 0.25em;

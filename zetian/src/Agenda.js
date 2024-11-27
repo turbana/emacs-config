@@ -20,8 +20,6 @@ function AgendaTask({task}) {
     }
     var taskType;
     switch (task.type) {
-        // NOTE: when adding new icons be sure and update the <rel> tag that
-        // loads the material stylesheet in index.html
         case "scheduled": taskType = "schedule"; break;
         case "deadline":  taskType = "calendar_month"; break;
         default: taskType = "question_mark";

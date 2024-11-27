@@ -8,6 +8,7 @@ import Tab from 'react-bootstrap/Tab';
 
 import { createTaskList } from './tasks.js';
 import Agenda from './Agenda.js';
+import ThemeControl from "./ThemeControl.js";
 import './App.css';
 
 
@@ -31,13 +32,7 @@ function App() {
                         <Nav.Link eventKey="zetian">Zetian</Nav.Link>
                     </Nav.Item>
                     <Nav.Item className="ms-auto">
-                        <Form inline="true">
-                            <Form.Control
-                                id="search"
-                                type="text"
-                                placeholder="Search"
-                            />
-                        </Form>
+                        <ThemeControl />
                     </Nav.Item>
                 </Nav>
                 <Tab.Content>

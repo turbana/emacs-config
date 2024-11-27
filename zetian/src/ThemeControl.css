@@ -1,0 +1,3 @@
+a.nav-link > span.material-symbols-outlined {
+    color: var(--bs-body-color) !important;
+}
