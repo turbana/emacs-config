@@ -4,20 +4,6 @@
     top: 0.2em;
 }
 
-.task {
-    margin-bottom: 2px;
-    display: flex;
-    align-items: baseline;
-}
-
-.title {
-    flex-grow: 1;
-}
-
-.task > span {
-    margin-left: 0.25em;
-}
-
 .task.type-deadline {
     background: #fee;
 }
@@ -50,7 +36,6 @@
 
 .time {
     width: 3em;
-    display: inline-block;
     font-size: small;
 }
 
@@ -60,8 +45,9 @@
 }
 
 .priority {
-    display: inline-block;
-    width: 1.25em;
+    margin-top: 0.3em;
+    width: 1.5em;
+    height: 1.5em;
     font-size: x-small;
     font-weight: bold;
     text-align: center;
@@ -88,8 +74,6 @@
 }
 
 .effort {
-    display: inline;
-    float: right;
     font-size: small;
     text-align: center;
 }

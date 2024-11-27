@@ -2,6 +2,10 @@ import { Fragment } from "react";
 import { TIME_LOCALE } from "./constants.js";
 import "./Agenda.css";
 
+import Stack from "react-bootstrap/Stack";
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
 
 function AgendaTask({task}) {
     var hours = task.time.getHours();
@@ -23,22 +27,29 @@ function AgendaTask({task}) {
         default: taskType = "question_mark";
     }
     return (
-        <div className={`task type-${task.type} state-${task.state}`}>
-            <span className="time">{time}</span>
-            <span className="type">
-                <span className="material-symbols-outlined">
-                    {taskType}
-                </span>
-            </span>
-            <span className={"priority box priority-" + task.priority}>{task.priority}</span>
-            <span className="title">
-                <a href={"./?note=" + task.id}>
-                    {task.title}
-                </a>
-            </span>
-            {task.effort && <span className="effort box">{task.effort}</span>}
-        </div>
-    );
+        <Row>
+            <Col>
+                <Stack className={`task type-${task.type} state-${task.state}`}
+                       direction="horizontal" gap={1}>
+                    <div className="time">{time}</div>
+                    <div className="type">
+                        <span className="material-symbols-outlined">
+                            {taskType}
+                        </span>
+                    </div>
+                    <div className={"priority box priority-" + task.priority}>
+                        {task.priority}
+                    </div>
+                    <div className="title">
+                        <a href={"./?note=" + task.id}>
+                            {task.title}
+                        </a>
+                    </div>
+                    <div className="effort box ms-auto">{task.effort}</div>
+                </Stack>
+            </Col>
+        </Row>
+    )
 }
 
 function DateDivider({time}) {
@@ -51,30 +62,34 @@ function DateDivider({time}) {
                && time.getMonth() == now.getMonth()
                && time.getFullYear() == now.getFullYear();
     return (
-        <div className={"date" + (today ? " today" : "")}>
-            {dow}, {day} {month} {year}
-        </div>
+        <Row>
+            <Col className={"date" + (today ? " today" : "")}>
+                {dow}, {day} {month} {year}
+            </Col>
+        </Row>
     );
 }
 
 function Agenda({tasks}) {
     var currentDate = null;
     const rows = tasks.map((task) => {
-        var extra = null;
+        var dividor = null;
         const date = task.time.toLocaleDateString();
         if (date != currentDate) {
             currentDate = date;
-            extra = <DateDivider time={task.time} />;
+            dividor = <DateDivider time={task.time} />;
         }
         return (
             <Fragment key={`${task.type}-${task.id}`}>
-                {extra}
+                {dividor}
                 <AgendaTask task={task} />
             </Fragment>
         );
     });
     return (
-        <div className="agenda">{rows}</div>
+        <Stack gap={0}>
+            {rows}
+        </Stack>
     );
 }
 
