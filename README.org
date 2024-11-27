@@ -3115,6 +3115,17 @@ I want emacs to wrap long lines automatically and refill when modifying text. =v
     :hook (visual-line-mode . visual-fill-column-mode))
 #+END_SRC
 
+** web-mode
+This should make editing javascript/typescript/JSX more pleasant.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package web-mode
+    :init
+    (setq web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")))
+    (add-to-list 'auto-mode-alist '("\\.jsx?$" . web-mode))
+    )
+#+END_SRC
+
 ** wgrep
 =wgrep= is a package that let's us live edit a =helm-occur= buffer.
 #+BEGIN_SRC emacs-lisp
