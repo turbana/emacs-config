@@ -34,13 +34,19 @@
     border-bottom: 1px solid #ccc;
 }
 
+.date.today {
+    font-weight: bold;
+    font-size: x-large;
+}
+
+.date.overdue {
+    color: var(--bs-danger-text-emphasis);
+    background: var(--bs-danger-bg-subtle);
+}
+
 .time {
     width: 3em;
     font-size: small;
-}
-
-.today {
-    font-weight: bold;
 }
 
 .priority {

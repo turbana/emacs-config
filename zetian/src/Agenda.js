@@ -59,10 +59,11 @@ function DateDivider({time}) {
     const today = time.getDate() == now.getDate()
                && time.getMonth() == now.getMonth()
                && time.getFullYear() == now.getFullYear();
+    const overdue = time < now && !today;
     return (
         <Row>
-            <Col className={"date" + (today ? " today" : "")}>
-                {dow}, {day} {month} {year}
+            <Col className={"date" + (today ? " today" : "") + (overdue ? " overdue" : "")}>
+                {dow}, {day} {month} {year} {overdue ? "(overdue)" : ""}
             </Col>
         </Row>
     );
