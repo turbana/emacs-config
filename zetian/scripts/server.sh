@@ -7,8 +7,9 @@ if [ "$#" != "1" ]; then
     exit 2
 fi
 
-export PIDFILE=/tmp/personal-webserver.pid
-export LOGFILE=/tmp/personal-webserver.log
+# NOTE: termux sets $PREFIX to it's root directory
+export PIDFILE=$PREFIX/tmp/personal-webserver.pid
+export LOGFILE=$PREFIX/tmp/personal-webserver.log
 export WWW=$(dirname $0)/../
 
 start() {
