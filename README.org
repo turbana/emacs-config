@@ -6666,7 +6666,7 @@ I would like to export my zetian graph into a suitable format for viewing on mob
     "Create a json datafile with all the currently non-archived tasks."
     (save-excursion
       (with-current-buffer
-          (find-file-noselect zetian-export-agenda-json-file)
+          (find-file-noselect zetian-export-agenda-json-file t)
         (erase-buffer)
         (insert "{\"tasks\": [\n")
         (insert (s-join ",\n" (map-zetian #'zetian-export--task-to-json
