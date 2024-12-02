@@ -6627,16 +6627,12 @@ I would like to start keeping a journal.
   Automatically pull any updates, commit our changes, and push back up."
     (interactive)
     (let ((default-directory org-roam-directory)
-          (command (concat org-roam-directory "special/zetian-update-git.sh"))
-          exit-status)
-      (with-current-buffer
-          (get-buffer-create "*zetian-git-output*")
-        (read-only-mode -1)
-        (goto-char (point-max))
-        (setq exit-status (call-process command nil t nil))
-        (read-only-mode 1)
-        (unless (= exit-status 0)
-          (error "zetian-update-git.sh return non-zero exit status, check *zetian-git-output*")))))
+          (commit-msg (format "zetian auto update (%s)" (system-name))))
+      (magit-git "pull" "--ff-only" "origin" "master")
+      (when (magit-modified-files)
+        (magit-git "add" "-A")
+        (magit-git "commit" (format "--message='%s'" commit-msg))
+        (magit-git "push" "origin" "master"))))
 
   ;; ensure we run `zetian-update-git' every `zetian-update-git-seconds'.
   (run-with-idle-timer zetian-update-git-seconds t #'zetian-update-git)
