@@ -1062,7 +1062,7 @@ Add ability to jump to any org heading with SPC-aoj
                           'outline-previous-heading)))
 #+END_SRC
 
-**** Appearance
+***** Appearance
 Basic heading setup
 #+BEGIN_SRC emacs-lisp
   (setq org-startup-indented t)
@@ -1097,6 +1097,35 @@ Because =org-mode= is mostly prose use =buffer-face-mode= (along with setting th
 #+END_SRC
 
 Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]]. See [[*org-bullets][org-bullets]] setup as well.
+Here are some fancy symbols:
+⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵
+
+The font matters so here is some in fixed width:
+=⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵=
+
+#+BEGIN_SRC emacs-lisp
+  ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵
+
+  (defun ic/first-displayable-char (chars)
+    "Return the first displayable char from CHARS, `nil' otherwise. This function
+  ignores the terminal coding system."
+    ;; Because the terminal coding system is used with `char-displayable-p' it
+    ;; might return non-nil when there is no (graphical) font that can display the
+    ;; char. So first disable the terminal coding system and re-enable after we
+    ;; check the char.
+    (let ((current-coding-system (terminal-coding-system)))
+      (set-terminal-coding-system nil)
+      (unwind-protect
+          (-first 'char-displayable-p chars)
+        (set-terminal-coding-system current-coding-system))))
+
+  ;; (terminal-coding-system)
+  ;; (set-terminal-coding-system nil)
+  ;; (char-displayable-p ?⦾)
+
+  ;; (message "%s" (ic/first-displayable-char '(?⦾ ?⦿ ?—)))
+#+END_SRC
+
 #+BEGIN_SRC emacs-lisp
   ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒
   ;; ⌵
@@ -1131,35 +1160,54 @@ Change some characters to unicode icons. Some good icons [[http://csbruce.com/so
   (add-hook 'org-agenda-mode-hook #'ic/org-mode-pretty-symbols)
 #+END_SRC
 
-Here are some fancy symbols:
-⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵
-
-The font matters so here is some in fixed width:
-=⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵=
-
 Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/questions/59882/how-to-change-color-of-font-lock-add-keywords][this]] stack exchange question.
 #+BEGIN_SRC emacs-lisp
   (require 'org-element)
 
-  (setq ic/org-list-icon (propertize "" 'face 'themian-subtle))
+  ;; (setq ic/org-list-icon
+  ;;       (char-to-string (ic/first-displayable-char '(?— ? ?!))))
 
-  (defun org+-match-item-marker (bound)
-    "Match the bullet of itemizations."
+  (defun ic/org-match-unordered-list (bound)
+    "Match an `org-mode' unordered list item."
     (and
-     (re-search-forward "^ *\\(-\\) " bound t)
+     (re-search-forward "^ *\\(-\\|\\+\\) " bound t)
      (save-match-data
        (save-excursion
          (goto-char (match-end 1))
          (eq (org-element-type (org-element-at-point)) 'item)))))
 
-  ;; change list dashes
-  (font-lock-add-keywords
-   'org-mode
-   `((org+-match-item-marker
-      (1
-       '(face default display ,ic/org-list-icon)
-       append)))
-   t)
+  (defun ic/org-match-ordered-list (bound)
+    "Match an `org-mode' ordered list item."
+    (and
+     (re-search-forward (rx bol (zero-or-more " ")
+                            (group (one-or-more (any digit))
+                                   (or "." ")"))
+                            " ")
+                        bound t)
+     (save-match-data
+       (save-excursion
+         (goto-char (match-end 1))
+         (eq (org-element-type (org-element-at-point)) 'item)))))
+
+
+  (defun ic/setup-org-mode-pretties ()
+    "Add some special font locking to display "
+    (let ((list-display-str
+           (propertize (char-to-string (ic/first-displayable-char '(?— ? ?!)))
+                       'face 'themian-subtle)))
+      (font-lock-add-keywords
+       nil
+       ;; change list dashes
+       `((ic/org-match-unordered-list
+          (1 '(face default display ,list-display-str)))
+         (ic/org-match-ordered-list
+          (1 '(face themian-subtle)))
+         )
+       t)))
+
+  ;; (add-hook 'org-mode-hook #'ic/setup-org-mode-pretties)
+
+
 #+END_SRC
 
 XXX what do these do?
