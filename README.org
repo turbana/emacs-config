@@ -3200,6 +3200,8 @@ For numbering and jumping to windows.
 #+BEGIN_SRC emacs-lisp
   (use-package yaml-mode
     :demand t
+    :config
+    (add-to-list 'auto-mode-alist '("\\.ya?ml\\.j2\\'" . yaml-mode))
     )
 #+END_SRC
 
@@ -4176,7 +4178,8 @@ To install all of the above =tree-sitter= grammers we can run the following:
 Because =tree-sitter= needs new major modes (for "reasons"), we can map major mode names to the new major modes.
 #+BEGIN_SRC emacs-lisp
   (setq major-mode-remap-alist
-   '((yaml-mode . yaml-ts-mode)
+        '(
+          ;; (yaml-mode . yaml-ts-mode)
      (bash-mode . bash-ts-mode)
      (js2-mode . js-ts-mode)
      (typescript-mode . typescript-ts-mode)
