@@ -1062,7 +1062,7 @@ Add ability to jump to any org heading with SPC-aoj
                           'outline-previous-heading)))
 #+END_SRC
 
-***** Appearance
+**** Appearance
 Basic heading setup
 #+BEGIN_SRC emacs-lisp
   (setq org-startup-indented t)
@@ -1104,8 +1104,6 @@ The font matters so here is some in fixed width:
 =⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵=
 
 #+BEGIN_SRC emacs-lisp
-  ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵
-
   (defun ic/first-displayable-char (chars)
     "Return the first displayable char from CHARS, `nil' otherwise. This function
   ignores the terminal coding system."
@@ -1118,18 +1116,37 @@ The font matters so here is some in fixed width:
       (unwind-protect
           (-first 'char-displayable-p chars)
         (set-terminal-coding-system current-coding-system))))
-
-  ;; (terminal-coding-system)
-  ;; (set-terminal-coding-system nil)
-  ;; (char-displayable-p ?⦾)
-
-  ;; (message "%s" (ic/first-displayable-char '(?⦾ ?⦿ ?—)))
 #+END_SRC
 
+
 #+BEGIN_SRC emacs-lisp
-  ;; ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒
-  ;; ⌵
-  (setq org-ellipsis " …")
+  (setq org-ellipsis
+        (concat " "
+                (char-to-string
+                 (ic/first-displayable-char
+                 '(? ?…)))))
+
+  (defvar ic/org-list-icon
+    (ic/first-displayable-char '(?— ? ?!)))
+
+  (defvar ic/org-mode-symbol-mapping
+    '(
+      ;; priority cookies are nice, but *very* inconsistent
+      ("[#A]" ? ?Ⓐ)
+      ("[#B]" ? ?Ⓑ)
+      ("[#C]" ? ?Ⓒ)
+      ("[#D]" ? ??)
+      ("[#E]" ? ??)
+      ("[ ]" ?)
+      ("[X]" ?)
+      ("[x]" ?)
+      ("[-]" ?)
+      ("#+BEGIN_SRC" ?λ)
+      ("#+END_SRC"   ?ƛ)
+      ("CLOSED:"    ?)
+      ("SCHEDULED:" ?)
+      ("DEADLINE:"  ?)
+      ))
 
   ;; replace certain org-mode text with symbols
   (defun ic/org-mode-pretty-symbols ()
@@ -1138,24 +1155,12 @@ The font matters so here is some in fixed width:
     ;; don't show the prettified symbol around point
     (setq prettify-symbols-unprettify-at-point t)
     (setq prettify-symbols-alist
-          `(
-            ;; priority cookies are nice, but *very* inconsistent
-            ;; ("[#A]" . ?Ⓐ)
-            ;; ("[#B]" . ?Ⓑ)
-            ;; ("[#C]" . ?Ⓒ)
-            ("[ ]" . ?)
-            ("[X]" . ?)
-            ("[-]" . ?)
-            ("#+BEGIN_SRC" . ?λ)
-            ("#+END_SRC" . ?ƛ)
-            ("CLOSED:" . ?)
-            ("SCHEDULED:" . ?)
-            ("Scheduled:" . ?)
-            ("Sched." . ?)
-            ;; ("TODO" . ?)
-            ("DEADLINE:" . ?)))
-    ;; (print prettify-symbols-alist)
+          (mapcar (lambda (m)
+                    (cons (car m)
+                          (funcall #'ic/first-displayable-char (cdr m))))
+                  ic/org-mode-symbol-mapping))
     (prettify-symbols-mode 1))
+
   (add-hook 'org-mode-hook #'ic/org-mode-pretty-symbols)
   (add-hook 'org-agenda-mode-hook #'ic/org-mode-pretty-symbols)
 #+END_SRC
@@ -1163,9 +1168,6 @@ The font matters so here is some in fixed width:
 Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/questions/59882/how-to-change-color-of-font-lock-add-keywords][this]] stack exchange question.
 #+BEGIN_SRC emacs-lisp
   (require 'org-element)
-
-  ;; (setq ic/org-list-icon
-  ;;       (char-to-string (ic/first-displayable-char '(?— ? ?!))))
 
   (defun ic/org-match-unordered-list (bound)
     "Match an `org-mode' unordered list item."
@@ -1189,25 +1191,33 @@ Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/
          (goto-char (match-end 1))
          (eq (org-element-type (org-element-at-point)) 'item)))))
 
+  (defun ic/org-match-check-boxes (bound)
+    "Math an `org-mode' check box item."
+    (re-search-forward
+     (rx bol "- "
+         (group "[" (any " xX-") "]"))
+     bound t))
 
   (defun ic/setup-org-mode-pretties ()
     "Add some special font locking to display "
     (let ((list-display-str
-           (propertize (char-to-string (ic/first-displayable-char '(?— ? ?!)))
-                       'face 'themian-subtle)))
+           (propertize (char-to-string ic/org-list-icon)
+                       'face 'themian-weak)))
       (font-lock-add-keywords
        nil
-       ;; change list dashes
-       `((ic/org-match-unordered-list
+       `(;; change list dashes
+         (ic/org-match-unordered-list
           (1 '(face default display ,list-display-str)))
+         ;; change ordered lists
          (ic/org-match-ordered-list
-          (1 '(face themian-subtle)))
+          (1 '(face themian-weak)))
+         ;; change check boxes
+         (ic/org-match-check-boxes
+          (1 '(face themian-weak) append))
          )
        t)))
 
-  ;; (add-hook 'org-mode-hook #'ic/setup-org-mode-pretties)
-
-
+  (add-hook 'org-mode-hook #'ic/setup-org-mode-pretties)
 #+END_SRC
 
 XXX what do these do?
