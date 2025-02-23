@@ -1124,17 +1124,17 @@ The font matters so here is some in fixed width:
         (concat " "
                 (char-to-string
                  (ic/first-displayable-char
-                 '(? ?…)))))
+                 '(? ?… ?v)))))
 
   (defvar ic/org-list-icon
-    (ic/first-displayable-char '(?— ? ?!)))
+    (ic/first-displayable-char '(?— ?-)))
 
   (defvar ic/org-mode-symbol-mapping
     '(
       ;; priority cookies are nice, but *very* inconsistent
       ("[#A]" ? ?Ⓐ)
       ("[#B]" ? ?Ⓑ)
-      ("[#C]" ? ?Ⓒ)
+      ("[#C]" ? ?Ⓒ)
       ("[#D]" ? ??)
       ("[#E]" ? ??)
       ("[ ]" ?)
@@ -1146,14 +1146,19 @@ The font matters so here is some in fixed width:
       ("CLOSED:"    ?)
       ("SCHEDULED:" ?)
       ("DEADLINE:"  ?)
+      ("TODO"      ? ?)
+      ("NEXT"      ? ?)
+      ("DONE"      ? ?)
+      ("WAIT"      ?)
+      ("CANCELLED" ?)
       ))
 
   ;; replace certain org-mode text with symbols
   (defun ic/org-mode-pretty-symbols ()
     "Enable `prettify-symbols-mode' and set `prettify-symbols-alist' for certain
   `org-mode' symbols."
-    ;; don't show the prettified symbol around point
-    (setq prettify-symbols-unprettify-at-point t)
+    ;; skip over symbol when editing as these should rarely be manually edited
+    (setq prettify-symbols-unprettify-at-point nil)
     (setq prettify-symbols-alist
           (mapcar (lambda (m)
                     (cons (car m)
