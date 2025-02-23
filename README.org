@@ -335,6 +335,7 @@ Load my custom theme early so if we have errors emacs still looks pretty.
     :straight (themian :type git :host github :repo "turbana/themian")
     :init
     (setq themian-org-mode-variable-pitch t)
+    (setq themian-org-mode-emphasize-todo nil)
     (setq themian--show-unknowns nil)
     (let ((fixed
            (cond (on-old-imac
