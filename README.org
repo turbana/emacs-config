@@ -6550,7 +6550,7 @@ I would like to start keeping a journal.
 
   (defun zetian-journal-week (&optional time)
     "Return the buffer for week's journal"
-    (zetian--journal-buffer "%Y-w%W" "journal-week" time))
+    (zetian--journal-buffer "%Y-w%V" "journal-week" time))
 
   (defun zetian-journal-month (&optional time)
     "Return the buffer for month's journal"
