@@ -577,6 +577,11 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
   (require 'compat)
 #+END_SRC
 
+** emacsql
+#+BEGIN_SRC emacs-lisp
+    (use-package emacsql)
+#+END_SRC
+
 ** flycheck
 #+BEGIN_SRC emacs-lisp
   (use-package flycheck
@@ -1098,6 +1103,7 @@ Because =org-mode= is mostly prose use =buffer-face-mode= (along with setting th
 #+END_SRC
 
 Change some characters to unicode icons. Some good icons [[http://csbruce.com/software/utf-8.html][here]]. See [[*org-bullets][org-bullets]] setup as well.
+
 Here are some fancy symbols:
 ⚫•⦾⦿—⬎⌄⌵↴⤵↘↓↷┅🅐🅑🅒⌵
 
@@ -1118,7 +1124,6 @@ The font matters so here is some in fixed width:
           (-first 'char-displayable-p chars)
         (set-terminal-coding-system current-coding-system))))
 #+END_SRC
-
 
 #+BEGIN_SRC emacs-lisp
   (setq org-ellipsis
@@ -2754,13 +2759,14 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
 #+BEGIN_SRC emacs-lisp
   (use-package org-roam
     :demand t
-    :requires org
+    :requires (org emacsql)
     :init
     (setq org-roam-v2-ack t)
     (setq org-roam-directory (expand-file-name "~/src/roam/"))
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
+    (setq org-roam-database-connector 'sqlite-builtin)
 
     ;; org-id doesn't play well with symlinks, it resolves them by calling
     ;; `file-truename'. This breaks org-roam since files can now live in two
@@ -2773,7 +2779,16 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
         (apply fn args)))
     (advice-add 'org-id-update-id-locations
                 :around #'ic/dont-follow-directory-symlinks)
-
+    
+    ;; org-roam closes a database connection prior to emacsql running a finalizer,
+    ;; also closing it. This advice will ensure the close only occurs once.
+    ;; https://org-roam.discourse.group/t/what-is-responsible-for-this-db-sync-finalizer-failure-message/3567/12
+    (defun patch/emacsql-close (connection &rest args)
+      "Prevent calling emacsql-close if connection handle is nil."
+      (when (oref connection handle)
+        t))
+    (advice-add 'emacsql-close :before-while #'patch/emacsql-close)
+    
     :config
     ;; the org-element cache messes with correct category lookup and seems to
     ;; break org-roam sometimes, so disable it
@@ -4129,6 +4144,7 @@ I would really like to set =display-line-numbers-grow-only= to =t= so that it on
 *** consult-lsp
 #+BEGIN_SRC emacs-lisp
   (use-package consult-lsp
+    :after emacsql
     :bind (:map lsp-mode-map
            ([remap consult-imenu-multi] . #'consult-lsp-symbols)
            :map lsp-command-map
