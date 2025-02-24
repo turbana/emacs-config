@@ -1205,7 +1205,7 @@ Change list items to symbol. Code inspired by [[https://emacs.stackexchange.com/
   (defun ic/org-match-check-boxes (bound)
     "Math an `org-mode' check box item."
     (re-search-forward
-     (rx bol "- "
+     (rx bol (* space) "- "
          (group "[" (any " xX-") "]"))
      bound t))
 
