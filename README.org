@@ -4423,6 +4423,7 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     (zetian-mode--remove-header)
     (remove-hook 'after-save-hook #'zetian-mode--after-save-h)
     (remove-hook 'before-save-hook #'zetian-mode--before-save-h)
+    (remove-hook 'post-command-hook #'zetian--post-command-hook)
     (remove-hook 'change-major-mode-hook #'zetian-mode--cmmh))
 
   (define-derived-mode zetian-mode org-mode "zetian-mode"
