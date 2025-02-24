@@ -3352,6 +3352,13 @@ For numbering and jumping to windows.
   (add-hook 'Info-mode-hook 'variable-pitch-mode)
 #+END_SRC
 
+** dired-mode
+#+BEGIN_SRC emacs-lisp
+  ;; when viewing multiple directories (with `i') movement should be over the dead
+  ;; heading lines
+  (setq dired-movement-style 'bounded)
+#+END_SRC
+
 ** lisp-mode
 Setup tab width.
 #+BEGIN_SRC emacs-lisp
@@ -7019,6 +7026,7 @@ XXX should these go in an override map?
    "P" 'ic/paste-clipboard-to-buffer
    "R" 'revert-buffer
    "s" 'ic/switch-to-scratch-buffer
+   "S" 'tramp-revert-buffer-with-sudo
    "w" 'read-only-mode
    "Y" 'ic/yank-buffer-to-clipboard)
 #+END_SRC
