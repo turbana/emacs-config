@@ -1126,14 +1126,20 @@ The font matters so here is some in fixed width:
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
-  (setq org-ellipsis
-        (concat " "
-                (char-to-string
-                 (ic/first-displayable-char
-                 '(? ?… ?v)))))
+  (defvar ic/org-list-icon ?-)
 
-  (defvar ic/org-list-icon
-    (ic/first-displayable-char '(?— ?-)))
+  (defun ic//setup-org-mode-icons ()
+    "Setup pretty org-mode icons.
+  Should be run as part of `server-after-make-frame-hook' as the frame needs to be
+    loaded for some of the icons to be loaded."
+    (setq org-ellipsis
+          (concat " "
+                  (char-to-string
+                   (ic/first-displayable-char
+                    '(? ?… ?v)))))
+    (setq ic/org-list-icon
+          (ic/first-displayable-char `(?— ,ic/org-list-icon))))
+  (add-hook 'server-after-make-frame-hook #'ic//setup-org-mode-icons)
 
   (defvar ic/org-mode-symbol-mapping
     '(
