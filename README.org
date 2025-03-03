@@ -980,6 +980,136 @@ I want to be able to save a TODO item for the current email and archive in one s
   (define-key mu4e-view-mode-map "a" #'mu4e-view-mark-for-refile)
   (define-key mu4e-view-mode-map "r" #'ic//org-capture-email)
 #+END_SRC
+** org-bullets
+Let's have some fancy heading bullets.
+#+BEGIN_SRC emacs-lisp
+  (use-package org-bullets
+    :config
+    (setq org-bullets-bullet-list '("•"))
+    :hook (org-mode . org-bullets-mode))
+#+END_SRC
+
+** org-caldav
+I'd like to keep my google calendar in-sync with =org-mode=.
+#+BEGIN_SRC emacs-lisp
+  (use-package oauth2)
+  ;; (use-package oauth2-auto)
+
+  (use-package org-caldav
+    :demand t
+    :after (org oauth2 org-roam)
+    :config
+    ;; setup calendar from secrets file
+    ;; (setq org-caldav-url (ic/get-secret "calendar.personal.url"))
+    ;; (setq org-caldav-calendar-id (ic/get-secret "calendar.personal.id"))
+
+    ;; new calendar entries should go in the right inbox
+    ;; (setq org-caldav-inbox org-default-notes-file)
+    ;; use zetian task list for the calendar
+    ;; (setq org-caldav-files (list (concat org-roam-directory "special/zetian-tasks.org")))
+    ;; (setq org-caldav-files org-id-files)
+
+    ;; testing
+    (setq org-caldav-oauth2-client-id (ic/get-secret "email.personal.client-id"))
+    (setq org-caldav-oauth2-client-secret (ic/get-secret "email.personal.client-secret"))
+    (setq org-caldav-url 'google)
+    (setq org-caldav-calendar-id (ic/get-secret "email.personal.calendar-id"))
+    (setq org-caldav-inbox "~/org/test.org")
+    (setq org-caldav-files nil)
+
+
+    ;; setup authinfo
+    (setq epg-pinentry-mode 'loopback)
+    (setq plstore-cache-passphrase-for-symmetric-encryption t)
+
+    ;; work mostly silently, but ask before deleting org entries
+    (setq org-caldav-show-sync-results nil)
+    (setq org-caldav-delete-org-entries 'ask)
+    (setq org-caldav-delete-calendar-entries 'always)
+
+    ;; setup how timestamps are used and silence extra title prefixes
+    (setq org-icalendar-use-scheduled
+          '(event-if-todo-not-done event-if-not-todo))
+    (setq org-icalendar-use-deadline
+          '(todo-due event-if-todo-not-done event-if-not-todo))
+    (setq org-icalendar-scheduled-summary-prefix "")
+    (setq org-icalendar-deadline-summary-prefix "")
+    (setq org-icalendar-include-sexps nil)
+
+    ;; `org-id-files' seems to get polluted with both expanded and non-expanded
+    ;; file names, so clean it up before calling `org-caldav-sync'.
+    (defun ic/calendar-sync ()
+      "Sync org calendars with cloud."
+      (interactive)
+      ;; do not evaluate babel blocks
+      (let ((org-export-use-babel nil))
+        ;; update roam files
+        (org-roam-update-org-id-locations)
+        ;; clean up `org-id-files'
+        (ic/clean-org-id-locations)
+        ;; do the actual sync
+        (org-caldav-sync)))
+    )
+
+  (defun ic/clean-org-id-locations ()
+    "Expand and de-duplicate all entries `org-id-files'."
+    (interactive)
+    (let ((new-list))
+      (dolist (elem org-id-files)
+        (add-to-list 'new-list (expand-file-name elem)))
+      (setq org-id-files new-list)
+      (setq org-caldav-files new-list)))
+
+  (defun ic/org-lint-all-files ()
+    "Run `org-lint' across all `org-id-files'."
+    (interactive)
+    (ic/clean-org-id-locations)
+    (save-excursion
+      (let ((error-count 0))
+        (dolist (file org-id-files)
+          (with-current-buffer (find-file-noselect file)
+            (when-let (lints (org-lint))
+              (setq error-count (1+ error-count))
+              (message "Lint error(s) in %s" file)
+              (dolist (lint lints)
+                (message (nth 2 (append (cadr lint) nil)))))))
+        (when (> 0 error-count)
+          (message "%d files with lint errors"))
+        error-count)))
+#+END_SRC
+
+On first run we need to setup authentication.
+#+BEGIN_SRC emacs-lisp :tangle no
+  (setq epg-pinentry-mode 'loopback)
+  (setq plstore-cache-passphrase-for-symmetric-encryption t)
+
+  (setq oauth2-auto-plstore "/home/ian/src/emacs/oauth2.plstore")
+  (setq oauth2-auto-google-client-id (ic/get-secret "email.personal.client-id"))
+  (setq oauth2-auto-google-client-secret (ic/get-secret "email.personal.client-secret"))
+  (oauth2-auto-access-token-sync "turbana@gmail.com" 'google)
+#+END_SRC
+** org-gcal
+I'd like to keep my google calendar in-sync with =org-mode=.
+#+BEGIN_SRC emacs-lisp
+  (use-package org-gcal
+    :init
+    (setq org-gcal-client-id (ic/get-secret "email.personal.client-id"))
+    (setq org-gcal-client-secret (ic/get-secret "email.personal.client-secret"))
+    ;; (org-gcal-reload-client-id-secret)
+    (setq org-gcal-fetch-file-alist
+          `((,(ic/get-secret "email.personal.calendar-id") . "~/src/roam/special/zetian-calendar.org"
+             )))
+
+    ;; auto delete org headings when deleted from gcal
+    (setq org-gcal-remove-cancelled-events t)
+    (setq org-gcal-remove-cancelled-events t)
+  
+    ;; don't reprompt for credentials
+    (setq epg-pinentry-mode 'loopback)
+    (setq plstore-cache-passphrase-for-symmetric-encryption t)
+    )
+#+END_SRC
+
 ** org-mode
 =org-mode= is a large part of my daily emacs usage so it takes a large amount of my configuration as well. Let's go...
 
@@ -2625,139 +2755,16 @@ Here I have some custom normal mode navigation.
       )
 #+END_SRC
 
-** org-bullets
-Let's have some fancy heading bullets.
-#+BEGIN_SRC emacs-lisp
-  (use-package org-bullets
-    :config
-    (setq org-bullets-bullet-list '("•"))
-    :hook (org-mode . org-bullets-mode))
-#+END_SRC
-
-** org-gcal
-I'd like to keep my google calendar in-sync with =org-mode=.
-#+BEGIN_SRC emacs-lisp
-  (use-package org-gcal
-    :init
-    (setq org-gcal-client-id (ic/get-secret "email.personal.client-id"))
-    (setq org-gcal-client-secret (ic/get-secret "email.personal.client-secret"))
-    ;; (org-gcal-reload-client-id-secret)
-    (setq org-gcal-fetch-file-alist
-          `((,(ic/get-secret "email.personal.calendar-id") . "~/src/roam/special/zetian-calendar.org"
-             )))
-
-    ;; auto delete org headings when deleted from gcal
-    (setq org-gcal-remove-cancelled-events t)
-    (setq org-gcal-remove-cancelled-events t)
-  
-    ;; don't reprompt for credentials
-    (setq epg-pinentry-mode 'loopback)
-    (setq plstore-cache-passphrase-for-symmetric-encryption t)
-    )
-#+END_SRC
-
-** org-caldav
-I'd like to keep my google calendar in-sync with =org-mode=.
-#+BEGIN_SRC emacs-lisp
-  (use-package oauth2)
-  ;; (use-package oauth2-auto)
-
-  (use-package org-caldav
-    :demand t
-    :after (org oauth2 org-roam)
-    :config
-    ;; setup calendar from secrets file
-    ;; (setq org-caldav-url (ic/get-secret "calendar.personal.url"))
-    ;; (setq org-caldav-calendar-id (ic/get-secret "calendar.personal.id"))
-
-    ;; new calendar entries should go in the right inbox
-    ;; (setq org-caldav-inbox org-default-notes-file)
-    ;; use zetian task list for the calendar
-    ;; (setq org-caldav-files (list (concat org-roam-directory "special/zetian-tasks.org")))
-    ;; (setq org-caldav-files org-id-files)
-
-    ;; testing
-    (setq org-caldav-oauth2-client-id (ic/get-secret "email.personal.client-id"))
-    (setq org-caldav-oauth2-client-secret (ic/get-secret "email.personal.client-secret"))
-    (setq org-caldav-url 'google)
-    (setq org-caldav-calendar-id (ic/get-secret "email.personal.calendar-id"))
-    (setq org-caldav-inbox "~/org/test.org")
-    (setq org-caldav-files nil)
-
-
-    ;; setup authinfo
-    (setq epg-pinentry-mode 'loopback)
-    (setq plstore-cache-passphrase-for-symmetric-encryption t)
-
-    ;; work mostly silently, but ask before deleting org entries
-    (setq org-caldav-show-sync-results nil)
-    (setq org-caldav-delete-org-entries 'ask)
-    (setq org-caldav-delete-calendar-entries 'always)
-
-    ;; setup how timestamps are used and silence extra title prefixes
-    (setq org-icalendar-use-scheduled
-          '(event-if-todo-not-done event-if-not-todo))
-    (setq org-icalendar-use-deadline
-          '(todo-due event-if-todo-not-done event-if-not-todo))
-    (setq org-icalendar-scheduled-summary-prefix "")
-    (setq org-icalendar-deadline-summary-prefix "")
-    (setq org-icalendar-include-sexps nil)
-
-    ;; `org-id-files' seems to get polluted with both expanded and non-expanded
-    ;; file names, so clean it up before calling `org-caldav-sync'.
-    (defun ic/calendar-sync ()
-      "Sync org calendars with cloud."
-      (interactive)
-      ;; do not evaluate babel blocks
-      (let ((org-export-use-babel nil))
-        ;; update roam files
-        (org-roam-update-org-id-locations)
-        ;; clean up `org-id-files'
-        (ic/clean-org-id-locations)
-        ;; do the actual sync
-        (org-caldav-sync)))
-    )
-
-  (defun ic/clean-org-id-locations ()
-    "Expand and de-duplicate all entries `org-id-files'."
-    (interactive)
-    (let ((new-list))
-      (dolist (elem org-id-files)
-        (add-to-list 'new-list (expand-file-name elem)))
-      (setq org-id-files new-list)
-      (setq org-caldav-files new-list)))
-
-  (defun ic/org-lint-all-files ()
-    "Run `org-lint' across all `org-id-files'."
-    (interactive)
-    (ic/clean-org-id-locations)
-    (save-excursion
-      (let ((error-count 0))
-        (dolist (file org-id-files)
-          (with-current-buffer (find-file-noselect file)
-            (when-let (lints (org-lint))
-              (setq error-count (1+ error-count))
-              (message "Lint error(s) in %s" file)
-              (dolist (lint lints)
-                (message (nth 2 (append (cadr lint) nil)))))))
-        (when (> 0 error-count)
-          (message "%d files with lint errors"))
-        error-count)))
-#+END_SRC
-
-On first run we need to setup authentication.
-#+BEGIN_SRC emacs-lisp :tangle no
-  (setq epg-pinentry-mode 'loopback)
-  (setq plstore-cache-passphrase-for-symmetric-encryption t)
-
-  (setq oauth2-auto-plstore "/home/ian/src/emacs/oauth2.plstore")
-  (setq oauth2-auto-google-client-id (ic/get-secret "email.personal.client-id"))
-  (setq oauth2-auto-google-client-secret (ic/get-secret "email.personal.client-secret"))
-  (oauth2-auto-access-token-sync "turbana@gmail.com" 'google)
-#+END_SRC
 ** org-protocol
 #+BEGIN_SRC emacs-lisp
   (require 'org-protocol)
+#+END_SRC
+
+** org-ql
+Let's try having a nice search interface for =org-mode=.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org-ql)
 #+END_SRC
 
 ** org-roam
@@ -2920,11 +2927,15 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     )
 #+END_SRC
 
-** org-ql
-Let's try having a nice search interface for =org-mode=.
-
+** org-tidy
+"Tidy" up property drawers by hiding them and placing an icon in the fringe.
 #+BEGIN_SRC emacs-lisp
-  (use-package org-ql)
+  (use-package org-tidy
+    :ensure t
+    :hook
+    (org-mode . org-tidy-mode)
+    :config
+    (setq org-tidy-properties-style 'fringe))
 #+END_SRC
 
 ** org-transclusion
