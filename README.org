@@ -4305,7 +4305,8 @@ My personal 2nd brain implemented in =org-roam=.
 
   (setq zetian-tasks-file (concat zetian-special-dir "zetian-tasks.org"))
   (setq zetian-people-file (concat zetian-special-dir "zetian-people.org"))
-  (setq zetian-tasks-archive-file (concat zetian-special-dir "zetian-tasks-archive.org"))
+  (setq zetian-tasks-archive-file-fmt
+        (concat zetian-special-dir "task-archive-%Y.org"))
 
   (defconst zetian--type-cookie "_type_"
     "The prefix used for org-mode tags denoting a zetian type.")
@@ -6193,11 +6194,12 @@ I want any completed task to be moved out of it's current file and into an archi
                        (lambda (n1 n2)
                          (< (org-roam-node-point n2)
                             (org-roam-node-point n1))))))
-      (mapc #'zetian-archive-task nodes)
-      (with-current-buffer (find-file-noselect zetian-tasks-file)
-        (save-buffer))
-      (with-current-buffer (find-file-noselect zetian-tasks-archive-file)
-        (save-buffer))
+      (let ((touched-files (mapcar #'zetian-archive-task nodes)))
+        (mapc (lambda (file)
+                (with-current-buffer (find-file-noselect file)
+                  (save-buffer)))
+              (cons zetian-tasks-file
+                    (-uniq touched-files))))
       (message "archived %d tasks" (length nodes))))
 
   (defun zetian-archive-task (node)
@@ -6206,14 +6208,40 @@ I want any completed task to be moved out of it's current file and into an archi
       (with-current-buffer
           (find-file-noselect (org-roam-node-file node))
         (goto-char (org-roam-node-point node))
-        (let ((org-log-refile nil))
-          (org-refile nil nil (list "" zetian-tasks-archive-file nil 1)))
-        (save-window-excursion
-          (org-refile-goto-last-stored)
-          (org-entry-put
-           nil "ARCHIVED_ON" (with-temp-buffer
-                               (org-time-stamp-inactive '(16))
-                               (buffer-string)))))))
+        (let* ((org-log-refile nil)
+               (org-refile-allow-creating-parent-nodes t)
+               (props (org-roam-node-properties node))
+               (closed (org-matcher-time (cdr (assoc "CLOSED" props))))
+               (archive-file (zetian--get-archive-file closed)))
+          (org-refile nil nil (list "" archive-file nil 1))
+          (save-window-excursion
+            (org-refile-goto-last-stored)
+            (org-entry-put
+             nil "ARCHIVED_ON" (with-temp-buffer
+                                 (org-time-stamp-inactive '(16))
+                                 (buffer-string))))
+          archive-file))))
+
+  (defun zetian--get-archive-file (ts)
+    "Return the filename of the archive valid for TS, creating it if necessary."
+    (let ((file (format-time-string zetian-tasks-archive-file-fmt ts)))
+      (unless (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (insert (concat ":PROPERTIES:\n"
+                          ":ID: " (org-id-new) "\n"
+                          ":END:\n"
+                          "#+title: Archive of tasks for "
+                          (format-time-string "%Y" ts) "\n"
+                          "#+filetags: :_type_task:HOME:archive:\n"
+                          "#+startup: all\n"
+                          "\n"
+                          "This is an archive of my completed tasks. All nodes in here should have the =archive= tag and /not/ an =agenda= tag. This will keep them out of zetian and org-agenda.
+  "
+                          "\n"))
+          ;; we need to save the file before `org-refile' runs or it will create a
+          ;; minibuffer prompt
+          (save-buffer)))
+      file))
 #+END_SRC
 
 *** Linter
