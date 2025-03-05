@@ -6782,7 +6782,7 @@ I would like to start keeping a journal.
 I would like to export my zetian graph into a suitable format for viewing on mobile. My intention is to first export all the currently open agenda tasks into a json file for viewing with a html file. After that, I plan on creating an export for permanent notes into static html files.
 
 #+BEGIN_SRC emacs-lisp
-  (defconst zetian-export-dir "/mnt/c/Sync/zetian/")
+  (defconst zetian-export-dir "/mnt/c/Data/www/zetian/")
 #+END_SRC
 
 **** Agenda
