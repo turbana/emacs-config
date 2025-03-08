@@ -1138,6 +1138,7 @@ I'd like to keep my google calendar in-sync with =org-mode=.
     "Default org file for work related items.")
   (defvar org-default-file (if at-home org-home-file org-work-file)
     "Default org file.")
+  (defvar org-bookmark-file "~/src/roam/special/bookmarks.org")
   (setq org-default-notes-file
         (if at-home "~/org/home/inbox.org" "~/org/inbox.org"))
   (setq org-agenda-files
@@ -1905,7 +1906,14 @@ Create a log on certain state changes inside the =LOGBOOK= drawer.
           ("R" "recipe" entry (file org-default-notes-file)
            "* %^{name}\n:PROPERTIES:\n:SOURCE: %^{source}\n:SERVINGS: %^{servings}\n:END:\n%U\n** Ingredients\n- %?\n** Steps\n-\n** Notes")
           ("J" "job" entry (file org-default-notes-file)
-           "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")))
+           "* TOAPPLY %^{company} - %^{title}\n%U\n[[%^{url}][Submission]]\n%?\n** Description\n%^{description}\n** Contact Info\n** Log\n")
+          
+          ;; org-protocol handlers
+          ;; Note: `ic//captured-*' variables are bound in `zetian-protocol-bookmark'.
+          ("B" "bookmark" entry (file org-bookmark-file)
+           "* [[%(identity ic//captured-url)][%(identity ic//captured-title)]] :%^g:\n%(concat ic//captured-body \"\n\")"
+           :immediate-finish t)
+          ))
 #+END_SRC
 
 ***** Books
@@ -2237,7 +2245,7 @@ Finally, call ~(delete-frame)~ after the capture is finalized.
 
   (defun ic/maybe-org-capture-delete-frame ()
     "Close the frame when finalizing an external org-capture"
-    (when (equal "OrgCapture" (frame-parameter nil 'name))
+    (when (equal "Org Capture" (frame-parameter nil 'name))
       (delete-frame)))
   (add-hook 'org-capture-after-finalize-hook #'ic/maybe-org-capture-delete-frame)
 #+END_SRC
@@ -4247,10 +4255,18 @@ When we're on a mac and we have GNU =ls= installed (=gls=): use that as our =dir
 #+END_SRC
 
 ** Start maximized 
-I want every frame to start maximized by default.
+I want every frame to start maximized by default. The problem is I used to set =default-frame-alist= to do so, but I also want to pop up capture windows using =org-protocol= and I /don't/ want those frame maximized. =default-frame-alist= works on all frames.
+
+To get around this I'll use a hook to check the name of the newly created frame and maximize any non-capture frames. Note: the frame title is set in either the =.desktop= file (on linux) or =org-protocol-windows.reg= (on windows).
 
 #+BEGIN_SRC emacs-lisp
-  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+  (defun ic/maybe-maximize-frame (frame)
+    "Maximize any non-capture frames."
+    (unless (equal "Org Capture" (frame-parameter frame 'name))
+      (toggle-frame-maximized frame)))
+
+  (add-hook 'after-make-frame-functions #'ic/maybe-maximize-frame)
+  (ic/maybe-maximize-frame (selected-frame))
 #+END_SRC
 
 ** Tree Sitter
@@ -4291,7 +4307,6 @@ Because =tree-sitter= needs new major modes (for "reasons"), we can map major mo
      (css-mode . css-ts-mode)
      (python-mode . python-ts-mode)))
 #+END_SRC
-
 
 ** Zetian
 My personal 2nd brain implemented in =org-roam=.
@@ -4613,6 +4628,13 @@ Setup how things will look when viewing a list of tasks.
                      "\n%?"))
            :target ,people-target
            :empty-lines-before 1)
+
+          ;; NOTE: `ic//captured-url' is bound in `zetian-protocol-ref'.
+          ("R" "reference note" plain ""
+           :target ,(zetian--capture-template
+                     :type "ref" :file-tags ":review:"
+                     :tail "\n\n[[%(identity ic//captured-url)][Source]]\n\n")
+           :immediate-finish t)
           )))
 
   (defun zetian-capture-select-template ()
@@ -6820,6 +6842,65 @@ I would like to export my zetian graph into a suitable format for viewing on mob
           (effort (or (cdr (assoc "EFFORT" (org-roam-node-properties node))) "")))
       (format "{\"title\":\"%s\",\"state\":\"%s\",\"scheduled\":\"%s\",\"deadline\":\"%s\",\"priority\":\"%s\",\"effort\":\"%s\",\"id\":\"%s\"}"
               title state scheduled deadline priority effort id)))
+#+END_SRC
+
+*** org-protocol
+I want to be able to store both bookmarks and reference notes from anywhere (firefox mostly) so I will register two new =org-protocol= endpoints.
+
+This is the firefox bookmark used for capturing reference notes:
+#+BEGIN_EXAMPLE
+  javascript:location.href = 'org-protocol://zetian-ref?' + new URLSearchParams({url: location.href, title: document.title, body: window.getSelection()});void(0)
+#+END_EXAMPLE
+
+And this is for capturing bookmarks:
+#+BEGIN_EXAMPLE
+  javascript:location.href = 'org-protocol://zetian-bookmark?' + new URLSearchParams({url: location.href, title: document.title, body: window.getSelection()});void(0)
+#+END_EXAMPLE
+
+See the file =org-protocol-windows.reg= for registering =org-protocol= in windows under WSL.
+
+#+BEGIN_SRC emacs-lisp
+  ;; defined some dynamically bound variables so we can reference them in the
+  ;; capture template string
+  (defvar ic//captured-url)
+  (defvar ic//captured-title)
+  (defvar ic//captured-body)
+
+
+  (defun zetian-protocol-ref (data)
+    (let ((ic//captured-url (plist-get data :url))
+          (title (format "refnote - %s"
+                         (plist-get data :title)))
+          (body (string-replace "\r" "" (plist-get data :body))))
+      (zetian-node-find
+       (zetian-node-create title "R"))
+      (goto-char (point-max))
+      (unless (string-empty-p body)
+        (insert (format "\n#+BEGIN_QUOTE\n%s\n#+END_QUOTE\n\n" body))
+        (basic-save-buffer))))
+
+  (add-to-list 'org-protocol-protocol-alist
+               '("zetian-ref" :protocol "zetian-ref"
+                 :function zetian-protocol-ref))
+
+
+  (defun zetian-protocol-bookmark (data)
+    (let* ((ic//captured-url (plist-get data :url))
+           (ic//captured-title (plist-get data :title))
+           (ic//captured-body (string-replace "\r" "" (plist-get data :body)))
+           (org-capture-initial ic//captured-body)
+           (org-capture-entry (org-capture-select-template "B")))
+      (unwind-protect
+          ;; don't let org-mode split the window
+          (cl-letf (((symbol-function #'switch-to-buffer-other-window)
+                     #'switch-to-buffer))
+            (org-capture))
+        (when (equal "Org Capture" (frame-parameter nil 'name))
+          (delete-frame)))))
+
+  (add-to-list 'org-protocol-protocol-alist
+               '("zetian-bookmark" :protocol "zetian-bookmark"
+                 :function zetian-protocol-bookmark))
 #+END_SRC
 
 ** Beeping
