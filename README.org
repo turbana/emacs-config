@@ -980,6 +980,24 @@ I want to be able to save a TODO item for the current email and archive in one s
   (define-key mu4e-view-mode-map "a" #'mu4e-view-mark-for-refile)
   (define-key mu4e-view-mode-map "r" #'ic//org-capture-email)
 #+END_SRC
+** org-appear
+=org-appear= toggles the visibility of hidden =org-mode= elements. I would like them to only be visible while in =meow-mode='s insert mode. =org-appear= lets us manually toggle it's state, so setup a hook to toggle it when we're in an =org-mode= buffer and we enter/exit insert mode.
+
+#+BEGIN_SRC emacs-lisp
+  (use-package org-appear
+    :after (org)
+    :init
+    (defun ic//setup-org-appear-hooks ()
+      (org-appear-mode 1)
+      (add-hook 'meow-insert-enter-hook #'org-appear-manual-start nil t)
+      (add-hook 'meow-insert-exit-hook #'org-appear-manual-stop nil t))
+    :config
+    (setq org-appear-autolinks t)
+    (setq org-appear-autoentities t)
+    (setq org-appear-trigger 'manual)
+    :hook (org-mode . ic//setup-org-appear-hooks))
+#+END_SRC
+
 ** org-bullets
 Let's have some fancy heading bullets.
 #+BEGIN_SRC emacs-lisp
