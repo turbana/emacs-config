@@ -5460,7 +5460,9 @@ I use =type_FOO= tags to denote /what/ a =zetian= node is. I'll need a pair of f
           (if (= 1 (length types))
               (string-remove-prefix zetian--type-cookie (car types))
             (error "More than one type found on node.")))
-      (error "No states found on node.")))
+      (error (format "No states found on node: %s"
+                     (substring-no-properties
+                      (org-roam-node-title node))))))
 #+END_SRC
 
 *** Last Modified
