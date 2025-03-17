@@ -5275,6 +5275,11 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (def-zetian-query unscheduled-chores
     `(and ,zetian-query-open-chores
           (scheduled none)))
+
+  (def-zetian-query tag-targets
+    `(or ,zetian-query-permanent
+         ,zetian-query-project
+         ,zetian-query-area))
 #+END_SRC
 
 *** Search for search functions
@@ -5640,7 +5645,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
           (removing (equal arg '(4))))
       (when-let ((node (if removing
                            (zetian-completing-read tags)
-                         (zetian-search zetian-query-permanent
+                         (zetian-search zetian-query-tag-targets
                                         "add tag" t))))
         (setq tags (if removing
                        (delete node tags)
