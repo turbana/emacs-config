@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: org example source block
+# key: E>
+# --
+#+BEGIN_EXAMPLE
+$0
+#+END_EXAMPLE
