@@ -6629,10 +6629,11 @@ I would like to start keeping a journal.
           (yas-expand-snippet
            (yas-lookup-snippet template-name 'org-mode)
            nil nil `((time ',time)))
-          (goto-char (point-min))
-          (org-id-get-create)
-          (save-buffer)
-          (zetian-mode)
+          (save-excursion
+            (goto-char (point-min))
+            (org-id-get-create)
+            (save-buffer)
+            (zetian-mode))
           (current-buffer)))))
 
 

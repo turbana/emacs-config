@@ -25,7 +25,7 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
 | weight lost  |     |     |     |     |     |     |     |
 
 * Meal Plan
-- Monday :: 
+- Monday :: $0
 - Tuesday :: 
 - Wednesday :: 
 - Thursday ::
