@@ -3587,6 +3587,8 @@ Try and keep the =user-emacs-directory= somewhat clean.
   (setq transient-levels-file (concat user-cache-directory "transient-levels.el"))
   (setq bookmark-default-file (concat user-cache-directory "bookmarks"))
   (setq tramp-persistency-file-name (concat user-cache-directory "tramp"))
+  (setq ic/treesit-install-path (concat user-cache-directory "tree-sitter"))
+  (setq treesit-extra-load-path (list ic/treesit-install-path))
 
   ;; cache/{backups,auto-saves}
   (let ((backup-dir (concat user-cache-directory "backups/"))
@@ -4315,16 +4317,15 @@ Then we need to install any un-installed grammars and setup a function to update
   (defun ic/treesit-install-grammars ()
     "Install any un-installed `tree-sitter' grammars."
     (interactive)
-    (mapc (lambda (grammar)
-            (unless (treesit-language-available-p grammar)
-              (treesit-install-language-grammar grammar)))
-          (mapcar #'car treesit-language-source-alist)))
+    (dolist (def treesit-language-source-alist)
+      (unless (treesit-language-available-p (car def))
+        (treesit-install-language-grammar (car def) ic/treesit-install-path))))
 
   (defun ic/treesit-update-grammars ()
     "Install or update all `tree-sitter' grammars."
     (interactive)
-    (mapc #'treesit-install-language-grammar
-          (mapcar #'car treesit-language-source-alist)))
+    (dolist (def treesit-language-source-alist)
+      (treesit-install-language-grammar (car def) ic/treesit-install-path)))
 
   (ic/treesit-install-grammars)
 #+END_SRC
