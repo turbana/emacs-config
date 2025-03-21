@@ -7303,8 +7303,11 @@ Profiler bindings.
    :infix "i"
    "" '(nil :which-key "insert")
    ;; "8" 'helm-ucs
+   "b" 'insert-buffer
    "c" 'insert-char
-   )
+   "e" 'emoji-insert
+   "f" 'insert-file
+   "r" 'insert-register)
 #+END_SRC
 
 ** j :: jump
