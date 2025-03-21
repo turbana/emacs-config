@@ -618,7 +618,6 @@ This is to support editing =KMonad= =.*kbd= files.
 #+END_SRC
 
 ** lsp
-*** config
 #+BEGIN_SRC emacs-lisp
   (use-package lsp-mode
     :demand t
@@ -638,7 +637,10 @@ This is to support editing =KMonad= =.*kbd= files.
 
     :hook
     ((lsp-mode . lsp-enable-which-key-integration)
-     (csharp-mode . lsp))
+     (csharp-mode . lsp)
+     (json-ts-mode . lsp)
+     (tsx-ts-mode . lsp)
+     (typescript-ts-mode . lsp))
 
     :general
     (local-leader-keys
@@ -4288,42 +4290,73 @@ To get around this I'll use a hook to check the name of the newly created frame 
 #+END_SRC
 
 ** Tree Sitter
+Most of this config was taken liberally from [[https://www.masteringemacs.org/article/how-to-get-started-tree-sitter][Mastering Emacs]].
+
+First we need to setup some grammar sources.
 #+BEGIN_SRC emacs-lisp
-  ;; taken from: https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
   (setq treesit-language-source-alist
-     '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-       (cmake "https://github.com/uyha/tree-sitter-cmake")
-       (css "https://github.com/tree-sitter/tree-sitter-css")
-       (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-       (go "https://github.com/tree-sitter/tree-sitter-go")
-       (html "https://github.com/tree-sitter/tree-sitter-html")
-       (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-       (json "https://github.com/tree-sitter/tree-sitter-json")
-       (make "https://github.com/alemuller/tree-sitter-make")
-       (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-       (python "https://github.com/tree-sitter/tree-sitter-python")
-       (toml "https://github.com/tree-sitter/tree-sitter-toml")
-       (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-       (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-       (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+    '((css . ("https://github.com/tree-sitter/tree-sitter-css"))
+      (bash "https://github.com/tree-sitter/tree-sitter-bash")
+      (html . ("https://github.com/tree-sitter/tree-sitter-html"))
+      (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
+      (json . ("https://github.com/tree-sitter/tree-sitter-json"))
+      (python . ("https://github.com/tree-sitter/tree-sitter-python"))
+      (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+      (make "https://github.com/alemuller/tree-sitter-make")
+      (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+      (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src"))
+      (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src"))
+      (yaml . ("https://github.com/ikatyang/tree-sitter-yaml"))
+      ))
 #+END_SRC
 
-To install all of the above =tree-sitter= grammers we can run the following:
+Then we need to install any un-installed grammars and setup a function to update them all.
 #+BEGIN_SRC emacs-lisp
-  ;; (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))
+  (defun ic/treesit-install-grammars ()
+    "Install any un-installed `tree-sitter' grammars."
+    (interactive)
+    (mapc (lambda (grammar)
+            (unless (treesit-language-available-p grammar)
+              (treesit-install-language-grammar grammar)))
+          (mapcar #'car treesit-language-source-alist)))
+
+  (defun ic/treesit-update-grammars ()
+    "Install or update all `tree-sitter' grammars."
+    (interactive)
+    (mapc #'treesit-install-language-grammar
+          (mapcar #'car treesit-language-source-alist)))
+
+  (ic/treesit-install-grammars)
 #+END_SRC
 
-Because =tree-sitter= needs new major modes (for "reasons"), we can map major mode names to the new major modes.
+Next we need to make the non-ts major-modes to their treesitter equivalent. Just in case we load the non-ts mode.
 #+BEGIN_SRC emacs-lisp
-  (setq major-mode-remap-alist
-        '(
-          ;; (yaml-mode . yaml-ts-mode)
-     (bash-mode . bash-ts-mode)
-     (js2-mode . js-ts-mode)
-     (typescript-mode . typescript-ts-mode)
-     (json-mode . json-ts-mode)
-     (css-mode . css-ts-mode)
-     (python-mode . python-ts-mode)))
+  (dolist (mapping
+           '((css-mode . css-ts-mode)
+             (js-json-mode . json-ts-mode)
+             (js-mode . typescript-ts-mode)
+             (js2-mode . typescript-ts-mode)
+             (json-mode . json-ts-mode)
+             (python-mode . python-ts-mode)
+             (typescript-mode . typescript-ts-mode)
+             (yaml-mode . yaml-ts-mode)
+             ))
+    (add-to-list 'major-mode-remap-alist mapping))
+#+END_SRC
+
+** File Extension to Major Mode Mapping
+I want to add some custom file mappings, mostly for =tree-sitter= modes.
+
+#+BEGIN_SRC emacs-lisp
+  (dolist (mapping '(("\\.tsx\\'" . tsx-ts-mode)
+                     ("\\.jsx\\'" . tsx-ts-mode)
+                     ("\\.js\\'"  . typescript-ts-mode)
+                     ("\\.mjs\\'" . typescript-ts-mode)
+                     ("\\.mts\\'" . typescript-ts-mode)
+                     ("\\.cjs\\'" . typescript-ts-mode)
+                     ("\\.ts\\'"  . typescript-ts-mode)
+                     ("\\.json\\'" . json-ts-mode)))
+    (add-to-list 'auto-mode-alist mapping))
 #+END_SRC
 
 ** Zetian
