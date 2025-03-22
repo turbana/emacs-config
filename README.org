@@ -382,6 +382,8 @@ Load my custom theme early so if we have errors emacs still looks pretty.
              'themian-dark)
            t))))
 
+    ;; use extra `tree-sitter' faces
+    (customize-set-variable 'treesit-font-lock-level 4)
     ;; set initial theme on frame create
     (add-hook 'after-make-frame-functions 'themian--load-theme-on-frame-create)
     ;; try to set initial theme now
