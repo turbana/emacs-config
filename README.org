@@ -2436,10 +2436,14 @@ I want to hit =M-RET= from either insert or normal mode and insert a new list it
   (defun ic/org-insert-item-dwim ()
     "Insert an org item, with optional checkbox, below current item."
     (interactive)
-    (when-let (item-pos (org-in-item-p))
-      (goto-char item-pos)
+    (cond
+     ((org-in-item-p)
+      (goto-char (org-in-item-p))
       (org-insert-item (org-at-item-checkbox-p))
-      (org-metadown)))
+      (org-metadown))
+     ((org-at-table-p)
+      (org-table-insert-row)
+      (org-table-move-row-down))))
 
   (defun ic/org-insert-item-dwim-go-insert-mode ()
     "Call `ic/org-insert-item-dwim' and enter insert mode."
