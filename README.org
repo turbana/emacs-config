@@ -2676,8 +2676,8 @@ Main =local-leader= key binds:
     "a" 'org-attach
     "f" 'org-footnote-new
     "l" 'org-insert-link
-    "t" 'org-time-stamp
-    "T" 'org-time-stamp-inactive
+    "t" 'org-time-stamp-inactive
+    "T" 'org-time-stamp
     "s" 'org-download-screenshot
     "y" 'org-download-yank
     )
