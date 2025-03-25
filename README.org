@@ -2969,6 +2969,9 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     :hook
     (org-mode . org-tidy-mode)
     :config
+    ;; keep the file-level property drawer visible ...
+    (setq org-tidy-top-property-style 'keep)
+    ;; ... and move the rest to the fringe
     (setq org-tidy-properties-style 'fringe))
 #+END_SRC
 
