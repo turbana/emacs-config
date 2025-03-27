@@ -12,20 +12,27 @@
 
 Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-link time)`
 
-* Plan
-:PROPERTIES:
-:SCORE:    0
-:END:
-| Metric       | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
-|--------------+-----+-----+-----+-----+-----+-----+-----|
-| total apps   |     |     |     |     |     |     |     |
-| sent apps    |     |     |     |     |     |     |     |
-| exercised    |     |     |     |     |     | -   |     |
-| limited cals |     |     |     |     |     |     |     |
-| weight lost  |     |     |     |     |     |     |     |
+* Indicators
+|   | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
+|---+-----+-----+-----+-----+-----+-----+-----|
+| 1 |     |     |     |     |     |     |     |
+| 2 |     |     |     |     |     |     |     |
+| 3 |     |     |     |     |     |     |     |
+| 4 |     |     |     |     |     |     |     |
+1. job search (minutes)
+2. 7k steps?
+3. active hours
+4. weight (pounds)
+   
+* Main Quests
+1. [ ] $0
+2. [ ] 
+3. [ ] 
+4. [ ] 
+5. [ ] 
 
 * Meal Plan
-- Monday :: $0
+- Monday :: 
 - Tuesday :: 
 - Wednesday :: 
 - Thursday ::

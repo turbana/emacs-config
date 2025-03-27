@@ -6664,14 +6664,13 @@ I would like to start keeping a journal.
     (let* ((journal
             (concat zetian-journal-dir
                     (format-time-string date-format time)
-                    ".org"))
-           (existing (file-exists-p journal)))
+                    ".org")))
       (if (file-exists-p journal)
           (find-file-noselect journal)
         (with-current-buffer (find-file-noselect journal)
           (yas-expand-snippet
            (yas-lookup-snippet template-name 'org-mode)
-           nil nil `((time ',time)))
+           nil nil `((time ,(and time (quote time)))))
           (save-excursion
             (goto-char (point-min))
             (org-id-get-create)
