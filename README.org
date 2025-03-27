@@ -7191,7 +7191,15 @@ I keep some random name lists in a specific org file and I want a way to grab a 
                  (org-element-type (org-export-get-parent elem)))
       contents))
 #+END_SRC
-
+** Open emacs source files
+I want a keybind to automatically open the source of a user-prompted library.
+#+BEGIN_SRC emacs-lisp
+  (defun ic/open-library-source ()
+    "Locate and navigate to the source of a user-prompted emacs library."
+    (interactive)
+    (when-let ((source (call-interactively #'locate-library)))
+      (find-file source)))
+#+END_SRC
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
@@ -7308,7 +7316,7 @@ Profiler bindings.
    "E" 'sudo-edit
    "f" 'find-file
    "F" 'find-file-other-window
-   "L" 'locate-library
+   "L" 'ic/open-library-source
    "M" 'ic/rename-current-buffer-file
    ;; "r" 'ic/helm-recentf
    "y" 'ic/yank-current-filename)
