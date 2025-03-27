@@ -6869,23 +6869,28 @@ I would like to start keeping a journal.
   (add-hook 'emacs-startup-hook #'zetian-update-git)
 #+END_SRC
 
-*** Mobile Export
+*** Export
 I would like to export my zetian graph into a suitable format for viewing on mobile. My intention is to first export all the currently open agenda tasks into a json file for viewing with a html file. After that, I plan on creating an export for permanent notes into static html files.
 
 #+BEGIN_SRC emacs-lisp
   (defconst zetian-export-dir "/mnt/c/Data/www/zetian/")
 #+END_SRC
 
-**** Agenda
 #+BEGIN_SRC emacs-lisp
   (defconst zetian-export-agenda-json-file
     (concat zetian-export-dir "agenda.json"))
+
+  (defconst zetian-export-bookmarks-file
+    (expand-file-name "~/tmp/bookmarks.js"))
 
   (defun zetian-export-all ()
     "Export all of zetian."
     (interactive)
     (zetian-export-agenda))
+#+END_SRC
 
+**** Agenda
+#+BEGIN_SRC emacs-lisp
   (defun zetian-export-agenda ()
     "Create a json datafile with all the currently non-archived tasks."
     (save-excursion
@@ -6911,6 +6916,40 @@ I would like to export my zetian graph into a suitable format for viewing on mob
           (effort (or (cdr (assoc "EFFORT" (org-roam-node-properties node))) "")))
       (format "{\"title\":\"%s\",\"state\":\"%s\",\"scheduled\":\"%s\",\"deadline\":\"%s\",\"priority\":\"%s\",\"effort\":\"%s\",\"id\":\"%s\"}"
               title state scheduled deadline priority effort id)))
+#+END_SRC
+
+**** Bookmarks
+#+BEGIN_SRC emacs-lisp
+  (defun zetian-export-bookmarks ()
+    "Export zetian bookmarks to `zetian-export-bookmarks-file'."
+    (interactive)
+    (let ((bookmarks (zetian-export--all-bookmarks "All My Bookmarks")))
+      (save-excursion
+        (with-current-buffer
+            (find-file-noselect zetian-export-bookmarks-file)
+          (goto-char (point-min))
+          (erase-buffer)
+          (insert "export const _ALL_BOOKMARKS = {\n")
+          (insert (s-join ",\n" bookmarks))
+          (insert "\n};\n")
+          (basic-save-buffer)))))
+
+  (defun zetian-export--all-bookmarks (node-title)
+    (with-zetian-node
+        (zetian-query-1 `(title ,node-title))
+      (org-element-map (org-element-parse-buffer) 'headline
+        #'zetian-export--single-bookmark)))
+
+  (defun zetian-export--single-bookmark (headline)
+    (let* ((link-raw (org-element-property :raw-value headline))
+           (link (car (org-element-parse-secondary-string link-raw '(link))))
+           (path (org-element-property :raw-link link))
+           (title (substring-no-properties (nth 2 link)))
+           (tags (org-element-property :tags headline)))
+      (format "{\"title\": \"%s\", \"path\": \"%s\", tags: [%s]}"
+              title path
+              (mapconcat (lambda (tag) (format "\"%s\"" tag))
+                         tags ","))))
 #+END_SRC
 
 *** org-protocol
