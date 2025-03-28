@@ -6931,9 +6931,9 @@ I would like to export my zetian graph into a suitable format for viewing on mob
             (find-file-noselect zetian-export-bookmarks-file)
           (goto-char (point-min))
           (erase-buffer)
-          (insert "export const _ALL_BOOKMARKS = {\n")
+          (insert "export const _ALL_BOOKMARKS = [\n")
           (insert (s-join ",\n" bookmarks))
-          (insert "\n};\n")
+          (insert "\n];\n")
           (basic-save-buffer)))))
 
   (defun zetian-export--all-bookmarks (node-title)
