@@ -6661,16 +6661,17 @@ I would like to start keeping a journal.
 #+BEGIN_SRC emacs-lisp
   (defun zetian--journal-buffer (date-format template-name &optional time)
     "Return the buffer for today's journal."
-    (let* ((journal
-            (concat zetian-journal-dir
-                    (format-time-string date-format time)
-                    ".org")))
+    (let ((journal (concat zetian-journal-dir
+                           (format-time-string date-format time)
+                           ".org"))
+          (yas-env (when time `((time ,(quote time))))))
       (if (file-exists-p journal)
           (find-file-noselect journal)
-        (with-current-buffer (find-file-noselect journal)
+        (with-current-buffer
+            (find-file-noselect journal)
           (yas-expand-snippet
            (yas-lookup-snippet template-name 'org-mode)
-           nil nil `((time ,(and time (quote time)))))
+           nil nil yas-env)
           (save-excursion
             (goto-char (point-min))
             (org-id-get-create)
@@ -6680,8 +6681,8 @@ I would like to start keeping a journal.
 
 
   (defun ic/time-advance (key value)
-    "Return an encoded time value advanced by KEY VALUEs. See `make-decoded-time'
-  for possible KEY/VALUE."
+    "Return an encoded time value advanced by KEY VALUEs.
+  See `make-decoded-time' for possible KEY/VALUE."
     (let ((time (decode-time nil nil t))
           (delta (make-decoded-time key value)))
       (encode-time (decoded-time-add time delta))))
@@ -6719,11 +6720,13 @@ I would like to start keeping a journal.
     (zetian--journal-buffer "%Y" "journal-year" time))
 
 
-  (defun zetian-journal-goto-today ()
+  (defun zetian-journal-goto-today (&optional arg)
     "Open today's journal."
-    (interactive)
+    (interactive "P")
     (pop-to-buffer-same-window
-     (zetian-journal-day)))
+     (zetian-journal-day
+      (when (equal '(4) arg)
+        (org-read-date nil t)))))
 
   (defun zetian-journal-goto-tomorrow ()
     "Open tomorrow's journal."
@@ -6732,11 +6735,13 @@ I would like to start keeping a journal.
      (zetian-journal-day
       (ic/time-advance :day 1))))
 
-  (defun zetian-journal-goto-week ()
+  (defun zetian-journal-goto-week (&optional arg)
     "Open this week's journal."
-    (interactive)
+    (interactive "P")
     (pop-to-buffer-same-window
-     (zetian-journal-week)))
+     (zetian-journal-week
+      (when (equal '(4) arg)
+        (org-read-date nil t)))))
 
   (defun zetian-journal-goto-next-week ()
     "Open next week's journal."
@@ -6745,11 +6750,13 @@ I would like to start keeping a journal.
      (zetian-journal-week
       (ic/time-advance :day 7))))
 
-  (defun zetian-journal-goto-month ()
+  (defun zetian-journal-goto-month (&optional arg)
     "Open this month's journal."
-    (interactive)
+    (interactive "P")
     (pop-to-buffer-same-window
-     (zetian-journal-month)))
+     (zetian-journal-month
+      (when (equal '(4) arg)
+        (org-read-time nil t)))))
 
   (defun zetian-journal-goto-next-month ()
     "Open next month's journal."
@@ -6758,11 +6765,13 @@ I would like to start keeping a journal.
      (zetian-journal-month
       (ic/time-advance :month 1))))
 
-  (defun zetian-journal-goto-quarter ()
+  (defun zetian-journal-goto-quarter (&optional arg)
     "Open this quarter's journal."
-    (interactive)
+    (interactive "P")
     (pop-to-buffer-same-window
-     (zetian-journal-quarter)))
+     (zetian-journal-quarter
+      (when (equal '(4) arg)
+        (org-read-date nil t)))))
 
   (defun zetian-journal-goto-next-quarter ()
     "Open next quarter's journal."
@@ -6771,11 +6780,13 @@ I would like to start keeping a journal.
      (zetian-journal-quarter
       (ic/time-advance :day (* 7 13)))))
 
-  (defun zetian-journal-goto-year ()
+  (defun zetian-journal-goto-year (&optional arg)
     "Open this year's journal."
-    (interactive)
+    (interactive "P")
     (pop-to-buffer-same-window
-     (zetian-journal-year)))
+     (zetian-journal-year
+      (when (equal '(4) arg)
+        (org-read-date nil t)))))
 
   (defun zetian-journal-goto-next-year ()
     "Open next year's journal."
