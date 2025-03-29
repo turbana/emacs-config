@@ -6688,14 +6688,15 @@ I would like to start keeping a journal.
 
 
   (defun zetian-journal-day (&optional time)
-    "Return the buffer for (today + DAYS)'s journal"
-    ;; XXX for some reason yas-snippet now crashes when generating the week's
-    ;; journal from the link in the day's journal
+    "Return the buffer for today's journal"
+    ;; the day journal snippet refers to the week journal, so create it first
     (zetian-journal-week time)
     (zetian--journal-buffer "%Y-%m-%d" "journal-day" time))
 
   (defun zetian-journal-week (&optional time)
     "Return the buffer for week's journal"
+    ;; the week journal snippet refers to the year journal, so create it first
+    (zetian-journal-year time)
     (zetian--journal-buffer "%Y-w%V" "journal-week" time))
 
   (defun zetian-journal-month (&optional time)
