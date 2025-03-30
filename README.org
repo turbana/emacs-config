@@ -6658,26 +6658,29 @@ I want a function that let's us view a list of zetian nodes as an org-mode list.
 
 *** journal
 I would like to start keeping a journal.
+
 #+BEGIN_SRC emacs-lisp
   (defun zetian--journal-buffer (date-format template-name &optional time)
     "Return the buffer for today's journal."
-    (let ((journal (concat zetian-journal-dir
-                           (format-time-string date-format time)
-                           ".org"))
-          (yas-env (when time `((time ,(quote time))))))
-      (if (file-exists-p journal)
+    (let* ((journal (concat zetian-journal-dir
+                            (format-time-string date-format time)
+                            ".org"))
+           ;; yas-env is `eval'd when the snippet is expanded, so be careful with
+           ;; quoting variables
+           (safe-time (and time `(cons ,(car time) ,(cdr time))))
+           (yas-env `((time ,safe-time))))
+      (with-current-buffer
           (find-file-noselect journal)
-        (with-current-buffer
-            (find-file-noselect journal)
+        (unless (file-exists-p journal)
           (yas-expand-snippet
            (yas-lookup-snippet template-name 'org-mode)
            nil nil yas-env)
           (save-excursion
             (goto-char (point-min))
             (org-id-get-create)
-            (save-buffer)
-            (zetian-mode))
-          (current-buffer)))))
+            (save-buffer)))
+        (zetian-mode)
+        (current-buffer))))
 
 
   (defun ic/time-advance (key value)
