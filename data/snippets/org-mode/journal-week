@@ -13,16 +13,13 @@
 Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-link time)`
 
 * Indicators
-|   | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
-|---+-----+-----+-----+-----+-----+-----+-----|
-| 1 |     |     |     |     |     |     |     |
-| 2 |     |     |     |     |     |     |     |
-| 3 |     |     |     |     |     |     |     |
-| 4 |     |     |     |     |     |     |     |
-1. job search (minutes)
-2. 7k steps?
-3. active hours
-4. weight (pounds)
+|                     | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
+|---------------------+-----+-----+-----+-----+-----+-----+-----|
+| minutes, job search |     |     |     |     |     |     |     |
+| steps               |     |     |     |     |     |     |     |
+| hours, active       |     |     |     |     |     |     |     |
+| calories            |     |     |     |     |     |     |     |
+| weight              |     |     |     |     |     |     |     |
    
 * Main Quests
 1. [ ] $0
@@ -42,6 +39,11 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
 
 * Review [0/7]
 - [ ] Score the week.
+  - job search :: 
+  - steps :: 
+  - active hours :: 
+  - calories :: 
+  - weight :: 
 - [ ] Answer below questions.
 - [ ] Review tasks completed this week.
 - [ ] Review Areas.
