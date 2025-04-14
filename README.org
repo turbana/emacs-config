@@ -2430,6 +2430,26 @@ Based on [[https://emacs.stackexchange.com/questions/29758/yasnippets-and-org-mo
   (add-hook 'org-mode-hook 'ic/set-org-mode-tab-key)
 #+END_SRC
 
+**** Sorting
+I frequently want to sort lists in =org-mode=.
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/org-sort-all-lists (&optional arg)
+    "Sort all lists in the current buffer, prompting the user for sort style."
+    (interactive "P")
+    (save-excursion
+      (let ((sorting
+             (progn
+  		     (message
+  		      "Sort plain list: [a]lpha  [n]umeric  [t]ime  [f]unc  [x]checked  A/N/T/F/X means reversed:")
+  		     (read-char-exclusive)))
+            (with-case (equal arg '(4))))
+        (org-element-map (org-element-parse-buffer) '(plain-list)
+          (lambda (elem)
+            (goto-char (org-element-begin elem))
+            (org-sort-list with-case sorting nil nil t))))))
+#+END_SRC
+
 **** Insert list item
 I want to hit =M-RET= from either insert or normal mode and insert a new list item at the same level as the current item. The new item should also have a checkbox when the current item does.
 #+BEGIN_SRC emacs-lisp
@@ -2670,6 +2690,15 @@ Main =local-leader= key binds:
     "e" 'org-export-dispatch
     "T" 'org-babel-tangle-file
     "t" 'org-babel-tangle)
+#+END_SRC
+
+=,S= sort keybinds:
+#+BEGIN_SRC emacs-lisp
+  (local-leader-keys org-mode-map
+    :infix "S"
+    "" '(nil :which-key "sort")
+    "L" 'ic/org-sort-all-lists
+    )
 #+END_SRC
 
 =,i= insert keybinds:
