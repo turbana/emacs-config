@@ -18,9 +18,9 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
 | minutes, job search |     |     |     |     |     |     |     |
 | steps               |     |     |     |     |     |     |     |
 | hours, active       |     |     |     |     |     |     |     |
-| calories            |     |     |     |     |     |     |     |
+| calories, consumed  |     |     |     |     |     |     |     |
 | weight              |     |     |     |     |     |     |     |
-   
+
 * Main Quests
 1. [ ] $0
 2. [ ] 
