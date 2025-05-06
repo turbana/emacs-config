@@ -6906,7 +6906,8 @@ I would like to start keeping a journal.
                 (magit-untracked-files))
         (magit-git "add" "-A")
         (magit-git "commit" (format "--message='%s'" commit-msg))
-        (magit-git "push" "origin" "master"))))
+        (magit-git "push" "origin" "master"))
+      (org-roam-db-sync)))
 
   ;; ensure we run `zetian-update-git' every `zetian-update-git-seconds'.
   (run-with-idle-timer zetian-update-git-seconds t #'zetian-update-git)
