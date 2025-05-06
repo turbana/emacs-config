@@ -4442,10 +4442,11 @@ I'd like to have a custom mode to make things a little prettier. I really want u
          (project (zetian-get-project))
          (tags (zetian-get-tags))
          (modified (or (zetian-get-last-modified) "?"))
-         (num-outbound-links
-          (length (zetian-query `(links-from ,(org-roam-node-at-point)))))
-         (num-inbound-links
-          (length (zetian-query `(links-to ,(org-roam-node-at-point)))))
+         ;; NOTE: both of these queries are noticeably slow
+         ;; (num-outbound-links
+         ;;  (length (zetian-query `(links-from ,(org-roam-node-at-point)))))
+         ;; (num-inbound-links
+         ;;  (length (zetian-query `(links-to ,(org-roam-node-at-point)))))
          (header
           (concat
            (propertize title 'face 'org-document-title)
@@ -4464,12 +4465,13 @@ I'd like to have a custom mode to make things a little prettier. I really want u
            "\n"
            (propertize "Mod:" 'face 'org-drawer)
            (propertize modified 'face 'org-date)
-           (propertize " Out:" 'face 'org-drawer)
-           (propertize (format "%d" num-outbound-links)
-                       'face 'org-special-keyword)
-           (propertize " In:" 'face 'org-drawer)
-           (propertize (format "%d" num-inbound-links)
-                       'face 'org-special-keyword)
+           ;; NOTE: both of these queries are noticeably slow
+           ;; (propertize " Out:" 'face 'org-drawer)
+           ;; (propertize (format "%d" num-outbound-links)
+           ;;             'face 'org-special-keyword)
+           ;; (propertize " In:" 'face 'org-drawer)
+           ;; (propertize (format "%d" num-inbound-links)
+           ;;             'face 'org-special-keyword)
            (when (or context project tags)
              "\n")
            (zetian-mode--header-list-maybe "Context:" context)
