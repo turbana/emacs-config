@@ -4527,15 +4527,16 @@ I'd like to have a custom mode to make things a little prettier. I really want u
   (defun zetian-mode--create-header ()
     "Create the overlay `zetian-mode' uses to display information."
     (unless zetian-mode--header-overlay
-      (goto-char (point-min))
-      (let* ((beg (point))
-             (end (re-search-forward "^$"))
-             (ov (make-overlay beg (+ 1 end))))
-        (overlay-put ov 'cursor-sensor-functions
-                     (list #'zetian-mode--move-cursor-out-of-header))
-        (overlay-put ov 'modification-hooks
-                     (list #'zetian-mode--modification-hook))
-        (setq zetian-mode--header-overlay ov))))
+      (save-excursion
+        (goto-char (point-min))
+        (let* ((beg (point))
+               (end (re-search-forward "^$"))
+               (ov (make-overlay beg (+ 1 end))))
+          (overlay-put ov 'cursor-sensor-functions
+                       (list #'zetian-mode--move-cursor-out-of-header))
+          (overlay-put ov 'modification-hooks
+                       (list #'zetian-mode--modification-hook))
+          (setq zetian-mode--header-overlay ov)))))
 
   (defun zetian-mode--remove-header ()
     "Removes the overlay and any text properties created."
@@ -4566,7 +4567,9 @@ I'd like to have a custom mode to make things a little prettier. I really want u
     (add-hook 'change-major-mode-hook #'zetian-mode--cmmh 0 t)
     (cursor-sensor-mode 1)
     (zetian-mode--update-header)
-    (goto-char (overlay-end zetian-mode--header-overlay)))
+    (let ((ov-end (overlay-end zetian-mode--header-overlay)))
+      (when (< (point) ov-end)
+        (goto-char ov-end))))
 #+END_SRC
 
 *** Effort
