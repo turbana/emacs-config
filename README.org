@@ -7539,18 +7539,13 @@ Profiler bindings.
    "=" 'balance-windows
    "d" 'delete-window
    "f" 'follow-mode
-   ;; "H" 'evil-window-move-far-left
-   ;; "h" 'evil-window-left
-   ;; "J" 'evil-window-move-very-bottom
-   ;; "j" 'evil-window-down
-   ;; "K" 'evil-window-move-very-top
-   ;; "k" 'evil-window-up
-   ;; "L" 'evil-window-move-far-right
-   ;; "l" 'evil-window-right
-   "h" 'windmove-left
-   "j" 'windmove-down
-   "k" 'windmove-up
-   "l" 'windmove-right
+   ;; new for emacs 31
+   ;; "k" 'rotate-windows
+   ;; "j" 'rotate-windows-back
+   ;; "l" 'flip-window-layout-horizontally
+   ;; "h" 'flip-window-layout-vertically
+   ;; "L" 'rotate-window-layout-clockwise
+   ;; "H" 'rotate-window-layout-anticlockwise
    "m" 'delete-other-windows
    "S" 'split-window-below-and-focus
    "s" 'split-window-below
