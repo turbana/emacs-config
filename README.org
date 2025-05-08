@@ -7526,7 +7526,8 @@ Profiler bindings.
    "S" 'flyspell-mode
    "T" 'load-theme
    "m" 'consult-minor-mode-menu
-   "w" 'whitespace-mode
+   "w" 'visual-fill-column-mode
+   "W" 'whitespace-mode
    )
 #+END_SRC
 
