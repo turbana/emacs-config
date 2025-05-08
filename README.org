@@ -6721,6 +6721,26 @@ I would like to start keeping a journal.
           (delta (make-decoded-time key value)))
       (encode-time (decoded-time-add time delta))))
 
+  (defun zetian-quarter-number (&optional time)
+    "Return values between 1 and 4 (as strings) based on what quarter of the year
+  TIME falls under."
+    (let ((week (string-to-number (format-time-string "%V" time))))
+      (number-to-string (ceiling (/ week 13.0)))))
+
+  (defun ic/days-in-month (time)
+    "Return a list of encoded time objects that correspond to each day of the
+  month TIME refers to."
+    (let* ((dtime (decode-time time))
+           (year (decoded-time-year dtime))
+           (month (decoded-time-month dtime))
+           (days (date-days-in-month year month)))
+      (mapcar
+       (lambda (day)
+         (encode-time
+          (parse-time-string
+           (format "%04d-%02d-%02dT00:00:00" year month day))))
+       (number-sequence 1 days))))
+
 
   (defun zetian-journal-day (&optional time)
     "Return the buffer for today's journal"
@@ -6737,12 +6757,6 @@ I would like to start keeping a journal.
   (defun zetian-journal-month (&optional time)
     "Return the buffer for month's journal"
     (zetian--journal-buffer "%Y-%m" "journal-month" time))
-
-  (defun zetian-quarter-number (&optional time)
-    "Return values between 1 and 4 (as strings) based on what quarter of the year
-  TIME falls under."
-    (let ((week (string-to-number (format-time-string "%V" time))))
-      (number-to-string (ceiling (/ week 13.0)))))
 
   (defun zetian-journal-quarter (&optional time)
     "Return the buffer to this quarter's journal"
