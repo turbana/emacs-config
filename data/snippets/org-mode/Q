@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: org quote source block
+# key: Q>
+# --
+#+BEGIN_QUOTE
+$0
+#+END_QUOTE
