@@ -2990,20 +2990,6 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     )
 #+END_SRC
 
-** org-tidy
-"Tidy" up property drawers by hiding them and placing an icon in the fringe.
-#+BEGIN_SRC emacs-lisp
-  (use-package org-tidy
-    :ensure t
-    :hook
-    (org-mode . org-tidy-mode)
-    :config
-    ;; keep the file-level property drawer visible ...
-    (setq org-tidy-top-property-style 'keep)
-    ;; ... and move the rest to the fringe
-    (setq org-tidy-properties-style 'fringe))
-#+END_SRC
-
 ** org-transclusion
 #+BEGIN_SRC emacs-lisp
   (use-package org-transclusion
