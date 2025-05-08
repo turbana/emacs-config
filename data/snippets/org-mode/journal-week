@@ -39,11 +39,14 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
 
 * Review [0/7]
 - [ ] Score the week.
-  - job search :: 
-  - steps :: 
-  - active hours :: 
-  - calories :: 
-  - weight :: 
+  | Metric       | Goal | Value | Percent |
+  |--------------+------+-------+---------|
+  | job search   |  100 |       |         |
+  | steps        |  11k |       |         |
+  | active hours |    8 |       |         |
+  | calories     | 1500 |       |         |
+  | weight       |    - |       |         |
+
 - [ ] Answer below questions.
 - [ ] Review tasks completed this week.
 - [ ] Review Areas.
