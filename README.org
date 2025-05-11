@@ -5164,6 +5164,9 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (def-zetian-query all
     '(title-like ""))
 
+  (def-zetian-query non-archive
+    '(not (tag "archive")))
+
   ;; things
   (def-zetian-query category
     '(category (eval (completing-read "Category: " (zetian-all-categories)))))
@@ -5380,7 +5383,7 @@ zetian is starting to get a lot of search functions and I don't really like to h
     "Query Zetian for a node and return an `org-mode' link as a string, creating
   the node if IMMEDIATE is non-nil."
     (interactive)
-    (when-let ((node (zetian-search nil
+    (when-let ((node (zetian-search zetian-query-non-archive
                                     (concat "node to link"
                                             (when immediate
                                               " (create if needed)"))
