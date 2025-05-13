@@ -47,7 +47,6 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
   | calories     | 1500 |       |         |
   | weight       |    - |       |         |
 
-- [ ] Answer below questions.
 - [ ] Review tasks completed this week.
 - [ ] Review Areas.
 - [ ] Review active Projects.
