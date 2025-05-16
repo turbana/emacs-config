@@ -1224,7 +1224,7 @@ Add ability to jump to any org heading with SPC-aoj
 **** Appearance
 Basic heading setup
 #+BEGIN_SRC emacs-lisp
-  (setq org-startup-indented t)
+  (setq org-startup-indented nil)
   (setq org-startup-folded nil)
   (setq org-hide-leading-stars t)
   (setq org-odd-levels-only nil)
@@ -1235,6 +1235,11 @@ Basic heading setup
   (setq org-fontify-whole-heading-line t)
   (setq org-fontify-done-headline nil)
   (setq org-fontify-quote-and-verse-blocks t)
+
+  (defun ic//org-set-fill-column ()
+    "Sets `fill-column' for `org-mode' buffers."
+    (setq fill-column 100))
+  (add-hook 'org-mode-hook 'ic//org-set-fill-column)
 #+END_SRC
 
 Let's use some fancy LaTeX symbols.
