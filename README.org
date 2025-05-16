@@ -1420,7 +1420,7 @@ Color priorities based on how important they are.
 #+END_SRC
 
 **** org-src
-Use current window to edit =org-src= blocks. Don't indent.
+Use current window to edit =org-src= blocks. Indent the source blocks with 2 spaces.
 #+BEGIN_SRC emacs-lisp
   (setq org-src-preserve-indentation nil)
   (setq org-edit-src-content-indentation 2)
