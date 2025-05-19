@@ -7310,6 +7310,7 @@ XXX should these go in an override map?
   (leader-keys
    :infix "a"
    "" '(nil :which-key "applications")
+   "c" 'calc
    "d" 'dired
    "s" 'ansi-term
    "i" 'ielm
