@@ -1518,6 +1518,18 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
            ((tags "-HOME-noarchive+TIMESTAMP_IA<=\"<-2w>\"/DONE|CANCELLED"
                   ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
 
+          ("T" "tasks test"
+           ((tags-todo "-archive"
+                       ((org-agenda-overriding-header "Active Tasks"))
+                  ;; ((org-agenda-overriding-header "")
+                  ;;  (org-super-agenda-groups
+                  ;;   '((:name "discard"
+                  ;;            :discard t
+                  ;;            ;; :deadline t
+                  ;;            :scheduled t)
+                  ;;     )))
+                  )))
+
           ;; test org-super-agenda
           ("h" "super test (home)"
            ((todo ""
@@ -2836,7 +2848,71 @@ Here I have some custom normal mode navigation.
 Let's try having a nice search interface for =org-mode=.
 
 #+BEGIN_SRC emacs-lisp
-  (use-package org-ql)
+  (use-package org-ql
+    ;; :quelpa (org-ql :fetcher github :repo "alphapapa/org-ql"
+    ;;                 :files (:defaults (:exclude "helm-org-ql.el")))
+    :config
+    (defun zetian-show-tasks ()
+      (interactive)
+      (org-ql-search
+        zetian-tasks-file
+        '(todo)
+        :sort '(todo priority date)
+        :super-groups '((:auto-parent t))
+        )
+      ;; (org-restart-font-lock)
+      )
+
+    ;; today's tasks
+    ;; this week's tasks
+    
+    ;; all tasks
+    (org-ql-search
+      zetian-tasks-file
+      '(todo)
+      :sort '(todo priority date)
+      :super-groups '((:auto-parent t))
+      )
+
+    ;; high priority tasks
+    (org-ql-search
+      zetian-tasks-file
+      '(and (todo)
+            (priority >= "B"))
+      :sort '(date todo priority)
+      )
+    
+    ;; low-effort tasks
+    (org-ql-search
+      zetian-tasks-file
+      '(and (todo)
+            (effort < "0:15"))
+      :sort '(date todo priority)
+      )
+
+
+    
+
+    (defun zdo/org-ql-view--format-element (orig-fun &rest args)
+      "This function will intercept the original function and
+     add the category to the result.
+
+     ARGS is `element' in `org-ql-view--format-element'"
+      (if (not args)
+          ""
+        (let* ((element args)
+               (result (apply orig-fun element))
+               (properties (cadar element))
+               (epom (plist-get properties :org-marker))
+               ;; (category (org-entry-get epom "CATEGORY"))
+               (effort (or (org-entry-get epom "Effort") ""))
+               )
+          (org-add-props
+              (format " %5s %s" effort (s-trim-left result))
+              (text-properties-at 0 result)))))
+    (advice-add 'org-ql-view--format-element :around #'zdo/org-ql-view--format-element)
+    
+    )
 #+END_SRC
 
 ** org-roam
@@ -5209,7 +5285,10 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
 
   ;; tasks
   (def-zetian-query open
-    '(or (todo "NEXT") (todo "TODO")))
+    '(or (todo "NEXT")
+         (todo "TODO")
+         (todo "WAIT")
+         (todo "HOLD")))
 
   (def-zetian-query next-task
     `(and ,zetian-query-task
