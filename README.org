@@ -4809,6 +4809,63 @@ Setup how things will look when viewing a list of tasks.
            (selected (org-capture-select-template)))
       (when (consp selected)
         (car selected))))
+
+
+
+
+
+
+  (defvar zetian-capture--current-type "perm")
+  (defconst zetian-capture--key-type-map
+    (list ?p "perm"
+          ?t "task"))
+
+  (transient-define-prefix zetian-capture--type ()
+    "Transient for setting the current node type."
+    ;; :init-value (lambda (_) "foo")
+    :value "bar"
+    ["Node Types"
+     ("p" "permanent" zetian-capture--set-type)
+     ("t" "task" zetian-capture--set-type)
+     ]
+    )
+
+  (defun zetian-capture--set-type (&optional args)
+    ""
+    (interactive (list (transient-args 'zetian-capture--type)))
+    ;; (print (oref (transient-suffix-object) key))
+    ;; (message "set type: %s" (oref (transient-suffix-object) key))
+    ;; (setq zetian-capture--current-type (oref (transient-suffix-object) key))
+    (let* ((suffix (transient-suffix-object))
+           (key (oref suffix key)))
+      (message "set type: %s" key)
+      (setq zetian-capture--current-type key)
+      ;; (setf (oref (transient-prefix-object) value) key)
+      ;; (setf (oref (oref suffix command) value)
+      ;;       (oref suffix key))
+      )
+    (zetian-capture-transient)
+    ;; (oref (transient-suffix-object) key)
+    )
+
+
+
+
+  (transient-define-prefix zetian-capture-transient ()
+    ""
+    ["Options"
+     ("t" "type" zetian-capture--type)]
+    ["Actions"
+     ("c" "capture" zetian-capture--finalize)])
+
+
+  (defun zetian-capture--finalize (&optional args)
+    ""
+    (interactive (list (transient-args 'zetian-capture-transient)))
+    ;; (message "capture=%s" zetian-capture--current-type)
+    ;; (message "capture=%s" (transient-arg-value "zetian-capture-transient" args))
+    (message "capture=%s" (oref zetian-capture--type value))
+    )
 #+END_SRC
 
 These templates are used from =org-capture-protocol=.
@@ -5504,29 +5561,23 @@ zetian is starting to get a lot of search functions and I don't really like to h
     (when-let ((node (zetian-select-search)))
       (insert (zetian-node-link node))))
 
-  (defun zetian-node-create (&optional title template-key)
+  (defun zetian-node-create (title &optional template-key)
     "Return zetian node for TITLE, creating it if necessary. Uses TEMPLATE-KEY to
   lookup template from `org-roam-capture-templates', when NIL prompt user for key."
-    (if title
-        (if-let (node (org-roam-node-from-title-or-alias title))
-            ;; we have a title and an existing node
-            node
-          ;; we have a title, but the node needs to be created
-          (let ((template (append
-                           (assoc (or template-key
-                                      (zetian-capture-select-template))
-                                  org-roam-capture-templates)
-                           '(:immediate-finish t)))
-                (node (org-roam-node-create :title title)))
-            (when (org-roam-capture-
-                   :node node
-                   :templates (list template))
-              (or (org-roam-node-from-title-or-alias (org-roam-node-title node))
-                  (org-roam-node-from-id (org-roam-node-id node))))))
-      ;; we don't have a title, so prompt for one and retry
-      (zetian-node-create (org-roam-node-title
-                           (zetian-search nil "Zetian note: "))
-                          template-key)))
+    (if-let (node (org-roam-node-from-title-or-alias title))
+        ;; we have a title and an existing node
+        node
+      ;; we have a title, but the node needs to be created
+      (let ((template (assoc (or template-key
+                                 (zetian-capture-select-template))
+                             org-roam-capture-templates))
+            (node (org-roam-node-create :title title)))
+        (when (org-roam-capture-
+               :node node
+               :templates (list template)
+               :props '(:immediate-finish t))
+          (or (org-roam-node-from-title-or-alias (org-roam-node-title node))
+              (org-roam-node-from-id (org-roam-node-id node)))))))
 #+END_SRC
 
 *** Category
