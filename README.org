@@ -1173,6 +1173,10 @@ I'd like to keep my google calendar in-sync with =org-mode=.
                 ))
   (setq org-archive-location "%s_archive::")
   (add-hook 'org-mode-hook #'turn-on-auto-revert-mode)
+
+  (defun ic//set-org-mode-tab-width ()
+    (setq tab-width 8))
+  (add-hook 'org-mode-hook #'ic//set-org-mode-tab-width)
 #+END_SRC
 
 **** Refile
