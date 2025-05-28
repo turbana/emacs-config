@@ -7098,20 +7098,19 @@ Some tramp specific configurations.
 *** lsp ignore Unity directories
 =lsp-mode= should not create file watchers for every directory in a Unity project. I wish there was a way to whitelist directories, but =lsp= only allows for blacklisting. So use =dir-locals= to add some common =Unity= directories.
 #+BEGIN_SRC emacs-lisp
-  ;; setup directory local variables and make them as safe
-  (let* ((ignore-dirs '("Build" "Library" "Logs" "obj" "Packages"
-                        "ProjectSettings" "Temp" "UserSettings"))
-         (ignore-regexes (append (mapcar (lambda (d) (concat "[/\\\\]" d "\\'"))
-                                         ignore-dirs)
-                                 lsp-file-watch-ignored-directories))
-         (vars `((lsp-file-watch-ignored-directories . ,ignore-regexes))))
-    (dir-locals-set-class-variables
-     'unity-project
-     `((nil . ,vars)))
-    (dolist (var vars)
-      (add-to-list 'safe-local-variable-values var)))
-
   (when on-home-windows-desktop
+    ;; setup directory local variables and make them as safe
+    (let* ((ignore-dirs '("Build" "Library" "Logs" "obj" "Packages"
+                          "ProjectSettings" "Temp" "UserSettings"))
+           (ignore-regexes (append (mapcar (lambda (d) (concat "[/\\\\]" d "\\'"))
+                                           ignore-dirs)
+                                   lsp-file-watch-ignored-directories))
+           (vars `((lsp-file-watch-ignored-directories . ,ignore-regexes))))
+      (dir-locals-set-class-variables
+       'unity-project
+       `((nil . ,vars)))
+      (dolist (var vars)
+        (add-to-list 'safe-local-variable-values var)))
     (dir-locals-set-directory-class
      "c:/Code/Icarus" 'unity-project))
 #+END_SRC
