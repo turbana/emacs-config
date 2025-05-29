@@ -5207,6 +5207,9 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (def-zetian-query open
     '(or (todo "NEXT") (todo "TODO")))
 
+  (def-zetian-query closed
+    '(or (todo "DONE") (todo "CANCELLED")))
+
   (def-zetian-query next-task
     `(and ,zetian-query-task
           (todo "NEXT")))
@@ -5261,7 +5264,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
   (def-zetian-query closed-task-or-event
     `(and (or ,zetian-query-task
               ,zetian-query-event)
-          (not ,zetian-query-open)))
+          ,zetian-query-closed))
 
   (def-zetian-query unscheduled-open-task-or-event
     `(and ,zetian-query-open-task-or-event
