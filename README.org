@@ -4621,7 +4621,7 @@ Setup how things will look when viewing a list of tasks.
 
   (cl-defun zetian--capture-template
       (&key file-name title file-tags file-cat type prop-id other is-element
-            todo suppress-prop-drawer tail priority)
+            todo suppress-prop-drawer tail priority olp)
     (unless is-element
       (setq file-tags (concat (format ":_type_%s" type)
                               (or file-tags ":"))))
@@ -4632,7 +4632,7 @@ Setup how things will look when viewing a list of tasks.
                       (when todo (concat todo " "))
                       (when priority (format "[#%s] " priority))
                       (or title "${title}")
-                      (format " :_type_%s:" type)
+                      (when type (format " :_type_%s:" type))
                       "\n"))
             (unless suppress-prop-drawer
               (concat
@@ -4653,10 +4653,22 @@ Setup how things will look when viewing a list of tasks.
             (unless is-element
               (format "#+title: %s" (or title "${title}")))
             tail)))
-      (if is-element
-          body
-        `(file+head ,(or file-name zetian-capture-default-filename)
-                    ,body))))
+      (cond (is-element
+             body)
+            (olp
+             `(file+head+olp ,(or file-name zetian-capture-default-filename)
+                             ,body ,olp))
+            (t
+             `(file+head ,(or file-name zetian-capture-default-filename)
+                         ,body)))))
+
+  (defun ic//after-org-capture-task ()
+    "Prompt the user for all required task requirements (tags, priority, etc)"
+    (interactive)
+    (org-set-tags-command)
+    (org-priority)
+    (org-set-effort)
+    (save-buffer))
 
   (let* ((zetian-tasks-file "special/zetian-tasks.org")
          (zetian-people-file "special/zetian-people.org")
@@ -4665,6 +4677,7 @@ Setup how things will look when viewing a list of tasks.
           (zetian--capture-template
            :file-name zetian-tasks-file :title "All My Tasks"
            :type "task" :other "#+startup: contents"
+           ;; :olp '("Tasks")
            :suppress-prop-drawer t
            :file-tags ":%(if at-home \"HOME\" \"WORK\"):agenda:"))
          (people-target
@@ -4677,43 +4690,49 @@ Setup how things will look when viewing a list of tasks.
         `(("p" "permanent note" plain ,default-template
            :target ,(zetian--capture-template
                      :type "perm" :file-tags ":review:")
+           ;; we should always immediately finish permanent nodes because we
+           ;; sometimes call note creation from elisp and we need an `org-roam'
+           ;; node to be returned at that time.
+           :immediate-finish t
            :unnarrowed t)
 
-          ("i" "idea" plain ,default-template
-           :target ,(zetian--capture-template
-                     :type "idea" :file-tags ":review:")
-           :unnarrowed t)
+          ;; ("i" "idea" plain ,default-template
+          ;;  :target ,(zetian--capture-template
+          ;;            :type "idea" :file-tags ":review:")
+          ;;  :unnarrowed t)
 
           ("t" "task" entry
            ,(concat (zetian--capture-template
-                     :is-element t :todo "TODO" :type "task"
+                     :is-element t :todo "TODO"
                      :priority (char-to-string org-default-priority))
                     default-template)
            :target ,task-target
+           :no-save t
+           :hook ic//after-org-capture-task
            :empty-lines-before 1)
 
-          ("e" "event" entry
-           ,(concat (zetian--capture-template
-                     :is-element t :todo "TODO" :type "event"
-                     :priority (char-to-string org-default-priority))
-                    default-template)
-           :target ,task-target
-           :empty-lines-before 1)
+          ;; ("e" "event" entry
+          ;;  ,(concat (zetian--capture-template
+          ;;            :is-element t :todo "TODO" :type "event"
+          ;;            :priority (char-to-string org-default-priority))
+          ;;           default-template)
+          ;;  :target ,task-target
+          ;;  :empty-lines-before 1)
 
-          ("P" "person" entry
-           ,(zetian--capture-template
-             :is-element t :type "person"
-             :other (concat
-                     "%U\n\n"
-                     "- organization ::\n"
-                     "- birthday ::\n"
-                     "%% FIXME(org-anniversary yyyy mm dd) "
-                     "${title}'s %d%s birthday\n"
-                     "- phone ::\n"
-                     "- address ::\n"
-                     "\n%?"))
-           :target ,people-target
-           :empty-lines-before 1)
+          ;; ("P" "person" entry
+          ;;  ,(zetian--capture-template
+          ;;    :is-element t :type "person"
+          ;;    :other (concat
+          ;;            "%U\n\n"
+          ;;            "- organization ::\n"
+          ;;            "- birthday ::\n"
+          ;;            "%% FIXME(org-anniversary yyyy mm dd) "
+          ;;            "${title}'s %d%s birthday\n"
+          ;;            "- phone ::\n"
+          ;;            "- address ::\n"
+          ;;            "\n%?"))
+          ;;  :target ,people-target
+          ;;  :empty-lines-before 1)
 
           ;; NOTE: `ic//captured-url' is bound in `zetian-protocol-ref'.
           ("R" "reference note" plain ""
@@ -4771,20 +4790,14 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
               (find-file (car loc))
               (widen)
               (goto-char (cdr loc))
-              (if (not (org-at-heading-p))
-                  ;; we're in a file based node
-                  (progn
-                    (rename-buffer buf-name)
-                    (zetian-mode))
-                ;; or we're in a heading based node
-                (pop-to-buffer-same-window
-                 (make-indirect-buffer (current-buffer) buf-name t))
-                ;; jit-lock-mode isn't supported in indirect buffers, so disable
-                ;; it.
-                (make-local-variable 'font-lock-support-mode)
-                (setq font-lock-support-mode nil)
-                (goto-char (cdr loc))
-                (org-narrow-to-subtree)))
+              (if (org-at-heading-p)
+                  (let ((org-indirect-buffer-display 'current-window))
+                    (org-tree-to-indirect-buffer)
+                    ;; trying to bury the base (tasks file) buffer
+                    ;; (bury-buffer (buffer-base-buffer (current-buffer)))
+                    )
+                (rename-buffer buf-name)
+                (zetian-mode)))
              (t
               (find-file (org-roam-node-file node))
               (rename-buffer buf-name)
@@ -5432,11 +5445,9 @@ zetian is starting to get a lot of search functions and I don't really like to h
             ;; we have a title and an existing node
             node
           ;; we have a title, but the node needs to be created
-          (let ((template (append
-                           (assoc (or template-key
-                                      (zetian-capture-select-template))
-                                  org-roam-capture-templates)
-                           '(:immediate-finish t)))
+          (let ((template (assoc (or template-key
+                                     (zetian-capture-select-template))
+                                 org-roam-capture-templates))
                 (node (org-roam-node-create :title title)))
             (when (org-roam-capture-
                    :node node
@@ -5979,8 +5990,8 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
     "Similar to `org-roam-capture' and `org-capture', but for Zetian. Will
   auto-complete the capture template."
     (interactive)
-    (zetian-node-find
-     (zetian-completing-read (zetian-query-all) "all nodes" t)))
+    (when-let ((node (zetian-completing-read (zetian-query-all) "all nodes" t)))
+      (zetian-node-find node)))
 #+END_SRC
 
 *** Integrate with marginalia
