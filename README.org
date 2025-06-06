@@ -2785,9 +2785,15 @@ TODO =,T= tables keybinds
 **** global
 global keybinds:
 #+BEGIN_SRC emacs-lisp
+  (defun ic/org-tags-view ()
+    "Open a list of TODO items, filtered by tag."
+    (interactive)
+    (org-tags-view t))
+
   (general-define-key
    "<f12>" 'ic-open-org-agenda
-   "M-<f12>" 'org-clock-goto
+   "M-<f12>" 'ic/org-tags-view
+   "S-<f12>" 'org-todo-list
    )
 #+END_SRC
 
