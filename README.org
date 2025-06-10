@@ -1589,6 +1589,9 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
 
   ;; show all future repeating entries
   (setq org-agenda-show-future-repeats nil)
+
+  ;; don't show message when using `org-super-agenda'
+  (setq org-super-agenda-show-message nil)
 #+END_SRC
 
 ***** Test icons (disabled)
