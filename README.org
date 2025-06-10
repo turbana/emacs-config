@@ -1506,53 +1506,63 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
                                      (org-entry-get nil "DEADLINE")))))))))))
 
           ;; archives
-          ("a" . "Archiving")
-          ("ah" "Home archive"
-           ((tags "+HOME-noarchive/DONE|CANCELLED|APPLIED"
-                  ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
-          ("aw" "Work archive"
-           ((tags "-HOME-noarchive+TIMESTAMP_IA<=\"<-2w>\"/DONE|CANCELLED"
-                  ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
+          ;; ("a" . "Archiving")
+          ;; ("ah" "Home archive"
+          ;;  ((tags "+HOME-noarchive/DONE|CANCELLED|APPLIED"
+          ;;         ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
+          ;; ("aw" "Work archive"
+          ;;  ((tags "-HOME-noarchive+TIMESTAMP_IA<=\"<-2w>\"/DONE|CANCELLED"
+          ;;         ((org-agenda-overriding-header "Archive Tasks (*x$ to archive all):")))))
 
           ;; test org-super-agenda
           ("h" "super test (home)"
-           ((todo ""
+           (;; start with items that need attention
+            (todo ""
                   ((org-agenda-overriding-header "")
                    (org-super-agenda-groups
-                    '((:name "Refile"
-                             :tag "refile")
+                    '((:discard (:tag "archive"
+                                      :todo ("WAIT" "CANCELLED")))
+                      (:name "Reminders"
+                             :and (:tag "reminder" :not (:scheduled future)))
+                      ;; ignore any other reminders
+                      (:discard (:tag "reminder"))
+                      (:name "Missing Tags"
+                             :not (:pred (lambda (s)
+                                           (string-match (concat ":" org-tag-re ":") s))))
+                      (:name "Missing Priority"
+                             :not (:pred (lambda (s)
+                                           (string-match org-priority-regexp s))))
+                      (:name "Missing Effort"
+                             :not (:property "Effort"))
+                      (:name "Missing Deadline"
+                             :and (:priority "A" :deadline nil))
+                      (:name "Missing Scheduling"
+                             :and (:priority "A" :scheduled nil)
+                             :and (:priority "B" :scheduled nil)
+                             :and (:deadline t :scheduled nil))
                       (:name "Overdue"
                              :deadline past
                              :scheduled past)
-                      (:name "Needs deadline"
-                             :and (:priority "A" :deadline nil))
-                      (:name "Needs scheduling"
-                             :and (:priority "A" :scheduled nil)
-                             :and (:priority "B" :scheduled nil))
-                      (:name "Due Today"
-                             :deadline today)
-                      ;; (:name "Scheduled Today"
-                      ;;        :date today
-                      ;;        :scheduled today
-                      ;;        :deadline today)
                       (:discard (:anything t))))))
+            ;; add blank line between sections
+            (tags-todo "+x-x" ((org-agenda-overriding-header " ")))
+            ;; weekly agenda view
             (agenda ""
-                    ((org-agenda-overriding-header "")
-                     (org-agenda-span 'week)))
-            ;; (todo ""
-            ;;       ((org-agenda-overriding-header "")
-            ;;        (org-super-agenda-groups
-            ;;         '(
-            ;;           (:name "Scheduled Today"
-            ;;                  :date today
-            ;;                  :scheduled today
-            ;;                  :deadline today)
-            ;;           (:name "Upcoming"
-            ;;                  :auto-planning t)
-            ;;           (:discard (:anything t))))))
+                    ((org-agenda-span 'week)
+                     ;; (org-agenda-overriding-header "\n")
+                     (org-super-agenda-groups
+                      '(;; filter out reminders and past todos
+                        (:discard (:todo ("WAIT" "CANCELLED")
+                                         :tag "reminder"
+                                         :deadline past
+                                         :scheduled past))
+                        (:name "" :anything t)))))
             )
-           ((org-agenda-tag-filter-preset '("+HOME" "-archive"))))
-          ))
+           (
+            ;; (org-agenda-tag-filter-preset '("+HOME" "-archive"))
+            ;; (org-agenda-skip-function
+            ;;  '(org-agenda-skip-entry-if 'todo '("WAIT" "CANCELED")))
+            ))))
 #+END_SRC
 
 ***** Appearance
