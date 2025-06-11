@@ -4689,7 +4689,16 @@ Setup how things will look when viewing a list of tasks.
     (org-set-effort)
     (save-buffer))
 
+  (defun ic//after-org-capture-reminder ()
+    "Prompt the user for the date they want to be reminded"
+    (interactive)
+    (org-schedule nil)
+    (save-buffer)
+    (org-capture-mode)
+    (org-capture-finalize))
+
   (let* ((zetian-tasks-file "special/zetian-tasks.org")
+         (zetian-reminder-file "special/zetian-reminders.org")
          (zetian-people-file "special/zetian-people.org")
          (default-template "\n%?")
          (task-target
@@ -4697,6 +4706,12 @@ Setup how things will look when viewing a list of tasks.
            :file-name zetian-tasks-file :title "All My Tasks"
            :type "task" :other "#+startup: contents"
            ;; :olp '("Tasks")
+           :suppress-prop-drawer t
+           :file-tags ":%(if at-home \"HOME\" \"WORK\"):agenda:"))
+         (reminder-target
+          (zetian--capture-template
+           :file-name zetian-reminder-file :title "All My Reminders"
+           :type "reminder" :other "#+startup: contents"
            :suppress-prop-drawer t
            :file-tags ":%(if at-home \"HOME\" \"WORK\"):agenda:"))
          (people-target
@@ -4728,6 +4743,15 @@ Setup how things will look when viewing a list of tasks.
            :target ,task-target
            :no-save t
            :hook ic//after-org-capture-task
+           :empty-lines-before 1)
+
+          ("r" "reminder" entry
+           ,(concat (zetian--capture-template
+                     :is-element t :todo "TODO")
+                    default-template)
+           :target ,reminder-target
+           :no-save t
+           :hook ic//after-org-capture-reminder
            :empty-lines-before 1)
 
           ;; ("e" "event" entry
