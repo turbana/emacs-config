@@ -42,7 +42,7 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
   | Metric       |  Goal | Value | Percent |
   |--------------+-------+-------+---------|
   | job search   |   100 |       |         |
-  | steps        | 12000 |       |         |
+  | steps        | 13000 |       |         |
   | active hours |     8 |       |         |
   | calories     |  1500 |       |         |
   | weight       |     - |       |         |
