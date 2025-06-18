@@ -1534,15 +1534,20 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
                                            (string-match org-priority-regexp s))))
                       (:name "Missing Effort"
                              :not (:property "Effort"))
-                      (:name "Missing Deadline"
-                             :and (:priority "A" :deadline nil))
-                      (:name "Missing Scheduling"
-                             :and (:priority "A" :scheduled nil)
-                             :and (:priority "B" :scheduled nil)
-                             :and (:deadline t :scheduled nil))
+                      ;; (:name "Missing Deadline"
+                      ;;        :and (:priority "A" :deadline nil))
+                      ;; (:name "Missing Scheduling"
+                      ;;        :and (:priority "A" :scheduled nil)
+                      ;;        :and (:priority "B" :scheduled nil)
+                      ;;        :and (:deadline t :scheduled nil))
                       (:name "Overdue"
                              :deadline past
                              :scheduled past)
+                      (:name "Today's Tasks"
+                             :tag "today"
+                             :scheduled today)
+                      (:name "Weekly Tasks"
+                             :tag "weekly")
                       (:discard (:anything t))))))
             ;; add blank line between sections
             (tags-todo "+x-x" ((org-agenda-overriding-header " ")))
