@@ -1859,39 +1859,6 @@ Finally, call ~(delete-frame)~ after the capture is finalized.
   (add-hook 'org-capture-after-finalize-hook #'ic/maybe-org-capture-delete-frame)
 #+END_SRC
 
-**** Clocking (disabled)
-#+BEGIN_SRC emacs-lisp :noweb-ref disabled
-  (require 'org-clock)
-
-  ;; resolve open clocks for any amount of time
-  (setq org-clock-idle-time nil)
-  ;; start new clocking immediatly after clocking out
-  (setq org-clock-continuously t)
-  ;; save current clock when emacs exits
-  (setq org-clock-persist t)
-  ;; change to NEXT state when starting a clock
-  (setq org-clock-in-switch-to-state "NEXT")
-  ;; change to TODO state when leaving a clock
-  (setq org-clock-out-switch-to-state "TODO")
-  ;; continue an open clock when checking into task
-  (setq org-clock-in-resume t)
-  ;; include current clock in reports
-  (setq org-clock-report-include-clocking-task t)
-  ;; save all clocks in the LOGBOOK drawer
-  (setq org-clock-into-drawer "LOGBOOK")
-  ;; only show today's clock in the modeline
-  (setq org-clock-mode-line-total 'today)
-  ;; persist open clocks
-  (setq org-clock-persist-file (concat user-cache-directory "org-clock-save.el"))
-  (org-clock-persistence-insinuate)
-
-  (defun ic/org-clock-jump-to-current-clock ()
-    "Jump to the currently active clock."
-    (interactive)
-    ;; why isn't this (interactive) already, ugh
-    (org-clock-jump-to-current-clock))
-#+END_SRC
-
 **** Misc
 Add some custom =<X= templates.
 #+BEGIN_SRC emacs-lisp
