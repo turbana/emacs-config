@@ -796,14 +796,15 @@ I'd like to keep my google calendar in-sync with =org-mode=.
   (defvar org-bookmark-file "~/src/roam/special/bookmarks.org")
   (setq org-default-notes-file
         (if at-home "~/org/home/inbox.org" "~/org/inbox.org"))
-  (setq org-agenda-files
-        (append (list ;;org-default-file
-                      org-default-notes-file)
-                (if at-home
-                    '("~/org/home/mobile/inbox.org"
-                      "~/org/home/jobs.org"))
-                ;; (directory-files "~/org" t "\\.org$")
-                ))
+  ;; NOTE: org-agenda-files is now set in zetian
+  ;; (setq org-agenda-files
+  ;;       (append (list ;;org-default-file
+  ;;                     org-default-notes-file)
+  ;;               (if at-home
+  ;;                   '("~/org/home/mobile/inbox.org"
+  ;;                     "~/org/home/jobs.org"))
+  ;;               ;; (directory-files "~/org" t "\\.org$")
+  ;;               ))
   (setq org-archive-location "%s_archive::")
   (add-hook 'org-mode-hook #'turn-on-auto-revert-mode)
 #+END_SRC
@@ -4066,6 +4067,7 @@ My personal 2nd brain implemented in =org-roam=.
   (setq zetian-archive-dir (concat org-roam-directory "archive/"))
 
   (setq zetian-tasks-file (concat zetian-special-dir "zetian-tasks.org"))
+  (setq zetian-reminders-file (concat zetian-special-dir "zetian-reminders.org"))
   (setq zetian-people-file (concat zetian-special-dir "zetian-people.org"))
   (setq zetian-tasks-archive-file-fmt
         (concat zetian-special-dir "task-archive-%Y.org"))
@@ -4331,8 +4333,8 @@ Setup how things will look when viewing a list of tasks.
   (defun ic//after-org-capture-task ()
     "Prompt the user for all required task requirements (tags, priority, etc)"
     (interactive)
-    (org-set-tags-command)
     (org-priority)
+    (org-set-tags-command)
     (org-set-effort)
     (save-buffer))
 
@@ -5914,8 +5916,7 @@ Now we need a way to lookup a reference note by the book's note.
     (interactive)
     (when-let ((ebook (assoc-default 'ebook highlight))
                (book-node (zetian-node-from-ebook ebook))
-               (ref-node (zetian-ref-node-from-book-node book-node))
-               )
+               (ref-node (zetian-ref-node-from-book-node book-node)))
       (with-zetian-node ref-node
         (let ((checksum (assoc-default 'checksum highlight))
               (current-checksums
