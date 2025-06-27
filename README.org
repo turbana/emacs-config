@@ -50,6 +50,13 @@ I use emacs server and would prefer all packages to be loaded at once, ahead of 
   (setq use-package-always-demand t)
 #+END_SRC
 
+Create a function I can use to tell if emacs is still in it's startup phase or not.
+#+BEGIN_SRC emacs-lisp
+  (defun emacs-is-starting ()
+    "Return non-nil when emacs is still starting."
+    (not after-init-time))
+#+END_SRC
+
 * Bootstrap
 ** Native compilation
 I want to make use of the native compilation system introduced in emacs 28.
@@ -2180,7 +2187,10 @@ global keybinds:
   (defun ic/org-tags-view ()
     "Open a list of TODO items, filtered by tag."
     (interactive)
-    (org-tags-view t))
+    (unless (emacs-is-starting)
+      ;; XXX why is this being called during emacs startup?!
+      ;; XXX and why does putting a (message) here suppress readline?
+      (org-tags-view t)))
 
   (general-define-key
    "<f12>" 'ic-open-org-agenda
