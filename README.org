@@ -525,7 +525,7 @@ The package =general.el= makes all of the above rather simple. Here we ensure it
 I keep certain information out of source control: email addresses, account information, etc. I have a small python program called =secret= that I use to retrieve these secrets, let's expose that to emacs.
 
 #+BEGIN_SRC emacs-lisp
-  (defvar ic/secret-cmd "secret")
+  (defvar ic/secret-cmd (expand-file-name "~/src/etc/bin/secret"))
 
   (defun ic/get-secret (secret)
     "Retrieve `secret' using the `ic/secret-cmd' program."
@@ -748,21 +748,21 @@ I'd like to keep my google calendar in-sync with =org-mode=.
 #+BEGIN_SRC emacs-lisp
   (use-package org-gcal
     :init
-    (setq org-gcal-client-id (ic/get-secret "email.personal.client-id"))
-    (setq org-gcal-client-secret (ic/get-secret "email.personal.client-secret"))
-    ;; (org-gcal-reload-client-id-secret)
+    (setq org-gcal-client-id
+          (ic/get-secret "calendar.personal.client-id"))
+    (setq org-gcal-client-secret
+          (ic/get-secret "calendar.personal.client-secret"))
     (setq org-gcal-fetch-file-alist
-          `((,(ic/get-secret "email.personal.calendar-id") . "~/src/roam/special/zetian-calendar.org"
+          `((,(ic/get-secret "calendar.personal.main.id") . "~/src/roam/special/calendar-main.org"
+             )
+            (,(ic/get-secret "calendar.personal.transit.id") . "~/src/roam/special/calendar-transit.org"
              )))
 
     ;; auto delete org headings when deleted from gcal
     (setq org-gcal-remove-cancelled-events t)
-    (setq org-gcal-remove-cancelled-events t)
-  
-    ;; don't reprompt for credentials
-    (setq epg-pinentry-mode 'loopback)
-    (setq plstore-cache-passphrase-for-symmetric-encryption t)
-    )
+    (setq org-gcal-remove-cancelled-events t))
+
+
 #+END_SRC
 
 ** org-mode
@@ -3207,6 +3207,15 @@ bar, etc.
 I do most of my work in =UTF-8= with =unix= line endings, so set that as the default coding system. Emacs seems to still Do The Right Thing on windows with this set. When it's not set =tramp= from windows into a linux system does not work properly.
 #+BEGIN_SRC emacs-lisp
   (prefer-coding-system 'utf-8-unix)
+#+END_SRC
+** Encryption
+#+BEGIN_SRC emacs-lisp
+  ;; default encrypt to my personal email
+  (setq plstore-encrypt-to (ic/get-secret "email.personal.address"))
+
+  ;; don't reprompt for credentials
+  (setq epg-pinentry-mode 'loopback)
+  (setq plstore-cache-passphrase-for-symmetric-encryption t)
 #+END_SRC
 ** Ediff
 #+BEGIN_SRC emacs-lisp
