@@ -1184,6 +1184,9 @@ Not sure what this is exactly, but let's ensure it keeps it's data files tidy.
                       (:name "Overdue"
                              :deadline past
                              :scheduled past)
+                      (:name "Today's Important Tasks"
+                             :and (:priority "A" :tag "today")
+                             :and (:priority "A" :scheduled today))
                       (:name "Today's Tasks"
                              :tag "today"
                              :scheduled today)
