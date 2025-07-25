@@ -3245,6 +3245,15 @@ I don't like =customize= so discard all settings.
   (setq custom-file (concat (temporary-file-directory) "emacs-customize-settings"))
 #+END_SRC
 
+/Some/ =customize= settings are actually useful, so set them here.
+#+BEGIN_SRC emacs-lisp
+  (custom-set-variables
+   '(safe-local-variable-values
+     '(;; used in zetian weekly journals
+       (eval add-hook (make-local-variable 'before-save-hook)
+             'org-table-recalculate-buffer-tables))))
+#+END_SRC
+
 ** Tab Width
 Use 4 spaces by default for tabs. Note: these are commonly overwritten in mode hooks.
 

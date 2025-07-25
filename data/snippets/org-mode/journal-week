@@ -2,6 +2,7 @@
 # name: journal-week
 # key: nil
 # --
+# -*- eval:(add-hook (make-local-variable 'before-save-hook) 'org-table-recalculate-buffer-tables) -*-
 :PROPERTIES:
 :DATE_CREATED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
 :LAST_MODIFIED: `(format-time-string "[%Y-%m-%d %a %H:%M]")`
@@ -13,6 +14,7 @@
 Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-link time)`
 
 * Indicators
+#+NAME: metrics
 |                     | Mon | Tue | Wed | Thu | Fri | Sat | Sun |
 |---------------------+-----+-----+-----+-----+-----+-----+-----|
 | minutes, job search |     |     |     |     |     |     |     |
@@ -46,6 +48,7 @@ Journal for Week `(format-time-string "%V" time)` :: `(zetian-journal-quarter-li
   | active hours |     8 |       |         |
   | calories     |  1500 |       |         |
   | weight       |     - |       |         |
+  #+TBLFM: \$3=vmean(remote(metrics, @@#\$2..@@#\$>));f1 :: \$4=min(1,\$3/\$2)*100;f1
 
 - [ ] Review tasks completed this week.
 - [ ] Review Areas.
