@@ -3248,6 +3248,9 @@ I don't like =customize= so discard all settings.
 /Some/ =customize= settings are actually useful, so set them here.
 #+BEGIN_SRC emacs-lisp
   (custom-set-variables
+   '(custom-safe-themes
+     '("c77bdd7e01090135942fba6af2b77b763a7022d34419b1b0a1dfa313762606ba"
+       "149edfc70d0537ada225aae0d85ed8c275969845b557474896c1eabafa39ba81" default))
    '(safe-local-variable-values
      '(;; used in zetian weekly journals
        (eval add-hook (make-local-variable 'before-save-hook)
