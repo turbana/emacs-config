@@ -647,6 +647,8 @@ This is to support editing =KMonad= =.*kbd= files.
     :hook
     ((lsp-mode . lsp-enable-which-key-integration)
      (csharp-mode . lsp)
+     (haskell-mode . lsp)
+     (haskell-literate-mode . lsp)
      (json-ts-mode . lsp)
      (tsx-ts-mode . lsp)
      (typescript-ts-mode . lsp))
@@ -655,6 +657,12 @@ This is to support editing =KMonad= =.*kbd= files.
     (local-leader-keys
       :keymaps 'prog-mode-map
       "l" lsp-command-map))
+#+END_SRC
+
+** lsp-haskell
+#+BEGIN_SRC emacs-lisp
+  (use-package lsp-haskell
+    :after (lsp-mode))
 #+END_SRC
 
 ** lsp-ui
