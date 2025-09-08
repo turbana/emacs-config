@@ -3765,7 +3765,8 @@ I'd like to have a custom mode to make things a little prettier. I really want u
   (defun zetian--post-command-hook ()
     "update zetian header once after a command completes"
     (remove-hook 'post-command-hook #'zetian--post-command-hook)
-    (zetian-mode--update-header))
+    (when (eq major-mode #'zetian-mode)
+      (zetian-mode--update-header)))
 
   (defun zetian-mode--move-cursor-out-of-header (window old-pos action)
     (when (eq action 'entered)
