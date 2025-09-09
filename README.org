@@ -754,7 +754,7 @@ Let's have some fancy heading bullets.
 #+BEGIN_SRC emacs-lisp
   (use-package org-bullets
     :config
-    (setq org-bullets-bullet-list '("•"))
+    (setq org-bullets-bullet-list '("▸" "▹" "✦" "✧" "★" "☆" "✵" "✴"))
     :hook (org-mode . org-bullets-mode))
 #+END_SRC
 
