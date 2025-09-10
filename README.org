@@ -5602,16 +5602,17 @@ I want any completed task to be moved out of it's current file and into an archi
     (interactive)
     ;; because we're modifying one file mostly: we want to work back-to-front or
     ;; end-to-beginning.
-    (when-let ((nodes (sort (zetian-query-closed-task-or-event)
+    (let ((nodes (sort (zetian-query-closed-task-or-event)
                        (lambda (n1 n2)
                          (< (org-roam-node-point n2)
                             (org-roam-node-point n1))))))
-      (let ((touched-files (mapcar #'zetian-archive-task nodes)))
-        (mapc (lambda (file)
-                (with-current-buffer (find-file-noselect file)
-                  (save-buffer)))
-              (cons zetian-tasks-file
-                    (-uniq touched-files))))
+      (when nodes
+        (let ((touched-files (mapcar #'zetian-archive-task nodes)))
+          (mapc (lambda (file)
+                  (with-current-buffer (find-file-noselect file)
+                    (save-buffer)))
+                (cons zetian-tasks-file
+                      (-uniq touched-files)))))
       (message "archived %d tasks" (length nodes))))
 
   (defun zetian-archive-task (node)
