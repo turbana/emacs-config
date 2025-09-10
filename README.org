@@ -5623,8 +5623,10 @@ I want any completed task to be moved out of it's current file and into an archi
         (let* ((org-log-refile nil)
                (org-refile-allow-creating-parent-nodes t)
                (props (org-roam-node-properties node))
-               (closed (org-matcher-time (cdr (assoc "CLOSED" props))))
-               (archive-file (zetian--get-archive-file closed)))
+               (closed (or (cdr (assoc "CLOSED" props))
+                           "<now>"))
+               (archive-file (zetian--get-archive-file
+                              (org-matcher-time closed))))
           (org-refile nil nil (list "" archive-file nil 1))
           (save-window-excursion
             (org-refile-goto-last-stored)
