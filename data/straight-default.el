@@ -77,7 +77,7 @@
  ("spaceline-all-the-icons.el" . "5afd48c10f1bd42d9b9648c5e64596b72f3e9042")
  ("spinner" . "fa117f0893788f3fe24673715a6b83bb34d238dd")
  ("straight.el" . "d157afbec4ec8659ad2026f57354d58d849a7c94")
- ("themian" . "f3ddbb5cc103d5cc735ec14a42c7b20b9b4b0a58")
+ ("themian" . "f6f573f518d72d129391e493763b428636c47c3f")
  ("transient" . "b710423225373bad8c2517d741d911a1b4468514")
  ("ts.el" . "552936017cfdec89f7fc20c254ae6b37c3f22c5b")
  ("use-package" . "29552cf3af755f17e297862a7f635c469a28b09f")

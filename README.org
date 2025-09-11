@@ -344,26 +344,35 @@ Load my custom theme early so if we have errors emacs still looks pretty.
     (setq themian-org-mode-variable-pitch t)
     (setq themian-org-mode-emphasize-todo nil)
     (setq themian--show-unknowns nil)
-    (let ((fixed
-           (cond (on-old-imac
-                  '("Iosevka Extended" 160 ultra-light))
-                 (on-home-windows-laptop
-                  '("Iosevka Extended" 140 normal))
+    
+    ;; set fonts
+    (let ((font-config
+           (cond (on-home-windows-laptop
+                  '(:fixed    ("Iosevka Extended" 140 normal)
+                    :variable ("DejaVu Sans Condensed" 140 normal)
+                    :heading  ("Iosevka Extended" 140 normal)))
                  (t
-                  '("Iosevka Extended" 110 normal))))
-          (variable
-           (cond (on-old-imac
-                  '("DejaVu Sans ExtraLight" 150 ultra-light))
-                 (on-home-windows-laptop
-                  '("DejaVu Sans Condensed" 140 normal))
-                 (t
-                  '("DejaVu Sans Condensed" 120 normal)))))
-      (set-face-attribute 'default nil :family (nth 0 fixed)
-                          :height (nth 1 fixed) :weight (nth 2 fixed))
-      (set-face-attribute 'fixed-pitch nil :family (nth 0 fixed)
-                          :height (nth 1 fixed) :weight (nth 2 fixed))
-      (set-face-attribute 'variable-pitch nil :family (nth 0 variable)
-                          :height (nth 1 variable) :weight (nth 2 variable)))
+                  '(:fixed    ("Iosevka Extended" 110 normal)
+                    :variable ("DejaVu Sans Condensed" 120 normal)
+                    :heading  ("DejaVu Serif Condensed" 120 normal))))))
+      (cl-flet ((lookup (style index)
+                  (nth index (plist-get font-config style))))
+        (set-face-attribute 'default nil
+                            :family (lookup :fixed 0)
+                            :height (lookup :fixed 1)
+                            :weight (lookup :fixed 2))
+        (set-face-attribute 'fixed-pitch nil
+                            :family (lookup :fixed 0)
+                            :height (lookup :fixed 1)
+                            :weight (lookup :fixed 2))
+        (set-face-attribute 'variable-pitch nil
+                            :family (lookup :variable 0)
+                            :height (lookup :variable 1)
+                            :weight (lookup :variable 2))
+        (set-face-attribute 'header-line nil
+                            :family (lookup :heading 0)
+                            :height (lookup :heading 1)
+                            :weight (lookup :heading 2))))
 
     (defun themian--reload-dark-theme ()
       (interactive)
