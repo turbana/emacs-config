@@ -606,6 +606,21 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
     )
 #+END_SRC
 
+** gdscript-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package gdscript-mode
+      :straight (gdscript-mode
+                 :type git
+                 :host github
+                 :repo "godotengine/emacs-gdscript-mode"))
+#+END_SRC
+
+** gdshader-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package gdshader-mode 
+    :straight (gdshader-mode :type git :host github :repo "bbbscarter/gdshader-mode"))
+#+END_SRC
+
 ** haskell-mode
 #+BEGIN_SRC emacs-lisp
   (use-package haskell-mode
