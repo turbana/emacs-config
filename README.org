@@ -569,6 +569,11 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
       (auto-dim-other-buffers-mode t))
 #+END_SRC
 
+** clojure-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package clojure-mode)
+#+END_SRC
+
 ** company
 #+BEGIN_SRC emacs-lisp
   (use-package company
