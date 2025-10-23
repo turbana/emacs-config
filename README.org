@@ -839,7 +839,7 @@ I'd like to keep my google calendar in-sync with =org-mode=.
     "Default org file for work related items.")
   (defvar org-default-file (if at-home org-home-file org-work-file)
     "Default org file.")
-  (defvar org-bookmark-file "~/src/roam/special/bookmarks.org")
+  (defvar org-bookmark-file "~/src/zetian/special/bookmarks.org")
   (setq org-default-notes-file
         (if at-home "~/org/home/inbox.org" "~/org/inbox.org"))
   ;; NOTE: org-agenda-files is now set in zetian
@@ -2293,7 +2293,7 @@ Most of this config is located under [[*Zetian][Zetian]], but I'll do the initia
     :requires (org emacsql)
     :init
     (setq org-roam-v2-ack t)
-    (setq org-roam-directory (expand-file-name "~/src/roam/"))
+    (setq org-roam-directory (expand-file-name "~/src/zetian/"))
     (setq org-roam-db-location
           (concat user-cache-directory "org-roam.db"))
     (setq org-roam-completion-everywhere t)
