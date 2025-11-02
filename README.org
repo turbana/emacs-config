@@ -685,7 +685,8 @@ This is to support editing =KMonad= =.*kbd= files.
      (haskell-literate-mode . lsp)
      (json-ts-mode . lsp)
      (tsx-ts-mode . lsp)
-     (typescript-ts-mode . lsp))
+     (typescript-ts-mode . lsp)
+     (gdscript-mode . lsp))
 
     :general
     (local-leader-keys
