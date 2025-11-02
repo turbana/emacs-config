@@ -655,6 +655,11 @@ This is to support editing =KMonad= =.*kbd= files.
     )
 #+END_SRC
 
+** lua-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package lua-mode)
+#+END_SRC
+
 ** lsp
 #+BEGIN_SRC emacs-lisp
   (use-package lsp-mode
