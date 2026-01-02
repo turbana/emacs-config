@@ -27,6 +27,7 @@ if [[ ! -d $ROOT ]]; then
 fi
 
 cd $ROOT
+./autogen.sh
 ./configure $CONFIGURE_OPTS
 make -j $(nproc --all)
 sudo make install
