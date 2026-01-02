@@ -2887,6 +2887,9 @@ For numbering and jumping to windows.
   ;; when viewing multiple directories (with `i') movement should be over the dead
   ;; heading lines
   (setq dired-movement-style 'bounded)
+
+  ;; show file sizes in human-readable format (-h)
+  (setq dired-listing-switches "-lah")
 #+END_SRC
 
 ** lisp-mode
