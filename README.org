@@ -3599,7 +3599,25 @@ I have problems typing in =org-mode= documents with the default garbage collecto
   (setq garbage-collection-messages nil)
 #+END_SRC
 
-** Shell replace
+** Shell Commands
+*** Shell Command
+Calling =shell-command= with =M-!= should insert the current region (if any) into the minibuffer.
+
+#+BEGIN_SRC emacs-lisp
+  (defun ic/shell-command-from-region (start end)
+    "Run `shell-command' with the active region as the initial minibuffer input."
+    (interactive "r")
+    (let ((saved-region (if (region-active-p)
+                            (buffer-substring-no-properties start end)
+                          "")))
+      (minibuffer-with-setup-hook
+          (lambda () (insert saved-region))
+       (call-interactively #'shell-command))))
+
+  (general-define-key "M-!" #'ic/shell-command-from-region)
+#+END_SRC
+
+*** Shell replace region
 I'd like a way to call =shell-command-on-region= and have it replace the current region without using a prefix arg.
 
 #+BEGIN_SRC emacs-lisp
