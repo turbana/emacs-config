@@ -6465,8 +6465,7 @@ See the file =org-protocol-windows.reg= for registering =org-protocol= in window
           (cl-letf (((symbol-function #'switch-to-buffer-other-window)
                      #'switch-to-buffer))
             (org-capture))
-        (when (equal "Org Capture" (frame-parameter nil 'name))
-          (delete-frame)))))
+        (delete-frame))))
 
   (add-to-list 'org-protocol-protocol-alist
                '("zetian-bookmark" :protocol "zetian-bookmark"
