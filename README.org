@@ -608,6 +608,13 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
 ** flycheck
 #+BEGIN_SRC emacs-lisp
   (use-package flycheck
+    :config
+    (local-leader-keys flycheck-mode-map
+      :infix "e"
+      "" '(nil :which-key "flycheck")
+      "l" 'flycheck-list-errors
+      "n" 'flycheck-next-error
+      "p" 'flycheck-previous-error)
     )
 #+END_SRC
 
