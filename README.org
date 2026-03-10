@@ -6872,6 +6872,10 @@ Profiler bindings.
    ;; "h" 'flip-window-layout-vertically
    ;; "L" 'rotate-window-layout-clockwise
    ;; "H" 'rotate-window-layout-anticlockwise
+   "H" 'windmove-swap-states-left
+   "J" 'windmove-swap-states-down
+   "K" 'windmove-swap-states-up
+   "L" 'windmove-swap-states-right
    "m" 'delete-other-windows
    "S" 'split-window-below-and-focus
    "s" 'split-window-below
