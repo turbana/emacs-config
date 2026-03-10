@@ -6587,6 +6587,16 @@ I want a keybind to automatically open the source of a user-prompted library.
     (when-let ((source (call-interactively #'locate-library)))
       (find-file source)))
 #+END_SRC
+** Registers
+I'd like to be able to use registers more easily, mostly to keep "bookmarks" within a file
+#+BEGIN_SRC emacs-lisp
+  (defun ic/register-dwim (&optional arg)
+    (interactive "P")
+    (if (equal arg '(4))
+        (call-interactively 'consult-register-store nil)
+      (call-interactively 'consult-register-load)))
+#+END_SRC
+
 * Keybindings
 Here we copy the spacemacs keybindings, more or less.
 
@@ -6596,6 +6606,7 @@ Here we copy the spacemacs keybindings, more or less.
     "|" 'ic/shell-command-on-region-replace
     "C-|" 'shell-command-on-region
     "TAB" 'mode-line-other-buffer
+    "r" 'ic/register-dwim
     "u" 'universal-argument)
 #+END_SRC
 
@@ -6811,14 +6822,14 @@ Profiler bindings.
 
 ** r :: registers
 #+BEGIN_SRC emacs-lisp
-  (leader-keys
-    :infix "r"
-    "" '(nil :which-key "registers")
-    "l" 'consult-register-load
-    "k" 'consult-yank-from-kill-ring
-    "r" 'consult-register
-    "s" 'consult-register-store
-    )
+  ;; (leader-keys
+  ;;   :infix "r"
+  ;;   "" '(nil :which-key "registers")
+  ;;   "l" 'consult-register-load
+  ;;   "k" 'consult-yank-from-kill-ring
+  ;;   "r" 'consult-register
+  ;;   "s" 'consult-register-store
+  ;;   )
 #+END_SRC
 
 ** s :: search
