@@ -376,12 +376,12 @@ Load my custom theme early so if we have errors emacs still looks pretty.
 
     (defun themian--reload-dark-theme ()
       (interactive)
-      (load-file "~/src/themian/themian-theme.el")
+      (load-file "~/src/emacs/straight/repos/themian/themian-theme.el")
       (themian-create-color-theme 'themian-dark 'dark)
       (load-theme 'themian-dark t))
     (defun themian--reload-light-theme ()
       (interactive)
-      (load-file "~/src/themian/themian-theme.el")
+      (load-file "~/src/emacs/straight/repos/themian/themian-theme.el")
       (themian-create-color-theme 'themian-light 'light)
       (load-theme 'themian-light t))
 
