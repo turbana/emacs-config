@@ -2115,6 +2115,7 @@ Main =local-leader= key binds:
     "'" 'org-edit-special
     ":" 'org-set-tags-command
     "^" 'org-sort
+    "|" 'org-table-create
     "A" 'org-archive-subtree
     "D" 'org-insert-drawer
     "d" 'org-deadline
@@ -2177,6 +2178,7 @@ Main =local-leader= key binds:
     "T" 'org-time-stamp
     "s" 'org-download-screenshot
     "y" 'org-download-yank
+    "|" 'org-table-create
     )
 #+END_SRC
 
