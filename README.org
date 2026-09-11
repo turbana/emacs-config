@@ -982,46 +982,52 @@ The font matters so here is some in fixed width:
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
-  (defvar ic/org-list-icon ?-)
+  (defun ic/ati-icon (family icon &rest args)
+    "Return the `all-the-icons' icon for FAMILY, ICON and optional ARGS.
+  See `all-the-icons-FAMILY' for the meaning of ARGS."
+    (when (member family '(alltheicon fileicon faicon octicon wicon material))
+      (let ((ati-func (intern (format "all-the-icons-%s" family))))
+        (funcall ati-func icon args))))
 
-  (defun ic//setup-org-mode-icons ()
-    "Setup pretty org-mode icons.
-  Should be run as part of `server-after-make-frame-hook' as the frame needs to be
-    loaded for some of the icons to be loaded."
-    (setq org-ellipsis
-          (concat " "
-                  (char-to-string
-                   (ic/first-displayable-char
-                    '(? ?… ?v)))))
-    (setq ic/org-list-icon
-          (ic/first-displayable-char `(?— ,ic/org-list-icon))))
-  (add-hook 'server-after-make-frame-hook #'ic//setup-org-mode-icons)
+  (defun ic/ati-icon-glyph (family icon &rest args)
+    "Return the glyph of `ic/ati-icon' and set the correct font in the default
+  fontset (for correct rendering)."
+    (when-let ((icon (ic/ati-icon family icon args)))
+      (let ((glyph (aref icon 0))
+            (font (funcall (intern (format "all-the-icons-%s-family" family)))))
+        (set-fontset-font "fontset-default" glyph font)
+        glyph)))
 
+
+  ;; set some `org-mode' fancy icons
+  (defvar ic/org-list-icon ?—)
+  (setq org-ellipsis (concat " " (ic/ati-icon 'octicon "chevron-down")))
+
+  ;; list used to setup `prettify-symbols-alist'
+  ;; format of: (REPLACE ICON-FAMILY ICON-NAME)
   (defvar ic/org-mode-symbol-mapping
-    '(
-      ;; priority cookies are nice, but *very* inconsistent
-      ("[#A]" ? ?Ⓐ)
-      ("[#B]" ? ?Ⓑ)
-      ("[#C]" ? ?Ⓒ)
-      ("[#D]" ? ??)
-      ("[#E]" ? ??)
-      ("[ ]" ?)
-      ("[X]" ?)
-      ("[x]" ?)
-      ("[-]" ?)
-      ("#+BEGIN_SRC" ?λ)
-      ("#+END_SRC"   ?ƛ)
-      ("CLOSED:"    ?)
-      ("SCHEDULED:" ?)
-      ("DEADLINE:"  ?)
-      ("TODO"      ? ?)
-      ("NEXT"      ? ?)
-      ("DONE"      ? ?)
-      ("WAIT"      ?)
-      ("CANCELLED" ?)
+    `(("[#A]" faicon "arrow-circle-up")
+      ("[#B]" faicon "chevron-circle-up")
+      ("[#C]" faicon "minus-circle")
+      ("[#D]" faicon "chevron-circle-down")
+      ("[#E]" faicon "arrow-circle-down")
+      ("[ ]"  faicon "square-o")
+      ("[X]"  faicon "check-square")
+      ("[x]"  faicon "check-square")
+      ("[-]"  faicon "minus-square")
+      ("#+BEGIN_SRC" octicon "code")
+      ("#+END_SRC"   faicon "code")
+      ("DEADLINE:"  faicon "calendar-times-o")
+      ("SCHEDULED:" faicon "calendar-o")
+      ("CLOSED:"    faicon "calendar-check-o")
+      ("TODO"      faicon "square-o")
+      ("NEXT"      faicon "plus-square")
+      ("DONE"      faicon "check")
+      ("WAIT"      faicon "share-square")
+      ("CANCELLED" faicon "trash")
       ))
 
-  ;; replace certain org-mode text with symbols
+
   (defun ic/org-mode-pretty-symbols ()
     "Enable `prettify-symbols-mode' and set `prettify-symbols-alist' for certain
   `org-mode' symbols."
@@ -1030,7 +1036,7 @@ The font matters so here is some in fixed width:
     (setq prettify-symbols-alist
           (mapcar (lambda (m)
                     (cons (car m)
-                          (funcall #'ic/first-displayable-char (cdr m))))
+                          (apply #'ic/ati-icon-glyph (cdr m))))
                   ic/org-mode-symbol-mapping))
     (prettify-symbols-mode 1))
 
