@@ -624,7 +624,8 @@ Turn on  =auto-dim-other-buffers-mode=. Dim when the frame loses focus, but don'
       :straight (gdscript-mode
                  :type git
                  :host github
-                 :repo "godotengine/emacs-gdscript-mode"))
+                 :repo "godotengine/emacs-gdscript-mode")
+      :after magit)
 #+END_SRC
 
 ** gdshader-mode
@@ -807,9 +808,11 @@ Let's have some fancy heading bullets.
     :hook (org-mode . org-bullets-mode))
 #+END_SRC
 
-** org-gcal
+** org-gcal (disabled)
+=(Seems to have stopped working with emacs-31.1)=
 I'd like to keep my google calendar in-sync with =org-mode=.
-#+BEGIN_SRC emacs-lisp
+
+#+BEGIN_SRC emacs-lisp :tangle no
   (use-package org-gcal
     :init
     (setq org-gcal-client-id
@@ -2499,6 +2502,8 @@ This used to be much more involved, but I found a lot of my project specific cod
           (concat user-cache-directory "projectile.cache"))
     (setq projectile-known-projects-file
           (concat user-cache-directory "projectile-bookmarks.eld"))
+    (setq projectile-frecency-file
+          (concat user-cache-directory "projectile-frecency.eld"))
 
     :config
     (projectile-mode 1)
@@ -2776,6 +2781,15 @@ Add icons to any custom modes we've defined
   (add-to-list 'all-the-icons-mode-icon-alist
                '(zetian-mode all-the-icons-material "local_florist"
                              :height 1.0 :v-adjust -0.1))
+#+END_SRC
+
+** tree-sitter
+#+BEGIN_SRC emacs-lisp
+  (use-package tree-sitter
+    :config
+    (global-tree-sitter-mode 1))
+
+  (use-package tree-sitter-langs)
 #+END_SRC
 
 ** visual-fill-column
@@ -3693,60 +3707,6 @@ To get around this I'll use a hook to check the name of the newly created frame 
 
   (add-hook 'after-make-frame-functions #'ic/maybe-maximize-frame)
   (ic/maybe-maximize-frame (selected-frame))
-#+END_SRC
-
-** Tree Sitter
-Most of this config was taken liberally from [[https://www.masteringemacs.org/article/how-to-get-started-tree-sitter][Mastering Emacs]].
-
-First we need to setup some grammar sources.
-#+BEGIN_SRC emacs-lisp
-  (setq treesit-language-source-alist
-    '((css . ("https://github.com/tree-sitter/tree-sitter-css"))
-      (bash "https://github.com/tree-sitter/tree-sitter-bash")
-      (html . ("https://github.com/tree-sitter/tree-sitter-html"))
-      (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript"))
-      (json . ("https://github.com/tree-sitter/tree-sitter-json"))
-      (python . ("https://github.com/tree-sitter/tree-sitter-python"))
-      (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-      (make "https://github.com/alemuller/tree-sitter-make")
-      (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-      (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src"))
-      (typescript . ("https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src"))
-      (yaml . ("https://github.com/ikatyang/tree-sitter-yaml"))
-      ))
-#+END_SRC
-
-Then we need to install any un-installed grammars and setup a function to update them all.
-#+BEGIN_SRC emacs-lisp
-  (defun ic/treesit-install-grammars ()
-    "Install any un-installed `tree-sitter' grammars."
-    (interactive)
-    (dolist (def treesit-language-source-alist)
-      (unless (treesit-language-available-p (car def))
-        (treesit-install-language-grammar (car def) ic/treesit-install-path))))
-
-  (defun ic/treesit-update-grammars ()
-    "Install or update all `tree-sitter' grammars."
-    (interactive)
-    (dolist (def treesit-language-source-alist)
-      (treesit-install-language-grammar (car def) ic/treesit-install-path)))
-
-  (ic/treesit-install-grammars)
-#+END_SRC
-
-Next we need to make the non-ts major-modes to their treesitter equivalent. Just in case we load the non-ts mode.
-#+BEGIN_SRC emacs-lisp
-  (dolist (mapping
-           '((css-mode . css-ts-mode)
-             (js-json-mode . json-ts-mode)
-             (js-mode . typescript-ts-mode)
-             (js2-mode . typescript-ts-mode)
-             (json-mode . json-ts-mode)
-             (python-mode . python-ts-mode)
-             (typescript-mode . typescript-ts-mode)
-             (yaml-mode . yaml-ts-mode)
-             ))
-    (add-to-list 'major-mode-remap-alist mapping))
 #+END_SRC
 
 ** File Extension to Major Mode Mapping
@@ -5457,7 +5417,7 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
 
   ;; add our annotator to marginalia
   (with-eval-after-load 'marginalia
-    (add-to-list 'marginalia-annotator-registry
+    (add-to-list 'marginalia-annotators
                  '(zetian zetian--completion-annotator builtin none)))
 #+END_SRC
 
