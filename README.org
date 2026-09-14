@@ -170,8 +170,8 @@ This file (=README.org=) should be tangled into the startup config file (=init.e
                    ;; set to silence messages from `org-babel-tangle-file'.
                    ;; this screws up the async return value on windows :(
                    (inhibit-message t))
-               (when-let (ret (org-babel-tangle-file ,(buffer-file-name)
-                                                     ,user-init-file))
+               (when-let* ((ret (org-babel-tangle-file ,(buffer-file-name)
+                                                       ,user-init-file)))
                  ;; (byte-compile-file ,user-init-file)
                  ;; (when ,have-native-compilation
                  ;;   (native-compile ,user-init-file))
@@ -446,7 +446,7 @@ Some functions to trace the changing of variables.
     "Watch for any changes to SYMBOL and print a stack trace."
     (defun watch-variable-print-stack (sym value operation buffer)
       (message (ic//watch-variable-format sym buffer operation value))
-      (if-let ((stack-trace (with-output-to-string (backtrace))))
+      (if-let* ((stack-trace (with-output-to-string (backtrace))))
           (progn
             (message ">>>>>>>>>>")
             (message "%S" stack-trace)
@@ -995,7 +995,7 @@ The font matters so here is some in fixed width:
   (defun ic/ati-icon-glyph (family icon &rest args)
     "Return the glyph of `ic/ati-icon' and set the correct font in the default
   fontset (for correct rendering)."
-    (when-let ((icon (ic/ati-icon family icon args)))
+    (when-let* ((icon (ic/ati-icon family icon args)))
       (let ((glyph (aref icon 0))
             (font (funcall (intern (format "all-the-icons-%s-family" family)))))
         (set-fontset-font "fontset-default" glyph font)
@@ -1810,7 +1810,7 @@ Now let's use =completing-read= to lookup a book.
                         (format " by %s [%d] %s {%s %s %s}"
                                 (alist-get 'authors work)
                                 (alist-get 'first-year-published work)
-                                (if-let ((editions (alist-get 'edition-count
+                                (if-let* ((editions (alist-get 'edition-count
                                                               work)))
                                     (format "%d editions" editions)
                                   "")
@@ -1880,7 +1880,7 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
           (add "- [[http://openlibrary.org/authors/%s][OpenLibrary - %s]]\n"
                (cdr tuple) (car tuple)))
         (add (concat "- [[https://librarything.com"
-                     (if-let (id (assoc-default 'librarything-id doc))
+                     (if-let* ((id (assoc-default 'librarything-id doc)))
                          (format "/work/%s" id)
                        (format "/search.php?search=%s"
                                (assoc-default 'query-title doc)))
@@ -1892,7 +1892,7 @@ Now, we need a function that takes the data from =OpenLibrary= and generates an 
         (add "- [[https://www.overdrive.com/search?q=%s][Overdrive]]\n"
              (assoc-default 'query-title doc))
         (add (concat "- [[https://goodreads.com"
-                     (if-let (id (assoc-default 'goodreads-id doc))
+                     (if-let* ((id (assoc-default 'goodreads-id doc)))
                          (format "/book/show/%s" id)
                        (format "/search?q=%s&search_type=books"
                                (assoc-default 'query-title doc)))
@@ -3304,7 +3304,7 @@ Some functions to manipulate underlying files.
   (defun ic/delete-current-buffer-file ()
     "Delete the currently visited file."
     (interactive)
-    (if-let (filename (buffer-file-name))
+    (if-let* ((filename (buffer-file-name)))
         (when (yes-or-no-p (format "Delete file %S? " filename))
           (delete-file filename)
           (kill-buffer)
@@ -3317,7 +3317,7 @@ Some functions to manipulate underlying files.
   (defun ic/rename-current-buffer-file ()
     "Rename the currently visited file."
     (interactive)
-    (if-let (cur-filename (buffer-file-name))
+    (if-let* ((cur-filename (buffer-file-name)))
         (let ((new-filename (read-file-name
                              (format "Rename %S to: "
                                      (file-name-nondirectory cur-filename))))
@@ -3868,7 +3868,7 @@ I'd like to have a custom mode to make things a little prettier. I really want u
 
   (defun zetian-mode--remove-header ()
     "Removes the overlay and any text properties created."
-    (when-let ((ov zetian-mode--header-overlay))
+    (when-let* ((ov zetian-mode--header-overlay))
       (delete-overlay ov)))
 
   (defun zetian-mode--before-save-h ()
@@ -4138,10 +4138,10 @@ When I call =org-roam-node-find= and the node is an =org-mode= element rather th
     "Act like `org-roam-node-find', but create a narrowed indirect buffer when
     visiting an element (as opposed to a file)."
     (interactive)
-    (when-let (node (or node (zetian-search nil "Find or create note" t)))
-      (if-let ((guid (org-roam-node-id node))
-               (title (org-roam-node-title node))
-               (buf-name (format "zetian: %s" title)))
+    (when-let* ((node (or node (zetian-search nil "Find or create note" t))))
+      (if-let* ((guid (org-roam-node-id node))
+                (title (org-roam-node-title node))
+                (buf-name (format "zetian: %s" title)))
           (let ((buf (get-buffer buf-name))
                 (loc (org-id-find guid)))
             (cond
@@ -4302,7 +4302,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
     "Search zetian for QUERY and navigate to chosen buffer. When CREATE is
   non-nil allow user to create a new node."
     (interactive)
-    (when-let ((node (zetian-search query create prompt)))
+    (when-let* ((node (zetian-search query create prompt)))
       (zetian-node-find node)))
 
   (defun ic/org-roam-node-body (node)
@@ -4521,7 +4521,7 @@ I want a way to search through =zetian= in a fast, easy, and general manor.
                      "universal argument given.")
              pretty-name)
            (interactive "P")
-           (when-let ((node (,s-sym arg)))
+           (when-let* ((node (,s-sym arg)))
              (zetian-node-find node))))))
 
   (defmacro def-zetian-query-function (sym &rest body)
@@ -4742,7 +4742,7 @@ zetian is starting to get a lot of search functions and I don't really like to h
                   (when (and (string-match-p regex (symbol-name sym))
                              (commandp sym))
                     (setq symbols (cons sym symbols)))))
-      (when-let ((func-name (completing-read prompt symbols)))
+      (when-let* ((func-name (completing-read prompt symbols)))
         (apply (symbol-function (intern func-name)) arg args))))
 
   (defun zetian-select-find (&optional arg)
@@ -4765,11 +4765,11 @@ zetian is starting to get a lot of search functions and I don't really like to h
     "Query Zetian for a node and return an `org-mode' link as a string, creating
   the node if IMMEDIATE is non-nil."
     (interactive)
-    (when-let ((node (zetian-search zetian-query-non-archive
-                                    (concat "node to link"
-                                            (when immediate
-                                              " (create if needed)"))
-                                    immediate)))
+    (when-let* ((node (zetian-search zetian-query-non-archive
+                                     (concat "node to link"
+                                             (when immediate
+                                               " (create if needed)"))
+                                     immediate)))
         (zetian-node-link node)))
 
   (defun zetian-link-immediate ()
@@ -4781,7 +4781,7 @@ zetian is starting to get a lot of search functions and I don't really like to h
   (defun zetian-link-insert ()
     "Query Zetian for a node and insert a link at point."
     (interactive)
-    (if-let ((link (zetian-link)))
+    (if-let* ((link (zetian-link)))
         (insert link)
       (message "Error: specified zetian does not exist")))
 
@@ -4795,14 +4795,14 @@ zetian is starting to get a lot of search functions and I don't really like to h
     "Query zetian for a search function, call that function: insert a link to
     chosen node at point."
     (interactive)
-    (when-let ((node (zetian-select-search)))
+    (when-let* ((node (zetian-select-search)))
       (insert (zetian-node-link node))))
 
   (defun zetian-node-create (&optional title template-key)
     "Return zetian node for TITLE, creating it if necessary. Uses TEMPLATE-KEY to
   lookup template from `org-roam-capture-templates', when NIL prompt user for key."
     (if title
-        (if-let (node (org-roam-node-from-title-or-alias title))
+        (if-let* ((node (org-roam-node-from-title-or-alias title)))
             ;; we have a title and an existing node
             node
           ;; we have a title, but the node needs to be created
@@ -4890,8 +4890,8 @@ I use =type_FOO= tags to denote /what/ a =zetian= node is. I'll need a pair of f
   (defun zetian-set-type (&optional type)
     "Set the current node's zetian type to TYPE."
     (interactive)
-    (when-let ((new-type (or type (completing-read "Type: " nil))))
-      (when-let ((old-type (zetian-get-type)))
+    (when-let* ((new-type (or type (completing-read "Type: " nil))))
+      (when-let* ((old-type (zetian-get-type)))
         (zetian-remove-state (concat zetian--type-cookie old-type)))
       (zetian-add-state (concat zetian--type-cookie new-type))))
 
@@ -4903,11 +4903,11 @@ I use =type_FOO= tags to denote /what/ a =zetian= node is. I'll need a pair of f
     "Return the NODE's zetian type."
     (unless node
       (error "No node found."))
-    (if-let ((states (zetian-node-get-states node t)))
-        (when-let ((types
-                    (seq-filter (lambda (s)
-                                  (s-starts-with-p zetian--type-cookie s))
-                                states)))
+    (if-let* ((states (zetian-node-get-states node t)))
+        (when-let* ((types
+                     (seq-filter (lambda (s)
+                                   (s-starts-with-p zetian--type-cookie s))
+                                 states)))
           (if (= 1 (length types))
               (string-remove-prefix zetian--type-cookie (car types))
             (error "More than one type found on node.")))
@@ -4984,7 +4984,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
       (zetian--remove-header)
       (let (inserted-header)
         (dolist (type (mapcar 'car zetian-header-formats))
-          (when-let ((links (assoc-default type all-links)))
+          (when-let* ((links (assoc-default type all-links)))
             (setq inserted-header t)
             (insert
              (assoc-default type zetian-header-formats)
@@ -5024,7 +5024,7 @@ I want an easy way to add/update tags and other links on a given zettel. To star
                 links done)
             (while (not done)
               ;; is the point on an org link?
-              (if-let ((elem (org-element-link-parser)))
+              (if-let* ((elem (org-element-link-parser)))
                   (progn
                     (setq links (cons (org-roam-node-from-id
                                        (org-element-property :path elem))
@@ -5089,10 +5089,10 @@ I want an easy way to add/update tags and other links on a given zettel. To star
     (interactive "P")
     (let ((tags (zetian-get-header-links 'tags))
           (removing (equal arg '(4))))
-      (when-let ((node (if removing
-                           (zetian-completing-read tags)
-                         (zetian-search zetian-query-tag-targets
-                                        "add tag" t))))
+      (when-let* ((node (if removing
+                            (zetian-completing-read tags)
+                          (zetian-search zetian-query-tag-targets
+                                         "add tag" t))))
         (setq tags (if removing
                        (delete node tags)
                      (cons node tags)))
@@ -5143,9 +5143,9 @@ A =zetian= node can be a conversation so we want to keep the context of the note
     (interactive "P")
     (let ((links (zetian-get-header-links 'context))
           (removing (equal arg '(4))))
-      (when-let ((node (if removing
-                           (zetian-completing-read links)
-                         (zetian-search nil "add context" t))))
+      (when-let* ((node (if removing
+                            (zetian-completing-read links)
+                          (zetian-search nil "add context" t))))
         (setq links (if removing
                         (delete node links)
                       (cons node links)))
@@ -5156,7 +5156,7 @@ A =zetian= node can be a conversation so we want to keep the context of the note
 #+BEGIN_SRC emacs-lisp
   (defun zetian-get-title ()
     "Return the title from the current zetian node."
-    (when-let ((node (org-roam-node-at-point)))
+    (when-let* ((node (org-roam-node-at-point)))
       (org-roam-node-title node)))
 #+END_SRC
 
@@ -5197,7 +5197,7 @@ I'd like a function to copy the current node's id, both to the =kill-ring= and t
   (defun zetian-kill-id ()
     "Add the current node's id to the kill ring and system clipboard."
     (interactive)
-    (when-let ((node (org-roam-node-at-point)))
+    (when-let* ((node (org-roam-node-at-point)))
       (with-temp-buffer
         (insert (org-roam-node-id node))
         (clipboard-kill-ring-save 1 (point))
@@ -5243,15 +5243,15 @@ Let's migrate my book importing code to =org-roam=.
                                (assoc-default 'ol-author-ids book)))
                    "\n"))
                 (maybe-quote
-                 ,(when-let ((desc (assoc-default 'description book)))
+                 ,(when-let* ((desc (assoc-default 'description book)))
                     (format "#+begin_quote\n%s\n#+end_quote\n\n" desc)))
                 (lt-uri
-                 ,(if-let (id (assoc-default 'librarything-id book))
+                 ,(if-let* ((id (assoc-default 'librarything-id book)))
                       (format "/work/%s" id)
                     (format "/search.php?search=%s"
                             (assoc-default 'query-title book))))
                 (gr-uri
-                 ,(if-let (id (assoc-default 'goodreads-id book))
+                 ,(if-let* ((id (assoc-default 'goodreads-id book)))
                       (format "/book/show/%s" id)
                     (format "/search?q=%s&search_type=books"
                             (assoc-default 'query-title book))))))))
@@ -5278,9 +5278,9 @@ Let's migrate my book importing code to =org-roam=.
                                 ,(zetian--format-template
                                   book "data/templates/capture-book-header.org")))))
       (cl-letf ((org-roam-capture-templates (list template)))
-        (when-let ((node (zetian-node-create title "p")))
+        (when-let* ((node (zetian-node-create title "p")))
           (when tag
-            (if-let ((tag-node (org-roam-node-from-title-or-alias tag)))
+            (if-let* ((tag-node (org-roam-node-from-title-or-alias tag)))
                 (save-excursion
                   (zetian-node-find tag-node)
                   (goto-char (point-max))
@@ -5335,7 +5335,7 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
                      (format "[%s]: " query-name)
                    "Zetian Node: "))
          (selection (completing-read prompt completing-func)))
-      (if-let ((node (assoc-default selection candidates)))
+      (if-let* ((node (assoc-default selection candidates)))
           (prog1 node
             ;; remove the 'zetian-node property added to the title
             (remove-text-properties
@@ -5351,7 +5351,7 @@ Here we'll integrate =zetian= with emacs built-in =completing-read= api. We'll a
     "Similar to `org-roam-capture' and `org-capture', but for Zetian. Will
   auto-complete the capture template."
     (interactive)
-    (when-let ((node (zetian-completing-read (zetian-query-all) "all nodes" t)))
+    (when-let* ((node (zetian-completing-read (zetian-query-all) "all nodes" t)))
       (zetian-node-find node)))
 #+END_SRC
 
@@ -5369,7 +5369,7 @@ Let's tell =marginalia= how to annotate zetian nodes so we get pretty completion
   (defun zetian--completion-annotator (cand)
     "An annotator function for zetian nodes to be called from
   `completing-read'."
-    (when-let ((node (get-text-property 0 'zetian-node cand)))
+    (when-let* ((node (get-text-property 0 'zetian-node cand)))
       (let* ((todo (org-roam-node-todo node))
              (todo-face (if (member todo zetian--org-done-keywords)
                             'org-done
@@ -5441,8 +5441,8 @@ I need a way to map from the ebook filename to a =zetian= note id. First try and
   (defun zetian--add-ebook-mapping (ebook)
     "Prompt the user for the zetian note that EBOOK should be associated with."
     (interactive)
-    (when-let ((node (zetian-search '(type "book")
-                                    (format "associate (%s) with book" ebook))))
+    (when-let* ((node (zetian-search '(type "book")
+                                     (format "associate (%s) with book" ebook))))
       (push (cons ebook (org-roam-node-id node)) zetian--ebook-mapping)
       (with-temp-file zetian-ebook-mapping-file
         (insert (format "%S" zetian--ebook-mapping)))
@@ -5501,8 +5501,8 @@ Now we need a way to lookup a reference note by the book's note.
   (defun zetian--moonreader-backup-file ()
     "Return the filename of the moonreader backup file to process."
     (interactive)
-    (when-let ((files (file-expand-wildcards
-                       (concat zetian-moonreader-backup-dir "*.mrpro"))))
+    (when-let* ((files (file-expand-wildcards
+                        (concat zetian-moonreader-backup-dir "*.mrpro"))))
       (if (= 1 (length files))
           (car files)
         (completing-read "moonreader backup to process: " files))))
@@ -5583,9 +5583,9 @@ Now we need a way to lookup a reference note by the book's note.
   (defun zetian--moonreader-import-highlight (highlight)
     "Import HIGHLIGHT into zetian if it's not already imported."
     (interactive)
-    (when-let ((ebook (assoc-default 'ebook highlight))
-               (book-node (zetian-node-from-ebook ebook))
-               (ref-node (zetian-ref-node-from-book-node book-node)))
+    (when-let* ((ebook (assoc-default 'ebook highlight))
+                (book-node (zetian-node-from-ebook ebook))
+                (ref-node (zetian-ref-node-from-book-node book-node)))
       (with-zetian-node ref-node
         (let ((checksum (assoc-default 'checksum highlight))
               (current-checksums
@@ -5603,13 +5603,13 @@ Now we need a way to lookup a reference note by the book's note.
     "Import any highlights from a moonreader backup in
   `zetian-moonreader-backup-dir'."
     (interactive)
-    (if-let ((backup (zetian--moonreader-backup-file)))
+    (if-let* ((backup (zetian--moonreader-backup-file)))
         (let* ((tmpdir (zetian--moonreader-extract backup))
                (db-file (zetian--moonreader-database-file tmpdir))
                (highlights (zetian--moonreader-highlights db-file))
                imported)
           (dolist (highlight highlights)
-            (when-let ((node (zetian--moonreader-import-highlight highlight)))
+            (when-let* ((node (zetian--moonreader-import-highlight highlight)))
               (push node imported)))
           (message "imported %d new notes (%d total moonreader notes)"
                    (length imported) (length highlights))
@@ -5642,7 +5642,7 @@ I want to be able to rename a =zetian= note. This should not only change the tit
   (defun zetian-rename-current ()
     "Rename the current note, updating any linking notes"
     (interactive)
-    (when-let ((old-title (zetian-get-title)))
+    (when-let* ((old-title (zetian-get-title)))
       (let ((new-title (read-from-minibuffer "new name: " old-title))
             (cur (org-roam-node-at-point))
             (inhibit-read-only t))
@@ -5901,8 +5901,8 @@ Open a buffer with a list of all the open tasks grouped by project.
       (mapc
        (lambda (area)
          (insert (concat "* " (zetian--report-format area) "\n"))
-         (when-let ((tasks (zetian-query `(and ,zetian-query-open-task-or-event
-                                               (links-to ,area)))))
+         (when-let* ((tasks (zetian-query `(and ,zetian-query-open-task-or-event
+                                                (links-to ,area)))))
            ;; for each task linked to this area
            (mapc
              (lambda (task)
@@ -6023,7 +6023,7 @@ I'd like something similar to =org-roam-buffer-toggle=.
 #+BEGIN_SRC emacs-lisp
   (defun zetian-show-links-buffer ()
     (interactive)
-    (when-let ((node (org-roam-node-at-point)))
+    (when-let* ((node (org-roam-node-at-point)))
       (pop-to-buffer-same-window
        (get-buffer-create "*zetian links buffer*"))
       (org-transclusion-mode -1)
@@ -6348,7 +6348,7 @@ I would like to export my zetian graph into a suitable format for viewing on mob
           (state (org-roam-node-todo node))
           (scheduled (or (org-roam-node-scheduled node) ""))
           (deadline (or (org-roam-node-deadline node) ""))
-          (priority (if-let (p (org-roam-node-priority node))
+          (priority (if-let* ((p (org-roam-node-priority node)))
                         (char-to-string p)
                       ""))
           (effort (or (cdr (assoc "EFFORT" (org-roam-node-properties node))) "")))
@@ -6553,7 +6553,7 @@ I want a keybind to automatically open the source of a user-prompted library.
   (defun ic/open-library-source ()
     "Locate and navigate to the source of a user-prompted emacs library."
     (interactive)
-    (when-let ((source (call-interactively #'locate-library)))
+    (when-let* ((source (call-interactively #'locate-library)))
       (find-file source)))
 #+END_SRC
 ** Registers
