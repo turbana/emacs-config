@@ -11,3 +11,30 @@
 #+title: Quarterly journal for Q`(zetian-quarter-number time)` `(format-time-string "%Y" time)`
 
 Quarter `(zetian-quarter-number time)` :: `(zetian-journal-year-link time)`
+
+/What is the brief overview for what I want to acomplish this quarter?/
+$0
+
+* Main Goals
+/What are my three goals for this quarter?/
+** Goal One
+| Action | Due |
+|--------+-----|
+|        |     |
+
+** Goal Two
+| Action | Due |
+|--------+-----|
+|        |     |
+
+** Goal Three
+| Action | Due |
+|--------+-----|
+|        |     |
+
+* Goal Indicators
+/What are the specific, measurable indicators I can use to know if I'm on track
+for each of my goals?/
+
+* Progress Report
+/A table that I can use to keep track of my progress on each goal./
